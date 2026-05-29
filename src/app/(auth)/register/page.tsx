@@ -6,14 +6,12 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import type { Role } from '@/types/domain'
 
 export default function RegisterPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [crm, setCrm] = useState('')
-  const [role, setRole] = useState<Role>('student')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
@@ -27,6 +25,12 @@ export default function RegisterPage() {
 
     if (!fullName.trim()) {
       setError('Nome completo é obrigatório.')
+      setLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.')
       setLoading(false)
       return
     }
@@ -108,24 +112,6 @@ export default function RegisterPage() {
           autoComplete="new-password"
           minLength={6}
         />
-
-        <div className="flex flex-col gap-1">
-          <label htmlFor="role" className="text-sm font-medium text-gray-700">
-            Perfil
-          </label>
-          <select
-            id="role"
-            name="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value as Role)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="student">Estudante de medicina</option>
-            <option value="resident">Residente</option>
-            <option value="physician">Médico</option>
-          </select>
-        </div>
-
         <Input
           id="crm"
           label="CRM (opcional)"

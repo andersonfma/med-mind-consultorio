@@ -38,7 +38,7 @@ export async function proxy(request: NextRequest) {
     url.pathname = redirectPath
     const redirect = NextResponse.redirect(url)
     supabaseResponse.cookies.getAll().forEach((c) =>
-      redirect.cookies.set(c.name, c.value)
+      redirect.cookies.set(c)
     )
     return redirect
   }
