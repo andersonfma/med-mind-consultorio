@@ -13,35 +13,24 @@ test.describe('Autenticação', () => {
     await expect(page).toHaveURL(/.*login/)
   })
 
-  test('cadastro de novo usuário redireciona para dashboard', async ({
-    page,
-  }) => {
+  test('cadastro exibe tela de confirmação de e-mail', async ({ page }) => {
     await page.goto('/register')
     await page.fill('#fullName', testUser.fullName)
     await page.fill('#email', testUser.email)
     await page.fill('#password', testUser.password)
     await page.selectOption('#role', 'student')
     await page.click('[type="submit"]')
-    await expect(page).toHaveURL(/.*dashboard/)
+    await expect(page.getByRole('heading', { name: 'Confirme seu e-mail' })).toBeVisible()
+    await expect(page.getByText(testUser.email)).toBeVisible()
   })
 
-  test('login após cadastro redireciona para dashboard', async ({ page }) => {
-    await page.goto('/login')
-    await page.fill('#email', testUser.email)
-    await page.fill('#password', testUser.password)
-    await page.click('[type="submit"]')
-    await expect(page).toHaveURL(/.*dashboard/)
+  test('callback com código inválido redireciona para login com erro', async ({ page }) => {
+    await page.goto('/auth/callback?code=invalid_code')
+    await expect(page).toHaveURL(/.*login\?error=confirmation_failed/)
   })
 
-  test('usuário autenticado é redirecionado do login para dashboard', async ({
-    page,
-  }) => {
-    await page.goto('/login')
-    await page.fill('#email', testUser.email)
-    await page.fill('#password', testUser.password)
-    await page.click('[type="submit"]')
-    await expect(page).toHaveURL(/.*dashboard/)
-    await page.goto('/login')
-    await expect(page).toHaveURL(/.*dashboard/)
+  test('callback sem código redireciona para login com erro', async ({ page }) => {
+    await page.goto('/auth/callback')
+    await expect(page).toHaveURL(/.*login\?error=confirmation_failed/)
   })
 })
