@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const [role, setRole] = useState<Role>('student')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -30,7 +31,7 @@ export default function RegisterPage() {
       return
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -47,8 +48,27 @@ export default function RegisterPage() {
       return
     }
 
+    if (!data.session) {
+      setEmailSent(true)
+      setLoading(false)
+      return
+    }
+
     router.push('/dashboard')
     router.refresh()
+  }
+
+  if (emailSent) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+        <h2 className="text-xl font-semibold text-gray-900 mb-3">Confirme seu e-mail</h2>
+        <p className="text-sm text-gray-600">
+          Enviamos um link de confirmação para <strong>{email}</strong>.
+          Verifique sua caixa de entrada e clique no link para ativar sua conta.
+        </p>
+        <p className="text-xs text-gray-400 mt-3">Não recebeu? Verifique a pasta de spam.</p>
+      </div>
+    )
   }
 
   return (
@@ -109,10 +129,12 @@ export default function RegisterPage() {
           id="crm"
           label="CRM (opcional)"
           type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           name="crm"
           value={crm}
-          onChange={(e) => setCrm(e.target.value)}
-          placeholder="Ex: SP-123456"
+          onChange={(e) => setCrm(e.target.value.replace(/\D/g, ''))}
+          placeholder="Somente números"
         />
 
         {error && (
