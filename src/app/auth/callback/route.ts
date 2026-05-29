@@ -7,11 +7,9 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const next = searchParams.get('next')
 
-  // Behind a reverse proxy (Easypanel/Docker), request.url uses the internal
-  // 0.0.0.0 address. Use forwarded headers to build the correct public origin.
-  const proto = request.headers.get('x-forwarded-proto') ?? 'https'
-  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? ''
-  const origin = host ? `${proto}://${host}` : new URL(request.url).origin
+  // Use canonical site URL from env to avoid host-header injection via
+  // x-forwarded-host. Falls back to request origin for local dev.
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin
 
   if (code) {
     const supabase = await createClient()
