@@ -26,7 +26,11 @@ CREATE POLICY "Usuário lê próprio perfil"
 
 CREATE POLICY "Usuário edita próprio perfil"
   ON profiles FOR UPDATE
-  USING (auth.uid() = id);
+  USING (auth.uid() = id)
+  WITH CHECK (
+    auth.uid() = id
+    AND role = (SELECT role FROM profiles WHERE id = auth.uid())
+  );
 
 -- Trigger: atualiza updated_at automaticamente
 CREATE OR REPLACE FUNCTION set_updated_at()
@@ -50,11 +54,12 @@ BEGIN
     RAISE EXCEPTION 'full_name é obrigatório no cadastro';
   END IF;
 
+  -- role sempre 'student' no cadastro — elevação de role requer processo admin
   INSERT INTO public.profiles (id, full_name, role)
   VALUES (
     NEW.id,
     NEW.raw_user_meta_data->>'full_name',
-    COALESCE(NEW.raw_user_meta_data->>'role', 'student')
+    'student'
   );
   RETURN NEW;
 END;
