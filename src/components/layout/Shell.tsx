@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import Link from 'next/link'
+import { LogoutButton } from './LogoutButton'
 
 interface ShellProps {
   children: ReactNode
@@ -13,7 +14,10 @@ export function Shell({ children }: ShellProps) {
           <Link href="/dashboard" className="font-semibold text-gray-900">
             Med Mind
           </Link>
-          <span className="text-xs text-gray-400">Módulo Consultório</span>
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-gray-400">Módulo Consultório</span>
+            <LogoutButton />
+          </div>
         </div>
       </header>
       <main className="max-w-5xl mx-auto px-6 py-8">{children}</main>
