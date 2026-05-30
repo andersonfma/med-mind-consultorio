@@ -31,6 +31,11 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // API routes are never redirected — the route handler returns 401 itself.
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return supabaseResponse
+  }
+
   const redirectPath = getRedirectPath(request.nextUrl.pathname, !!user)
 
   if (redirectPath) {
