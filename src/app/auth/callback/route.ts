@@ -7,9 +7,9 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const next = searchParams.get('next')
 
-  // Use canonical site URL from env to avoid host-header injection via
-  // x-forwarded-host. Falls back to request origin for local dev.
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin
+  // SITE_URL is a server-only runtime env var — no build-time baking needed.
+  // Falls back to request origin for local dev (where SITE_URL is not set).
+  const origin = process.env.SITE_URL ?? new URL(request.url).origin
 
   if (code) {
     const supabase = await createClient()
