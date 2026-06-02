@@ -193,7 +193,7 @@ independentemente com `supabase.auth.getUser()`.
 // Imports obrigatórios no topo de dashboard/page.tsx:
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { DASHBOARD_ROUTE } from '@/lib/routes'
+import { LOGIN_ROUTE, DASHBOARD_ROUTE } from '@/lib/routes'
 import { hasAvailableSlot } from '@/lib/patients/slots'
 
 // No componente:
@@ -254,7 +254,7 @@ O guard usa queries paralelas de contagem. Usar `Promise.all` — consistente co
 // Imports obrigatórios no topo de patients/new/page.tsx:
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { DASHBOARD_ROUTE } from '@/lib/routes'
+import { LOGIN_ROUTE, DASHBOARD_ROUTE } from '@/lib/routes'
 
 // No componente — obter supabase e user antes das queries:
 const supabase = await createClient()
@@ -358,7 +358,7 @@ Server component. Em Next.js 15+, `params` é uma Promise — sempre aguardar:
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { DASHBOARD_ROUTE, STUB_CONSULTATION_ROUTE } from '@/lib/routes'
+import { LOGIN_ROUTE, DASHBOARD_ROUTE, STUB_CONSULTATION_ROUTE } from '@/lib/routes'
 import { BondBar } from '@/components/ui/BondBar'
 
 // Assinatura obrigatória do componente (Next.js 15+ — params é Promise):
@@ -423,9 +423,11 @@ export const DASHBOARD_ROUTE        = '/dashboard'
 export const STUB_CONSULTATION_ROUTE = '/consultations/stub'
 ```
 
-`DASHBOARD_ROUTE` cobre todos os hardcodes existentes em `redirect.ts`,
-`safe-next.ts` e nas páginas de auth. `STUB_CONSULTATION_ROUTE` é substituído
-em SP2 pelo valor real. Um único arquivo para atualizar em ambos os casos.
+`LOGIN_ROUTE`, `DASHBOARD_ROUTE` e `STUB_CONSULTATION_ROUTE` são as constantes
+centralizadas — um único arquivo para atualizar. Na migração SP1:
+- Substituir `'/dashboard'` em `redirect.ts`, `safe-next.ts` e páginas por `DASHBOARD_ROUTE`
+- Substituir `'/login'` em `redirect.ts` por `LOGIN_ROUTE`
+- `STUB_CONSULTATION_ROUTE` é substituído em SP2 pelo valor real
 
 **Atenção nos testes**: `redirect.test.ts` e `safe-next.test.ts` têm assertions
 com `'/dashboard'` hardcoded (ex: `.toBe('/dashboard')`). Após a migração para
@@ -703,8 +705,9 @@ O cliente OpenAI já existe em `src/lib/openai/client.ts` (importa `'server-only
 O prompt deve viver em `prompt.ts` para ser testável isoladamente:
 
 ```ts
-// ChatCompletionCreateParamsNonStreaming exportado diretamente de 'openai'
-import type { ChatCompletionCreateParamsNonStreaming } from 'openai'
+// ChatCompletionCreateParamsNonStreaming vive em openai/resources/chat/completions.
+// Verificar o path correto na versão instalada do SDK; alternativa mais segura:
+import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions'
 import type { Specialty, Difficulty } from './specialties'
 
 export function buildPatientPrompt(
@@ -866,7 +869,7 @@ src/
 │   └── ui/
 │       └── BondBar.tsx                   ← 5 barras de vínculo
 ├── lib/
-│   ├── routes.ts                         ← STUB_CONSULTATION_ROUTE e futuras rotas
+│   ├── routes.ts                         ← LOGIN_ROUTE, DASHBOARD_ROUTE, STUB_CONSULTATION_ROUTE
 │   └── patients/
 │       ├── specialties.ts                ← constante SPECIALTIES + tipo Specialty
 │       ├── specialties.test.ts           ← cross-valida TS vs CHECK constraint do banco
@@ -897,8 +900,8 @@ src/
 - [ ] Função `create_patient` com SECURITY DEFINER, `search_path = public`, ERRCODEs US001/US002, REVOKE PUBLIC + GRANT TO authenticated
 - [ ] `database.ts` regenerado após migration
 - [ ] `POST /api/patients` funcional: gpt-4o-mini, response_format json_object, timeout 25s, mapeamento explícito dos parâmetros do RPC, retorna `{ status: 201 }`
-- [ ] Constantes `DASHBOARD_ROUTE` e `STUB_CONSULTATION_ROUTE` em `src/lib/routes.ts`
-- [ ] `redirect.ts`, `safe-next.ts` e demais hardcodes de `/dashboard` substituídos por `DASHBOARD_ROUTE`; assertions nos testes dessas funções também atualizadas para usar a constante
+- [ ] Constantes `LOGIN_ROUTE`, `DASHBOARD_ROUTE` e `STUB_CONSULTATION_ROUTE` em `src/lib/routes.ts`
+- [ ] `redirect.ts`: `/dashboard` → `DASHBOARD_ROUTE`, `/login` → `LOGIN_ROUTE`; assertions nos testes atualizadas para importar as constantes
 - [ ] Constante `SPECIALTIES` compartilhada entre frontend e backend
 - [ ] Teste de cross-validação: `SPECIALTIES` e `DIFFICULTIES` vs CHECK constraints do banco
 - [ ] Dashboard: `getUser()` + `redirect(LOGIN_ROUTE)` no topo, `Promise.all` com `count: 'exact'`, `used_slots` de `patientsResult.count`, imports de `redirect`/`createClient`/`DASHBOARD_ROUTE`/`hasAvailableSlot`, JSX com `disabled={!hasAvailableSlot(used_slots, total_slots)}`
