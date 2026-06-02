@@ -251,31 +251,33 @@ Isso garante que o guard não seja bypassável via navegação direta.
 
 O guard usa queries paralelas de contagem. Usar `Promise.all` — consistente com o dashboard:
 ```ts
-// Imports obrigatórios no topo de patients/new/page.tsx:
+// patients/new/page.tsx — estrutura completa:
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LOGIN_ROUTE, DASHBOARD_ROUTE } from '@/lib/routes'
+import { NewPatientForm } from './NewPatientForm'  // ← import do Client Component
 
-// No componente — obter supabase e user antes das queries:
-const supabase = await createClient()
-const { data: { user } } = await supabase.auth.getUser()
-if (!user) redirect(LOGIN_ROUTE)  // fallback; nunca redirecionar para DASHBOARD (loop)
+export default async function Page() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect(LOGIN_ROUTE)
 
-const [patientsCount, profileResult] = await Promise.all([
-  supabase.from('patients').select('id', { count: 'exact' }),
-  supabase.from('profiles').select('total_slots').eq('id', user.id).single(),
-])
+  const [patientsCount, profileResult] = await Promise.all([
+    // count: exact sem head — garante que count nunca é capped pelo page size
+    supabase.from('patients').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('total_slots').eq('id', user.id).single(),
+  ])
 
-// Distinguir erro de DB (throw → error.tsx) de "perfil ausente" (não deve ocorrer)
-if (profileResult.error) throw profileResult.error
-if (!profileResult.data) throw new Error('Profile not found')
+  if (profileResult.error) throw profileResult.error
+  if (!profileResult.data) throw new Error('Profile not found')
 
-// Se a query de contagem falhar, o guard falha "aberto" (mostra o form).
-// O create_patient RPC é a barreira real — o guard é apenas UX.
-const count = patientsCount.count ?? 0
+  const count = patientsCount.count ?? 0
 
-if (count >= profileResult.data.total_slots) {
-  redirect(DASHBOARD_ROUTE)
+  if (count >= profileResult.data.total_slots) {
+    redirect(DASHBOARD_ROUTE)
+  }
+
+  return <NewPatientForm />  // ← renderiza o Client Component após o guard passar
 }
 ```
 
@@ -297,6 +299,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
 import type { Specialty, Difficulty } from '@/lib/patients/specialties'
+import { patientDetailRoute } from '@/lib/routes'
 
 export function NewPatientForm() {
   const router = useRouter()
@@ -323,7 +326,7 @@ export function NewPatientForm() {
           return
         }
         // Não chamar setLoading(false) aqui — a navegação vai desmontar o componente
-        router.push('/patients/' + data.id)
+        router.push(patientDetailRoute(data.id))  // usa helper de rota centralizado
       } else {
         const json = await response.json()      // await obrigatório
         setFormError(json?.error ?? 'Erro desconhecido')
@@ -419,8 +422,11 @@ e botão "Voltar". Existe para que o botão "Iniciar atendimento" não fique sem
 ```ts
 // src/lib/routes.ts
 export const LOGIN_ROUTE             = '/login'
-export const DASHBOARD_ROUTE        = '/dashboard'
+export const DASHBOARD_ROUTE         = '/dashboard'
 export const STUB_CONSULTATION_ROUTE = '/consultations/stub'
+
+// Helper para rota de detalhe do paciente — evita string hardcoded em NewPatientForm
+export const patientDetailRoute = (id: string) => `/patients/${id}`
 ```
 
 `LOGIN_ROUTE`, `DASHBOARD_ROUTE` e `STUB_CONSULTATION_ROUTE` são as constantes
@@ -801,7 +807,7 @@ Usos no dashboard:
 ## 11. Testes
 
 **Unitários (Vitest):**
-- `buildPatientPrompt(specialty, difficulty)` → verifica que o objeto retornado tem o model correto, response_format json_object, e que o content inclui a especialidade e dificuldade interpolados
+- `buildPatientPrompt(specialty, difficulty)` → verifica: `model === 'gpt-4o-mini'`, `response_format.type === 'json_object'`, `messages.length === 1`, `messages[0].role === 'user'`, `messages[0].content` inclui a especialidade e dificuldade interpolados
 - `hasAvailableSlot(usedSlots, totalSlots)` → boolean correto nos limites (0, igual, acima).
 
   Implementação em `src/lib/patients/slots.ts`:
@@ -849,6 +855,7 @@ PostgreSQL normaliza `IN ('A','B')` para `= ANY (ARRAY['A'::text, 'B'::text])`.
 src/
 ├── app/
 │   ├── (dashboard)/
+│   │   ├── error.tsx                     ← captura throw de DB error nas pages (getUser, profileResult)
 │   │   ├── dashboard/
 │   │   │   └── page.tsx                  ← reformulado (2 colunas, sem duplo getUser)
 │   │   ├── patients/
@@ -900,7 +907,7 @@ src/
 - [ ] Função `create_patient` com SECURITY DEFINER, `search_path = public`, ERRCODEs US001/US002, REVOKE PUBLIC + GRANT TO authenticated
 - [ ] `database.ts` regenerado após migration
 - [ ] `POST /api/patients` funcional: gpt-4o-mini, response_format json_object, timeout 25s, mapeamento explícito dos parâmetros do RPC, retorna `{ status: 201 }`
-- [ ] Constantes `LOGIN_ROUTE`, `DASHBOARD_ROUTE` e `STUB_CONSULTATION_ROUTE` em `src/lib/routes.ts`
+- [ ] Constantes `LOGIN_ROUTE`, `DASHBOARD_ROUTE`, `STUB_CONSULTATION_ROUTE` e helper `patientDetailRoute(id)` em `src/lib/routes.ts`
 - [ ] `redirect.ts`: `/dashboard` → `DASHBOARD_ROUTE`, `/login` → `LOGIN_ROUTE`; assertions nos testes atualizadas para importar as constantes
 - [ ] Constante `SPECIALTIES` compartilhada entre frontend e backend
 - [ ] Teste de cross-validação: `SPECIALTIES` e `DIFFICULTIES` vs CHECK constraints do banco
@@ -909,6 +916,7 @@ src/
 - [ ] `NewPatientForm.tsx` como Client Component com `useRouter`, `fetch`, `await response.json()` e guard `data?.id`
 - [ ] Página `/patients/[id]` com `await params`, `getUser()` no topo, query do paciente, e botão usando `STUB_CONSULTATION_ROUTE`
 - [ ] Página `/consultations/stub` como placeholder
+- [ ] `(dashboard)/error.tsx` criado para capturar erros de DB nas pages
 - [ ] Componente `<BondBar />` funcional
 - [ ] Componente `<PlaceholderChart />` reutilizado 3x no dashboard
 - [ ] Testes unitários, de concorrência e cross-validação passando
