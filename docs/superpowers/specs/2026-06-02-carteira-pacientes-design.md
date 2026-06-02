@@ -181,10 +181,15 @@ operação seja eficiente mesmo se o teto de slots crescer.
 ### `/dashboard`
 
 Server component. No Next.js App Router, layouts não passam props para pages —
-cada page é um Server Component independente. O `page.tsx` deve buscar seus
-próprios dados. Para evitar round-trip extra de auth, ler a sessão cacheada
-via `supabase.auth.getUser()` (o cookie já foi validado pelo middleware; a
-chamada no page usa cache de sessão local, não uma nova requisição de rede).
+cada page é um Server Component independente. Cada page deve obter o usuário
+independentemente com `supabase.auth.getUser()`.
+
+```ts
+// Declaração obrigatória no topo de dashboard/page.tsx:
+const supabase = await createClient()
+const { data: { user } } = await supabase.auth.getUser()
+if (!user) redirect(DASHBOARD_ROUTE)  // fallback defensivo; middleware já garante
+```
 
 Buscar em paralelo com `Promise.all` — obrigatório, não sequential awaits:
 ```ts
@@ -256,9 +261,8 @@ if (count >= profileResult.data.total_slots) {
 
 **Mecanismo do formulário**: o formulário é um **Client Component** (`'use client'`)
 que envolve a parte interativa da página. O guard server-side permanece no Server
-Component pai. O Client Component usa `fetch('POST', '/api/patients', body)` — não
-um Server Action nem HTML form nativo (que enviaria `application/x-www-form-urlencoded`
-em vez de JSON, quebrando o `request.json()` no route handler).
+Component pai. O Client Component usa `fetch` com JSON — não um HTML form nativo
+(que enviaria `application/x-www-form-urlencoded`, incompatível com `request.json()`).
 
 Estrutura da página:
 ```
@@ -266,17 +270,41 @@ patients/new/page.tsx          ← Server Component (guard)
   └── NewPatientForm.tsx        ← Client Component ('use client') com fetch
 ```
 
-1. Dropdown de especialidade (lista fixa — importar `SPECIALTIES` de `specialties.ts`)
-2. Três botões de dificuldade: Fácil / Médio / Difícil (valores: `easy`, `medium`, `hard`)
-3. Botão "Confirmar" → `fetch('/api/patients', { method: 'POST', body: JSON.stringify({specialty, difficulty}) })`
-   → spinner com texto *"Seu próximo paciente está chegando..."*
-4. Em caso de sucesso (`response.status === 201`): `router.push('/patients/' + data.id)`
-5. Em caso de erro: exibir `response.json().error`, botão reativado
+```tsx
+// NewPatientForm.tsx — imports obrigatórios:
+'use client'
+import { useRouter } from 'next/navigation'
+import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
+
+// No componente:
+const router = useRouter()
+
+// Submissão:
+const response = await fetch('/api/patients', {
+  method: 'POST',
+  body: JSON.stringify({ specialty, difficulty }),
+  // Content-Type não é necessário — request.json() lê o body independentemente
+})
+
+if (response.status === 201) {
+  const data = await response.json()        // await obrigatório antes de acessar data
+  if (!data?.id) throw new Error('Missing id in response')  // guard contra id undefined
+  router.push('/patients/' + data.id)
+} else {
+  const { error } = await response.json()   // await obrigatório
+  setError(error ?? 'Erro desconhecido')
+}
+```
 
 ### `/patients/[id]`
 
 Server component. Em Next.js 15+, `params` é uma Promise — sempre aguardar:
 ```ts
+// Obter usuário (igual ao dashboard — cada page é independente)
+const supabase = await createClient()
+const { data: { user } } = await supabase.auth.getUser()
+if (!user) redirect(DASHBOARD_ROUTE)
+
 // params deve ser tipado como Promise<{ id: string }> na assinatura do componente
 const { id } = await params
 
@@ -364,8 +392,10 @@ comparando como Set, não como string literal.
 
 ## 6. API route: `POST /api/patients`
 
-**Autenticação**: middleware garante sessão válida. A route verifica `user_id`
-via `supabase.auth.getUser()` com o client server-side.
+**Autenticação**: o middleware garante que apenas usuários autenticados chegam
+a esta rota (redireciona para `/login` se não autenticado). A função `create_patient`
+usa `auth.uid()` internamente para identificar o usuário — o route handler não
+precisa chamar `getUser()`. Não há `user_id` explícito no body da request.
 
 **Estratégia de atomicidade**: usar função PostgreSQL `create_patient` via
 `supabase.rpc()`. A função encapsula o slot check + insert em uma transação
@@ -391,14 +421,26 @@ if (!(SPECIALTIES as readonly string[]).includes(body.specialty))
 if (!(DIFFICULTIES as readonly string[]).includes(body.difficulty))
   return NextResponse.json({ error: 'Invalid difficulty' }, { status: 400 })
 
-// 2. Chama OpenAI com timeout de 25s
-//    timeout → NextResponse.json({ error: 'OpenAI timeout' }, { status: 408 })
-//    erro    → NextResponse.json({ error: 'OpenAI error' }, { status: 500 })
+// 2. Chama OpenAI com timeout de 25s via opção do SDK:
+//    import { APITimeoutError } from 'openai'
+//    import openai from '@/lib/openai/client'
+//
+//    let completion
+//    try {
+//      completion = await openai.chat.completions.create({ ...payload }, { timeout: 25_000 })
+//    } catch (e) {
+//      if (e instanceof APITimeoutError)
+//        return NextResponse.json({ error: 'OpenAI timeout' }, { status: 408 })
+//      return NextResponse.json({ error: 'OpenAI error' }, { status: 500 })
+//    }
 //
 //    Parsing da resposta (response_format: json_object retorna string, não objeto):
 //    const content = completion.choices[0].message.content
 //    if (!content) return NextResponse.json({ error: 'OpenAI empty response' }, { status: 500 })
-//    const openAI = JSON.parse(content)  // sempre parsear — content é sempre string
+//    // JSON.parse pode lançar SyntaxError se o modelo truncar a resposta (finish_reason: 'length')
+//    let openAI: unknown
+//    try { openAI = JSON.parse(content) }
+//    catch { return NextResponse.json({ error: 'OpenAI returned invalid JSON' }, { status: 500 }) }
 
 // 3. Valida e mapeia resposta OpenAI + body:
 
@@ -710,8 +752,9 @@ src/
 - [ ] Constante `SPECIALTIES` compartilhada entre frontend e backend
 - [ ] Teste de cross-validação: `SPECIALTIES` vs CHECK constraint do banco
 - [ ] Dashboard: `Promise.all` com `count: 'exact'`, `used_slots` de `patientsResult.count`, sem `getUser()` redundante
-- [ ] Página `/patients/new` com guard server-side usando `Promise.all` + `select('id', { count: 'exact', head: true })`
-- [ ] Página `/patients/[id]` com tags, estado clínico, histórico e botão usando `STUB_CONSULTATION_ROUTE`
+- [ ] Página `/patients/new` com guard server-side usando `Promise.all` + `select('id', { count: 'exact' })`
+- [ ] `NewPatientForm.tsx` como Client Component com `useRouter`, `fetch`, `await response.json()` e guard `data?.id`
+- [ ] Página `/patients/[id]` com `await params`, `getUser()` no topo, query do paciente, e botão usando `STUB_CONSULTATION_ROUTE`
 - [ ] Página `/consultations/stub` como placeholder
 - [ ] Componente `<BondBar />` funcional
 - [ ] Componente `<PlaceholderChart />` reutilizado 3x no dashboard
