@@ -42,7 +42,18 @@ dashboard são placeholders com dados mockados.
 
 ## 3. Schema do banco
 
-### Migration `0002_add_patients.sql`
+### Migration — criação via CLI
+
+**Nunca criar o arquivo manualmente.** Usar o Supabase CLI para gerar o arquivo
+com prefixo de timestamp correto (necessário para ordenação e histórico):
+
+```bash
+supabase migration new add_patients
+```
+
+O CLI cria um arquivo como `supabase/migrations/20260602XXXXXX_add_patients.sql`.
+Editar esse arquivo com o SQL desta seção. Aplicar com `supabase db push` ou
+`supabase migration up`.
 
 Esta migration faz três coisas:
 1. Adiciona `total_slots` à tabela `profiles` existente
@@ -103,7 +114,7 @@ CREATE TABLE patients (
                       )),
   difficulty        TEXT NOT NULL CHECK (difficulty IN ('easy', 'medium', 'hard')),
   chief_complaint   TEXT NOT NULL,
-  diagnosis         TEXT,                        -- null até o aluno fechar o diagnóstico
+  diagnosis         TEXT,                        -- null em SP1; populado pelo aluno em SP2
   clinical_status   TEXT NOT NULL,               -- atualizado após cada consulta pela IA
   bond_level        INTEGER NOT NULL DEFAULT 1
                       CHECK (bond_level BETWEEN 1 AND 5),
@@ -178,14 +189,21 @@ chamada no page usa cache de sessão local, não uma nova requisição de rede).
 Buscar em paralelo com `Promise.all` — obrigatório, não sequential awaits:
 ```ts
 const [patientsResult, profileResult] = await Promise.all([
-  supabase.from('patients').select('*').order('created_at', { ascending: false }),
+  supabase.from('patients').select('*', { count: 'exact' }).order('created_at', { ascending: false }),
   supabase.from('profiles').select('total_slots, full_name').eq('id', user.id).single(),
 ])
 
 // Sempre verificar erro antes de acessar data
-if (profileResult.error || !profileResult.data) {
-  // Perfil ausente não deve ocorrer; redirecionar para logout como fallback
-  redirect('/login')
+if (!profileResult.data) {
+  // Perfil ausente não deve ocorrer para usuário autenticado.
+  // Redirecionar para /login causaria loop se o erro for transiente e o
+  // middleware redirecionar de volta. Lançar erro deixa o Next.js renderizar
+  // error.tsx sem loop.
+  throw new Error('Profile not found for authenticated user')
+}
+if (profileResult.error) {
+  // Erro transiente de banco — renderizar com fallback em vez de crashar
+  throw profileResult.error
 }
 if (patientsResult.error) {
   // Log do erro; renderizar lista vazia em vez de crashar
@@ -194,7 +212,9 @@ if (patientsResult.error) {
 
 const patients = patientsResult.data ?? []
 const { total_slots, full_name } = profileResult.data
-const used_slots = patients.length
+// Usar count retornado pela query, não patients.length — evita quebra futura
+// se paginação for adicionada. Requer { count: 'exact' } no select de patients.
+const used_slots = patientsResult.count ?? patients.length
 ```
 
 Layout em duas colunas:
@@ -209,8 +229,25 @@ tooltip: *"Aumente sua reputação para desbloquear novos pacientes"*.
 ### `/patients/new`
 
 Server component: verifica `used_slots >= total_slots` no servidor antes de
-renderizar. Se sem slots, redireciona para `/dashboard` via `redirect()`.
+renderizar. Se sem slots, redireciona para `DASHBOARD_ROUTE` via `redirect()`.
 Isso garante que o guard não seja bypassável via navegação direta.
+
+O guard usa uma query de contagem sem retornar dados — mais eficiente que `select('*')`:
+```ts
+const { count } = await supabase
+  .from('patients')
+  .select('id', { count: 'exact', head: true })
+
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('total_slots')
+  .eq('id', user.id)
+  .single()
+
+if (!profile || (count ?? 0) >= profile.total_slots) {
+  redirect(DASHBOARD_ROUTE)
+}
+```
 
 1. Dropdown de especialidade (lista fixa — ver seção 5)
 2. Três botões de dificuldade: Fácil / Médio / Difícil
@@ -237,15 +274,17 @@ e botão "Voltar". Existe para que o botão "Iniciar atendimento" não fique sem
 
 ## 5. Constantes de rota e especialidades
 
-### Rota da consulta (stub)
+### Constantes de rota
 
 ```ts
 // src/lib/routes.ts
+export const DASHBOARD_ROUTE         = '/dashboard'
 export const STUB_CONSULTATION_ROUTE = '/consultations/stub'
 ```
 
-No SP2, substituir `STUB_CONSULTATION_ROUTE` pelo valor real — um único lugar
-para atualizar em vez de strings espalhadas pelo código.
+`DASHBOARD_ROUTE` cobre todos os hardcodes existentes em `redirect.ts`,
+`safe-next.ts` e nas páginas de auth. `STUB_CONSULTATION_ROUTE` é substituído
+em SP2 pelo valor real. Um único arquivo para atualizar em ambos os casos.
 
 ### Especialidades disponíveis (lista fixa MVP)
 
@@ -291,10 +330,21 @@ conexão de banco não fica aberta durante o I/O externo.
 ```
 1. Valida body (specialty, difficulty) → 400 se inválido
 2. Chama OpenAI com timeout de 25s → 408 se timeout, 500 se erro
-3. Chama supabase.rpc('create_patient', { ...dadosOpenAI }) → 403 se sem slots
-4. Retorna o paciente criado com status 201
-   ATENÇÃO: NextResponse.json() retorna 200 por default —
-   usar explicitamente NextResponse.json(data, { status: 201 })
+3. Mapeia resposta OpenAI + body para os parâmetros do RPC:
+   supabase.rpc('create_patient', {
+     p_name:       openAI.name,
+     p_age:        openAI.age,
+     p_gender:     openAI.gender,
+     p_specialty:  body.specialty,       // do request body, não do OpenAI
+     p_difficulty: body.difficulty,      // do request body, não do OpenAI
+     p_complaint:  openAI.chief_complaint,
+     p_status:     openAI.clinical_status,
+     p_conditions: openAI.conditions,
+   })
+4. Se error.code === 'US001' → retorna 403
+   Se qualquer outro erro → retorna 500
+5. Retorna NextResponse.json(data, { status: 201 })
+   ATENÇÃO: NextResponse.json() retorna 200 por default — status 201 é explícito
 ```
 
 **Função PostgreSQL `create_patient`** (incluir na migration `0002_add_patients.sql`):
@@ -325,7 +375,8 @@ BEGIN
   -- Guard: se o perfil não existir, total_slots é NULL e a comparação
   -- abaixo retornaria NULL (não TRUE), permitindo inserção sem limite.
   IF v_total_slots IS NULL THEN
-    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'P0002';
+    -- US002: custom SQLSTATE — não colide com P0001 (raise_exception genérico)
+    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'US002';
   END IF;
 
   SELECT COUNT(*) INTO v_used_slots
@@ -333,7 +384,8 @@ BEGIN
     WHERE user_id = v_user_id;
 
   IF v_used_slots >= v_total_slots THEN
-    RAISE EXCEPTION 'no_slots_available' USING ERRCODE = 'P0001';
+    -- US001: custom SQLSTATE — distinguível de qualquer outro RAISE EXCEPTION
+    RAISE EXCEPTION 'no_slots_available' USING ERRCODE = 'US001';
   END IF;
 
   INSERT INTO patients (
@@ -353,9 +405,11 @@ ALTER FUNCTION create_patient(TEXT,INTEGER,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT[])
   SET search_path = public;
 ```
 
-O route handler inspeciona `error.code` (não o status HTTP) para distinguir erros:
-- `error.code === 'P0001'` → retorna `403` (sem slots)
-- `error.code === 'P0002'` → retorna `500` (perfil não encontrado — não deve ocorrer)
+O route handler inspeciona `error.code` (não o status HTTP) para distinguir erros.
+`P0001` é o código genérico de qualquer `RAISE EXCEPTION` — nunca usar como
+discriminador. Usar os custom SQLSTATEs definidos na função:
+- `error.code === 'US001'` → retorna `403` (sem slots)
+- `error.code === 'US002'` → retorna `500` (perfil não encontrado — não deve ocorrer)
 - qualquer outro erro → retorna `500`
 
 O slot nunca é consumido se a OpenAI falhar antes do RPC.
@@ -530,17 +584,18 @@ src/
 
 ## 13. Critérios de conclusão
 
-- [ ] Migration `0002_add_patients.sql` aplicada via Supabase CLI (inclui `create_patient` RPC)
+- [ ] Migration criada com `supabase migration new add_patients` e aplicada via Supabase CLI (inclui `create_patient` RPC)
 - [ ] `profiles.total_slots` adicionado com CHECK (> 0); GRANT UPDATE revogado e re-concedido apenas em `(full_name, crm)`
 - [ ] Tabela `patients` com CHECK constraints em `specialty`, `age (18-80)`, `difficulty`, `bond_level`; índice em `user_id`; RLS (SELECT + INSERT + UPDATE)
-- [ ] Função `create_patient` com SECURITY DEFINER e `search_path = public`
+- [ ] Função `create_patient` com SECURITY DEFINER, `search_path = public`, ERRCODEs US001/US002
 - [ ] `database.ts` regenerado após migration
-- [ ] `POST /api/patients` funcional: gpt-4o-mini, response_format json_object, timeout 25s, retorna `{ status: 201 }`
-- [ ] Constante `STUB_CONSULTATION_ROUTE` em `src/lib/routes.ts`
+- [ ] `POST /api/patients` funcional: gpt-4o-mini, response_format json_object, timeout 25s, mapeamento explícito dos parâmetros do RPC, retorna `{ status: 201 }`
+- [ ] Constantes `DASHBOARD_ROUTE` e `STUB_CONSULTATION_ROUTE` em `src/lib/routes.ts`
+- [ ] `redirect.ts`, `safe-next.ts` e demais hardcodes de `/dashboard` substituídos por `DASHBOARD_ROUTE`
 - [ ] Constante `SPECIALTIES` compartilhada entre frontend e backend
 - [ ] Teste de cross-validação: `SPECIALTIES` vs CHECK constraint do banco
-- [ ] Dashboard: `Promise.all` para buscas paralelas, sem `getUser()` redundante
-- [ ] Página `/patients/new` com guard server-side antes de renderizar
+- [ ] Dashboard: `Promise.all` com `count: 'exact'`, `used_slots` de `patientsResult.count`, sem `getUser()` redundante
+- [ ] Página `/patients/new` com guard server-side usando `select('id', { count: 'exact', head: true })`
 - [ ] Página `/patients/[id]` com tags, estado clínico, histórico e botão usando `STUB_CONSULTATION_ROUTE`
 - [ ] Página `/consultations/stub` como placeholder
 - [ ] Componente `<BondBar />` funcional
