@@ -235,7 +235,9 @@ O guard usa queries paralelas de contagem sem retornar dados — mais eficiente 
 Usar `Promise.all` — consistente com o padrão do dashboard:
 ```ts
 const [patientsCount, profileResult] = await Promise.all([
-  supabase.from('patients').select('id', { count: 'exact', head: true }),
+  // Não usar head: true — comportamento de count em HEAD requests não é
+  // garantido no @supabase/ssr v0.10.x. Usar select sem head para confiabilidade.
+  supabase.from('patients').select('id', { count: 'exact' }),
   supabase.from('profiles').select('total_slots').eq('id', user.id).single(),
 ])
 
@@ -260,14 +262,26 @@ if (count >= profileResult.data.total_slots) {
 
 ### `/patients/[id]`
 
-- Tags de condições no topo: `#HAS` `#DM` `#DLP` (omitidas se `conditions` vazio)
-- Card de estado clínico atual (texto gerado pela IA)
+Server component. Query obrigatória para buscar o paciente:
+```ts
+const { data: patient, error } = await supabase
+  .from('patients')
+  .select('*')
+  .eq('id', params.id)
+  .eq('user_id', user.id)  // RLS já filtra, mas o .eq explícito protege contra erros futuros
+  .single()
+
+if (error || !patient) notFound()  // Next.js renderiza 404
+```
+
+Campos renderizados a partir de `patient`:
+- Tags de condições no topo: `#HAS` `#DM` `#DLP` (omitidas se `patient.conditions` vazio)
+- Card de estado clínico atual: `patient.clinical_status`
 - Botão **"Iniciar atendimento"** — no SP1 redireciona para `STUB_CONSULTATION_ROUTE`
   (ver seção 5); fluxo real implementado no SP2
 - Lista de consultas anteriores: **não fazer query em SP1** — a tabela `consultations`
-  não existe ainda. Hardcode um array vazio e exibir sempre a mensagem
-  *"Nenhuma consulta realizada ainda"*. A query real vem no SP2.
-- Componente `<BondBar level={bond_level} />`
+  não existe ainda. Hardcode `[]` e exibir sempre *"Nenhuma consulta realizada ainda"*.
+- Componente `<BondBar level={patient.bond_level} />`
 
 ### `/consultations/stub`
 
@@ -342,51 +356,63 @@ via `supabase.auth.getUser()` com o client server-side.
 atômica. O route handler chama a OpenAI ANTES de invocar o RPC — assim a
 conexão de banco não fica aberta durante o I/O externo.
 
+**Formato canônico de resposta de erro**: todas as respostas de erro retornam
+`NextResponse.json({ error: string }, { status: N })`. Nunca `{ message }` ou
+`{ detail }`. O frontend sempre lê `response.error`.
+
 **Fluxo do route handler:**
-```
-1. Valida body (specialty, difficulty) → 400 se inválido:
-   // Usar SPECIALTIES e DIFFICULTIES como fonte canônica de validação
-   const DIFFICULTIES = ['easy', 'medium', 'hard'] as const
-   if (!SPECIALTIES.includes(body.specialty)) return 400
-   if (!DIFFICULTIES.includes(body.difficulty)) return 400
+```ts
+// Importar no topo do arquivo:
+import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
 
-2. Chama OpenAI com timeout de 25s → 408 se timeout, 500 se erro
+// 1. Valida body → 400 se inválido.
+//    SPECIALTIES e DIFFICULTIES são readonly tuples — cast necessário para .includes()
+if (!(SPECIALTIES as readonly string[]).includes(body.specialty))
+  return NextResponse.json({ error: 'Invalid specialty' }, { status: 400 })
+if (!(DIFFICULTIES as readonly string[]).includes(body.difficulty))
+  return NextResponse.json({ error: 'Invalid difficulty' }, { status: 400 })
 
-3. Valida e mapeia resposta OpenAI + body:
-   // age: LLMs podem retornar float ou string; NaN/undefined também cobertos
-   const age = Math.round(Number(openAI.age))
-   if (!Number.isInteger(age) || age < 18 || age > 80) {
-     // Dado inválido vindo do OpenAI — erro interno (500), não do cliente
-     return 500 com mensagem 'OpenAI returned invalid age'
-   }
+// 2. Chama OpenAI com timeout de 25s
+//    timeout → NextResponse.json({ error: 'OpenAI timeout' }, { status: 408 })
+//    erro    → NextResponse.json({ error: 'OpenAI error' }, { status: 500 })
 
-   // gender: normalizar para 'M' ou 'F'; rejeitar qualquer outro valor
-   const gender = openAI.gender === 'M' || openAI.gender === 'F'
-     ? openAI.gender
-     : (() => { throw new Error('OpenAI returned invalid gender') })()
-   // Lança → Next.js retorna 500
+// 3. Valida e mapeia resposta OpenAI + body:
 
-   // conditions: garantir array de strings
-   const conditions = Array.isArray(openAI.conditions)
-     ? openAI.conditions.map((c: unknown) => String(c))
-     : []
+// age: LLMs podem retornar float ou string; NaN/undefined cobertos pelo guard
+const age = Math.round(Number(openAI.age))
+if (!Number.isInteger(age) || age < 18 || age > 80)
+  return NextResponse.json({ error: 'OpenAI returned invalid age' }, { status: 500 })
 
-   supabase.rpc('create_patient', {
-     p_name:       String(openAI.name),
-     p_age:        age,
-     p_gender:     gender,
-     p_specialty:  body.specialty,       // do request body, não do OpenAI
-     p_difficulty: body.difficulty,      // do request body, não do OpenAI
-     p_complaint:  String(openAI.chief_complaint),
-     p_status:     String(openAI.clinical_status),
-     p_conditions: conditions,
-   })
+// gender: checar explicitamente; não usar IIFE-throw (produz resposta framework-controlada)
+if (openAI.gender !== 'M' && openAI.gender !== 'F')
+  return NextResponse.json({ error: 'OpenAI returned invalid gender' }, { status: 500 })
+const gender = openAI.gender as 'M' | 'F'
 
-4. Se error.code === 'US001' → retorna 403
-   Se qualquer outro erro → retorna 500
+// conditions: descartar elementos não-string silenciosamente
+// (String(obj) produziria '[object Object]' — filtrar é mais seguro que rejeitar tudo)
+const conditions = Array.isArray(openAI.conditions)
+  ? openAI.conditions.filter((c: unknown): c is string => typeof c === 'string')
+  : []
 
-5. Retorna NextResponse.json(data, { status: 201 })
-   ATENÇÃO: NextResponse.json() retorna 200 por default — status 201 é explícito
+// 4. Chama o RPC:
+const { data, error } = await supabase.rpc('create_patient', {
+  p_name:       String(openAI.name),
+  p_age:        age,
+  p_gender:     gender,
+  p_specialty:  body.specialty,    // do request body, não do OpenAI
+  p_difficulty: body.difficulty,   // do request body, não do OpenAI
+  p_complaint:  String(openAI.chief_complaint),
+  p_status:     String(openAI.clinical_status),
+  p_conditions: conditions,
+})
+if (error) {
+  if (error.code === 'US001')
+    return NextResponse.json({ error: 'No slots available' }, { status: 403 })
+  return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+}
+
+// 5. Sucesso — status 201 explícito (NextResponse.json() retorna 200 por default)
+return NextResponse.json(data, { status: 201 })
 ```
 
 **Função PostgreSQL `create_patient`** (incluir na migration gerada por `supabase migration new add_patients`):
@@ -570,11 +596,14 @@ Usos no dashboard:
 - `buildPatientPrompt(specialty, difficulty)` → string de prompt correta
 - `hasAvailableSlot(usedSlots, totalSlots)` → boolean correto nos limites (0, igual, acima)
 
-**Integração — cross-validação de especialidades (Vitest + Supabase real):**
-- Usa `pg_get_constraintdef(oid)` para ler a definição normalizada do CHECK constraint
-  (PostgreSQL converte `IN ('A','B')` para `= ANY (ARRAY['A'::text, 'B'::text])`).
-- Extrai os literais com regex: `/ARRAY\[(.+?)\]/` → split → strip `::text` e aspas.
-- Compara como Set contra `SPECIALTIES` — ordem irrelevante.
+**Integração — cross-validação de constantes vs CHECK constraints (Vitest + Supabase real):**
+- Usa `pg_get_constraintdef(oid)` para ler a definição normalizada do CHECK constraint.
+  PostgreSQL normaliza `IN ('A','B')` para `= ANY (ARRAY['A'::text, 'B'::text])`.
+- Extrai literais com regex: `/ARRAY\[(.+?)\]/` → split por `', '` → strip `'` e `::text`.
+- Compara como Set — ordem irrelevante.
+- Roda DUAS validações:
+  1. `SPECIALTIES` vs constraint da coluna `specialty` na tabela `patients`
+  2. `DIFFICULTIES` vs constraint da coluna `difficulty` na tabela `patients`
 - Falha em CI se qualquer valor existir em um lado mas não no outro.
 
 **Integração (Vitest + Supabase mockado):**
