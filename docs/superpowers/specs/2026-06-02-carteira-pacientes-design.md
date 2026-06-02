@@ -185,7 +185,12 @@ cada page é um Server Component independente. Cada page deve obter o usuário
 independentemente com `supabase.auth.getUser()`.
 
 ```ts
-// Declaração obrigatória no topo de dashboard/page.tsx:
+// Imports obrigatórios no topo de dashboard/page.tsx:
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { DASHBOARD_ROUTE } from '@/lib/routes'
+
+// No componente:
 const supabase = await createClient()
 const { data: { user } } = await supabase.auth.getUser()
 if (!user) redirect(DASHBOARD_ROUTE)  // fallback defensivo; middleware já garante
@@ -236,12 +241,19 @@ Server component: verifica `used_slots >= total_slots` no servidor antes de
 renderizar. Se sem slots, redireciona para `DASHBOARD_ROUTE` via `redirect()`.
 Isso garante que o guard não seja bypassável via navegação direta.
 
-O guard usa queries paralelas de contagem sem retornar dados — mais eficiente que `select('*')`.
-Usar `Promise.all` — consistente com o padrão do dashboard:
+O guard usa queries paralelas de contagem. Usar `Promise.all` — consistente com o dashboard:
 ```ts
+// Imports obrigatórios no topo de patients/new/page.tsx:
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { DASHBOARD_ROUTE } from '@/lib/routes'
+
+// No componente — obter supabase e user antes das queries:
+const supabase = await createClient()
+const { data: { user } } = await supabase.auth.getUser()
+if (!user) redirect(DASHBOARD_ROUTE)
+
 const [patientsCount, profileResult] = await Promise.all([
-  // Não usar head: true — comportamento de count em HEAD requests não é
-  // garantido no @supabase/ssr v0.10.x. Usar select sem head para confiabilidade.
   supabase.from('patients').select('id', { count: 'exact' }),
   supabase.from('profiles').select('total_slots').eq('id', user.id).single(),
 ])
@@ -271,28 +283,45 @@ patients/new/page.tsx          ← Server Component (guard)
 ```
 
 ```tsx
-// NewPatientForm.tsx — imports obrigatórios:
+// NewPatientForm.tsx — estrutura completa:
 'use client'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
+import type { Specialty, Difficulty } from '@/lib/patients/specialties'
 
-// No componente:
-const router = useRouter()
+export function NewPatientForm() {
+  const router = useRouter()
+  const [specialty, setSpecialty] = useState<Specialty | ''>('')
+  const [difficulty, setDifficulty] = useState<Difficulty | ''>('')
+  const [formError, setFormError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
-// Submissão:
-const response = await fetch('/api/patients', {
-  method: 'POST',
-  body: JSON.stringify({ specialty, difficulty }),
-  // Content-Type não é necessário — request.json() lê o body independentemente
-})
+  async function handleSubmit() {
+    setLoading(true)
+    setFormError(null)
 
-if (response.status === 201) {
-  const data = await response.json()        // await obrigatório antes de acessar data
-  if (!data?.id) throw new Error('Missing id in response')  // guard contra id undefined
-  router.push('/patients/' + data.id)
-} else {
-  const { error } = await response.json()   // await obrigatório
-  setError(error ?? 'Erro desconhecido')
+    const response = await fetch('/api/patients', {
+      method: 'POST',
+      body: JSON.stringify({ specialty, difficulty }),
+      // Content-Type não é necessário — request.json() lê o body independentemente
+    })
+
+    if (response.status === 201) {
+      const data = await response.json()        // await obrigatório antes de acessar data
+      if (!data?.id) {
+        setFormError('Resposta inválida do servidor')  // setFormError, não throw
+        setLoading(false)
+        return
+      }
+      router.push('/patients/' + data.id)
+    } else {
+      const json = await response.json()        // await obrigatório
+      setFormError(json?.error ?? 'Erro desconhecido')
+      setLoading(false)
+    }
+  }
+  // ... render: dropdown specialty, botões difficulty, botão submit
 }
 ```
 
@@ -300,7 +329,13 @@ if (response.status === 201) {
 
 Server component. Em Next.js 15+, `params` é uma Promise — sempre aguardar:
 ```ts
-// Obter usuário (igual ao dashboard — cada page é independente)
+// Imports obrigatórios no topo de patients/[id]/page.tsx:
+import { redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { DASHBOARD_ROUTE } from '@/lib/routes'
+
+// No componente — obter supabase e user antes das queries:
 const supabase = await createClient()
 const { data: { user } } = await supabase.auth.getUser()
 if (!user) redirect(DASHBOARD_ROUTE)
@@ -438,8 +473,10 @@ if (!(DIFFICULTIES as readonly string[]).includes(body.difficulty))
 //    const content = completion.choices[0].message.content
 //    if (!content) return NextResponse.json({ error: 'OpenAI empty response' }, { status: 500 })
 //    // JSON.parse pode lançar SyntaxError se o modelo truncar a resposta (finish_reason: 'length')
-//    let openAI: unknown
-//    try { openAI = JSON.parse(content) }
+//    // Cast para Record<string, unknown> — elimina erros de 'Object is of type unknown'
+//    // nas 6 acessos de propriedade abaixo. Validação por campo garante segurança.
+//    let openAI: Record<string, unknown>
+//    try { openAI = JSON.parse(content) as Record<string, unknown> }
 //    catch { return NextResponse.json({ error: 'OpenAI returned invalid JSON' }, { status: 500 }) }
 
 // 3. Valida e mapeia resposta OpenAI + body:
@@ -672,8 +709,16 @@ Usos no dashboard:
 - `hasAvailableSlot(usedSlots, totalSlots)` → boolean correto nos limites (0, igual, acima)
 
 **Integração — cross-validação de constantes vs CHECK constraints (Vitest + Supabase real):**
-- Usa `pg_get_constraintdef(oid)` para ler a definição normalizada do CHECK constraint.
-  PostgreSQL normaliza `IN ('A','B')` para `= ANY (ARRAY['A'::text, 'B'::text])`.
+
+Query para obter a definição do constraint (substituir `'specialty'` por `'difficulty'`):
+```sql
+SELECT pg_get_constraintdef(oid)
+FROM pg_constraint
+WHERE conrelid = 'patients'::regclass
+  AND conname LIKE '%specialty%'
+```
+
+PostgreSQL normaliza `IN ('A','B')` para `= ANY (ARRAY['A'::text, 'B'::text])`.
 - Extrai literais com regex: `/ARRAY\[(.+?)\]/` → split por `', '` → strip `'` e `::text`.
 - Compara como Set — ordem irrelevante.
 - Roda DUAS validações:
@@ -751,7 +796,7 @@ src/
 - [ ] `redirect.ts`, `safe-next.ts` e demais hardcodes de `/dashboard` substituídos por `DASHBOARD_ROUTE`; assertions nos testes dessas funções também atualizadas para usar a constante
 - [ ] Constante `SPECIALTIES` compartilhada entre frontend e backend
 - [ ] Teste de cross-validação: `SPECIALTIES` vs CHECK constraint do banco
-- [ ] Dashboard: `Promise.all` com `count: 'exact'`, `used_slots` de `patientsResult.count`, sem `getUser()` redundante
+- [ ] Dashboard: `getUser()` no topo, `Promise.all` com `count: 'exact'`, `used_slots` de `patientsResult.count`, imports de `redirect`/`createClient`/`DASHBOARD_ROUTE`
 - [ ] Página `/patients/new` com guard server-side usando `Promise.all` + `select('id', { count: 'exact' })`
 - [ ] `NewPatientForm.tsx` como Client Component com `useRouter`, `fetch`, `await response.json()` e guard `data?.id`
 - [ ] Página `/patients/[id]` com `await params`, `getUser()` no topo, query do paciente, e botão usando `STUB_CONSULTATION_ROUTE`
