@@ -175,12 +175,26 @@ próprios dados. Para evitar round-trip extra de auth, ler a sessão cacheada
 via `supabase.auth.getUser()` (o cookie já foi validado pelo middleware; a
 chamada no page usa cache de sessão local, não uma nova requisição de rede).
 
-Buscar em paralelo com `Promise.all`:
+Buscar em paralelo com `Promise.all` — obrigatório, não sequential awaits:
 ```ts
 const [patientsResult, profileResult] = await Promise.all([
   supabase.from('patients').select('*').order('created_at', { ascending: false }),
   supabase.from('profiles').select('total_slots, full_name').eq('id', user.id).single(),
 ])
+
+// Sempre verificar erro antes de acessar data
+if (profileResult.error || !profileResult.data) {
+  // Perfil ausente não deve ocorrer; redirecionar para logout como fallback
+  redirect('/login')
+}
+if (patientsResult.error) {
+  // Log do erro; renderizar lista vazia em vez de crashar
+  console.error('Failed to load patients:', patientsResult.error)
+}
+
+const patients = patientsResult.data ?? []
+const { total_slots, full_name } = profileResult.data
+const used_slots = patients.length
 ```
 
 Layout em duas colunas:
@@ -255,9 +269,11 @@ export const SPECIALTIES = [
 export type Specialty = typeof SPECIALTIES[number]
 ```
 
-**Teste de cross-validação obrigatório** (ver seção 11): um teste de integração
-deve ler o CHECK constraint da tabela `patients` via `information_schema` e
-comparar com `SPECIALTIES` — detecta divergência em tempo de CI, não em runtime.
+**Teste de cross-validação obrigatório** (ver seção 11): PostgreSQL normaliza
+CHECK constraints — `specialty IN ('A','B')` é armazenado como
+`specialty = ANY (ARRAY['A'::text, 'B'::text])`. O teste deve usar
+`pg_get_constraintdef(oid)` e extrair os literais do array normalizado com regex,
+comparando como Set, não como string literal.
 
 ---
 
@@ -306,6 +322,12 @@ BEGIN
     WHERE id = v_user_id
     FOR UPDATE;
 
+  -- Guard: se o perfil não existir, total_slots é NULL e a comparação
+  -- abaixo retornaria NULL (não TRUE), permitindo inserção sem limite.
+  IF v_total_slots IS NULL THEN
+    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'P0002';
+  END IF;
+
   SELECT COUNT(*) INTO v_used_slots
     FROM patients
     WHERE user_id = v_user_id;
@@ -331,8 +353,12 @@ ALTER FUNCTION create_patient(TEXT,INTEGER,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT[])
   SET search_path = public;
 ```
 
-O route handler detecta `ERRCODE P0001` e retorna `403`. Qualquer outro erro
-retorna `500`. O slot nunca é consumido se a OpenAI falhar antes do RPC.
+O route handler inspeciona `error.code` (não o status HTTP) para distinguir erros:
+- `error.code === 'P0001'` → retorna `403` (sem slots)
+- `error.code === 'P0002'` → retorna `500` (perfil não encontrado — não deve ocorrer)
+- qualquer outro erro → retorna `500`
+
+O slot nunca é consumido se a OpenAI falhar antes do RPC.
 
 **Status codes:**
 - `201` — paciente criado com sucesso, retorna o objeto patient
@@ -428,7 +454,7 @@ Usos no dashboard:
 | Tentativa concorrente de criar paciente | Lock pessimista garante que apenas um passa |
 | Paciente sem consultas | Mensagem "Nenhuma consulta realizada ainda" |
 | RLS | Queries filtram por `user_id` automaticamente |
-| total_slots editado via client | Impossível — GRANT UPDATE cobre apenas full_name, crm, role |
+| total_slots editado via client | Impossível — GRANT UPDATE cobre apenas full_name, crm |
 
 ---
 
@@ -439,9 +465,11 @@ Usos no dashboard:
 - `hasAvailableSlot(usedSlots, totalSlots)` → boolean correto nos limites (0, igual, acima)
 
 **Integração — cross-validação de especialidades (Vitest + Supabase real):**
-- Lê o CHECK constraint da coluna `specialty` em `information_schema.check_constraints`
-  e compara com os valores de `SPECIALTIES` — garante que TypeScript e SQL estão em sync.
-  Este teste falha em CI se um developer adicionar uma especialidade em apenas um dos lugares.
+- Usa `pg_get_constraintdef(oid)` para ler a definição normalizada do CHECK constraint
+  (PostgreSQL converte `IN ('A','B')` para `= ANY (ARRAY['A'::text, 'B'::text])`).
+- Extrai os literais com regex: `/ARRAY\[(.+?)\]/` → split → strip `::text` e aspas.
+- Compara como Set contra `SPECIALTIES` — ordem irrelevante.
+- Falha em CI se qualquer valor existir em um lado mas não no outro.
 
 **Integração (Vitest + Supabase mockado):**
 - `POST /api/patients` com OpenAI mockado → paciente salvo, retorna **201**
