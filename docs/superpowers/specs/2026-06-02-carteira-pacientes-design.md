@@ -3,6 +3,7 @@
 # Design Spec
 
 Data: 2026-06-02
+Revisado após code review: 2026-06-02
 
 ---
 
@@ -41,6 +42,48 @@ dashboard são placeholders com dados mockados.
 
 ## 3. Schema do banco
 
+### Migration `0002_add_patients.sql`
+
+Esta migration faz três coisas:
+1. Adiciona `total_slots` à tabela `profiles` existente
+2. Cria a tabela `patients`
+3. Atualiza permissões de coluna em `profiles`
+
+**Regra de ordenação de tipos**: rodar `supabase gen types typescript --linked`
+ANTES de escrever qualquer código que importe `Patient` de `domain.ts`. Os tipos
+só existem após a migration ser aplicada e os tipos regenerados.
+
+---
+
+### Alteração em `profiles` — adicionar `total_slots`
+
+```sql
+ALTER TABLE profiles
+  ADD COLUMN total_slots INTEGER NOT NULL DEFAULT 5
+    CHECK (total_slots > 0);
+```
+
+#### Permissões de coluna em `profiles`
+
+O `total_slots` é controlado pelo sistema — nunca pelo usuário diretamente.
+Para evitar que o role `authenticated` altere esse campo via Supabase client,
+substituímos o GRANT genérico por grants por coluna:
+
+```sql
+-- Remove permissão genérica de UPDATE (criada na foundation)
+REVOKE UPDATE ON profiles FROM authenticated;
+
+-- Concede UPDATE apenas nas colunas editáveis pelo usuário
+GRANT UPDATE (full_name, crm, role) ON profiles TO authenticated;
+
+-- total_slots só pode ser alterado via service_role (API interna)
+```
+
+O trigger `handle_new_user()` (foundation) já cria o perfil com `total_slots = 5`
+por default — nenhum trigger adicional necessário.
+
+---
+
 ### Tabela `patients`
 
 ```sql
@@ -48,9 +91,14 @@ CREATE TABLE patients (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id           UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name              TEXT NOT NULL,
-  age               INTEGER NOT NULL CHECK (age BETWEEN 1 AND 120),
+  age               INTEGER NOT NULL CHECK (age BETWEEN 18 AND 80),
   gender            TEXT NOT NULL CHECK (gender IN ('M', 'F')),
-  specialty         TEXT NOT NULL,
+  specialty         TEXT NOT NULL
+                      CHECK (specialty IN (
+                        'Clínica Médica', 'Cardiologia', 'Gastroenterologia',
+                        'Pneumologia', 'Endocrinologia', 'Nefrologia',
+                        'Neurologia', 'Infectologia'
+                      )),
   difficulty        TEXT NOT NULL CHECK (difficulty IN ('easy', 'medium', 'hard')),
   chief_complaint   TEXT NOT NULL,
   diagnosis         TEXT,                        -- null até o aluno fechar o diagnóstico
@@ -58,10 +106,12 @@ CREATE TABLE patients (
   bond_level        INTEGER NOT NULL DEFAULT 1
                       CHECK (bond_level BETWEEN 1 AND 5),
   conditions        TEXT[] NOT NULL DEFAULT '{}', -- ex: ['HAS', 'DM', 'DLP']
-  consultation_count INTEGER NOT NULL DEFAULT 0,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_consulted_at TIMESTAMPTZ
 );
+
+-- Índice para queries por usuário (slots check, listagem)
+CREATE INDEX patients_user_id_idx ON patients(user_id);
 
 -- RLS
 ALTER TABLE patients ENABLE ROW LEVEL SECURITY;
@@ -82,75 +132,27 @@ CREATE POLICY "Aluno atualiza próprios pacientes"
   WITH CHECK ((select auth.uid()) = user_id);
 ```
 
-### Tabela `patient_slots`
+**Nota sobre `specialty`**: o CHECK constraint no banco espelha a lista da seção 5.
+Adicionar uma especialidade futura exige migration + atualizar o dropdown do frontend.
+Essa abordagem garante que nenhum valor inválido persista silenciosamente.
 
+**Nota sobre `consultation_count`**: este campo foi intencionalmente omitido do SP1.
+Quando o SP2 criar a tabela `consultations`, o count será derivado como
+`COUNT(*) FROM consultations WHERE patient_id = X` — sem coluna denormalizada que
+pode desincronizar.
+
+---
+
+### `used_slots` — calculado, não armazenado
+
+`used_slots` não é coluna em lugar algum — é sempre calculado como:
 ```sql
-CREATE TABLE patient_slots (
-  user_id      UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  total_slots  INTEGER NOT NULL DEFAULT 5 CHECK (total_slots >= 0),
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- RLS
-ALTER TABLE patient_slots ENABLE ROW LEVEL SECURITY;
-
-GRANT SELECT, INSERT, UPDATE ON patient_slots TO authenticated;
-
-CREATE POLICY "Aluno lê próprios slots"
-  ON patient_slots FOR SELECT
-  USING ((select auth.uid()) = user_id);
-
-CREATE POLICY "Aluno insere próprios slots"
-  ON patient_slots FOR INSERT
-  WITH CHECK ((select auth.uid()) = user_id);
-
-CREATE POLICY "Aluno atualiza próprios slots"
-  ON patient_slots FOR UPDATE
-  USING ((select auth.uid()) = user_id)
-  WITH CHECK ((select auth.uid()) = user_id);
-
--- Trigger updated_at
-CREATE TRIGGER patient_slots_updated_at
-  BEFORE UPDATE ON patient_slots
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+SELECT COUNT(*) FROM patients WHERE user_id = $1
 ```
 
-### Backfill para usuários existentes
-
-Usuários cadastrados antes desta migration não terão linha em `patient_slots`.
-A migration deve incluir um INSERT de backfill:
-
-```sql
-INSERT INTO patient_slots (user_id, total_slots)
-SELECT id, 5 FROM auth.users
-WHERE id NOT IN (SELECT user_id FROM patient_slots);
-```
-
-### Nota sobre `used_slots`
-
-`used_slots` não é coluna — é sempre calculado como
-`COUNT(*) FROM patients WHERE user_id = X`. Evita dessincronização.
-Um slot está disponível quando `COUNT(*) < total_slots`.
-
-### Trigger: cria linha em `patient_slots` ao cadastrar usuário
-
-```sql
-CREATE OR REPLACE FUNCTION handle_new_user_slots()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.patient_slots (user_id, total_slots)
-  VALUES (NEW.id, 5);
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-ALTER FUNCTION handle_new_user_slots() SET search_path = public;
-
-CREATE TRIGGER on_auth_user_created_slots
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user_slots();
-```
+Comparado com `profiles.total_slots`. Um slot está disponível quando
+`COUNT(*) < total_slots`. O índice `patients_user_id_idx` garante que essa
+operação seja eficiente mesmo se o teto de slots crescer.
 
 ---
 
@@ -160,21 +162,32 @@ CREATE TRIGGER on_auth_user_created_slots
 /dashboard                 ← reformulado: lista de pacientes + gráficos placeholder
 /patients/new              ← escolha de especialidade + dificuldade → gera paciente
 /patients/[id]             ← detalhe do paciente
+/consultations/stub        ← placeholder para "Iniciar atendimento" (SP2)
 ```
 
 ### `/dashboard`
 
-Layout em duas colunas:
+Server component que busca em paralelo:
+- `supabase.auth.getUser()` — já validado pelo layout, usar `user` passado via props
+  ou reutilizar a sessão; **não fazer novo `getUser()` no page.tsx** (tripla chamada
+  desnecessária: middleware → layout → page)
+- Lista de pacientes do usuário
+- `profiles.total_slots` e `COUNT(patients)` para exibir slots disponíveis
 
+Layout em duas colunas:
 - **Coluna esquerda (40%)**: lista de pacientes + botão "Novo paciente"
-- **Coluna direita (60%)**: 3 cards placeholder (Desempenho AB4, Reputação, Volume)
-- **Header**: nome do aluno + reputação (número simples, ex: "347 pts"). No MVP
-  a reputação começa em 0 e ainda não tem fórmula real — exibe 0 até sub-projeto 3.
+- **Coluna direita (60%)**: 1 componente `<PlaceholderChart>` renderizado 3 vezes
+  com props diferentes (ver seção 9)
+- **Header**: nome do aluno + reputação (exibe "0 pts" no MVP; fórmula real no SP3)
 
 O botão "Novo paciente" está desabilitado se `used_slots >= total_slots`, com
 tooltip: *"Aumente sua reputação para desbloquear novos pacientes"*.
 
 ### `/patients/new`
+
+Server component: verifica `used_slots >= total_slots` no servidor antes de
+renderizar. Se sem slots, redireciona para `/dashboard` via `redirect()`.
+Isso garante que o guard não seja bypassável via navegação direta.
 
 1. Dropdown de especialidade (lista fixa — ver seção 5)
 2. Três botões de dificuldade: Fácil / Médio / Difícil
@@ -182,55 +195,101 @@ tooltip: *"Aumente sua reputação para desbloquear novos pacientes"*.
 4. Em caso de sucesso: redirect para `/patients/[id]` do paciente criado
 5. Em caso de erro: mensagem de erro, slot não consumido, botão reativado
 
-Rota protegida: se `used_slots >= total_slots`, redireciona para `/dashboard`.
-
 ### `/patients/[id]`
 
-- Tags de condições no topo: `#HAS` `#DM` `#DLP` (vazio se nenhuma ainda)
+- Tags de condições no topo: `#HAS` `#DM` `#DLP` (omitidas se `conditions` vazio)
 - Card de estado clínico atual (texto gerado pela IA)
-- Botão **"Iniciar atendimento"** (destacado) — no sub-projeto 1 redireciona para
-  uma página placeholder *"Consulta em breve"*; o fluxo real é implementado no sub-projeto 2
-- Lista de consultas anteriores com data e resumo (vazia no primeiro acesso)
-- Barra de vínculo (5 barras coloridas)
+- Botão **"Iniciar atendimento"** — no SP1 redireciona para `/consultations/stub`
+  (página placeholder "Em breve"); fluxo real implementado no SP2
+- Lista de consultas anteriores com data e resumo (vazia no primeiro acesso,
+  exibe mensagem: *"Nenhuma consulta realizada ainda"*)
+- Componente `<BondBar level={bond_level} />`
+
+### `/consultations/stub`
+
+Página simples com mensagem *"Consulta em breve — funcionalidade em desenvolvimento"*
+e botão "Voltar". Existe para que o botão "Iniciar atendimento" não fique sem destino.
 
 ---
 
 ## 5. Especialidades disponíveis (lista fixa MVP)
 
-- Clínica Médica
-- Cardiologia
-- Gastroenterologia
-- Pneumologia
-- Endocrinologia
-- Nefrologia
-- Neurologia
-- Infectologia
+Deve ser definida como constante exportável em `src/lib/patients/specialties.ts`
+e reutilizada tanto no frontend (dropdown) quanto no backend (validação da API).
+O CHECK constraint no banco usa os mesmos valores.
+
+```ts
+export const SPECIALTIES = [
+  'Clínica Médica',
+  'Cardiologia',
+  'Gastroenterologia',
+  'Pneumologia',
+  'Endocrinologia',
+  'Nefrologia',
+  'Neurologia',
+  'Infectologia',
+] as const
+
+export type Specialty = typeof SPECIALTIES[number]
+```
 
 ---
 
 ## 6. API route: `POST /api/patients`
 
 **Autenticação**: middleware garante sessão válida. A route verifica `user_id`
-via `supabase.auth.getUser()`.
+via `supabase.auth.getUser()` com o client server-side.
 
-**Fluxo:**
-1. Recebe `{ specialty, difficulty }` no body
-2. Verifica slots disponíveis — se esgotados, retorna `403`
-3. Monta prompt e chama OpenAI (ver seção 7)
-4. Salva paciente no banco
-5. Retorna paciente criado `{ id, name, age, ... }`
+**Fluxo — dentro de uma única transação de banco:**
 
-**Erros:**
+```
+BEGIN
+  1. SELECT total_slots FROM profiles WHERE id = user_id FOR UPDATE
+  2. SELECT COUNT(*) FROM patients WHERE user_id = user_id
+  3. Se COUNT >= total_slots → ROLLBACK → retorna 403
+  4. Chama OpenAI (fora da transação — ver nota abaixo)
+  5. INSERT INTO patients (...)
+COMMIT
+```
+
+**Nota sobre OpenAI fora da transação**: a chamada OpenAI não pode ficar dentro
+do BEGIN/COMMIT porque transações abertas enquanto aguardam I/O externo consomem
+conexões do pool. O fluxo correto é:
+
+```
+1. SELECT total_slots FOR UPDATE → abre lock pessimista
+2. Se sem slots → libera lock → retorna 403
+3. Chama OpenAI com timeout de 25 segundos
+4. Se OpenAI falhar → libera lock → retorna 500 (slot NÃO consumido)
+5. INSERT INTO patients dentro de transação com o lock já adquirido
+6. COMMIT
+```
+
+Na prática com Supabase, usar `supabase.rpc('create_patient', {...})` com uma
+função SECURITY DEFINER que encapsula o lock + insert atomicamente é a forma
+mais robusta. Alternativa: usar o service_role client para o insert, que bypassa
+RLS e permite transação explícita.
+
+**Status codes:**
+- `201` — paciente criado com sucesso, retorna o objeto patient
 - `400` — body inválido (specialty ou difficulty ausentes/inválidos)
 - `403` — sem slots disponíveis
-- `500` — falha na OpenAI (slot NÃO é consumido)
+- `408` — timeout da OpenAI (25s excedidos); slot NÃO consumido
+- `500` — erro interno; slot NÃO consumido
 
 ---
 
-## 7. Prompt OpenAI para geração de paciente
+## 7. Geração de paciente via OpenAI
 
-O prompt é parametrizado por `specialty` e `difficulty`. A resposta deve ser
-JSON estruturado para parsing direto (sem prose extra).
+**Modelo**: `gpt-4o-mini`
+
+**Configuração**: usar `response_format: { type: "json_object" }` para garantir
+JSON válido sem necessidade de retry ou parsing defensivo.
+
+**Timeout**: 25 segundos (deixa margem para o servidor retornar 408 antes de
+atingir timeout da plataforma de deploy).
+
+**Prompt:**
 
 ```
 Você é um gerador de pacientes simulados para treinamento médico.
@@ -245,7 +304,7 @@ Regras por dificuldade:
 Responda APENAS com JSON válido, sem texto adicional:
 {
   "name": "nome fictício brasileiro",
-  "age": número entre 18 e 80,
+  "age": número inteiro entre 18 e 80,
   "gender": "M" ou "F",
   "chief_complaint": "queixa principal em 1 frase, na voz do paciente",
   "clinical_status": "estado clínico inicial em 1 frase curta, na voz do sistema",
@@ -254,38 +313,44 @@ Responda APENAS com JSON válido, sem texto adicional:
 ```
 
 O campo `conditions` pode ser array vazio para casos fáceis.
-`bond_level` começa sempre em 1 (independente da dificuldade).
-`diagnosis` começa sempre null.
+`bond_level` começa sempre em 1. `diagnosis` começa sempre null.
+
+O cliente OpenAI já existe em `src/lib/openai/client.ts` (importa `'server-only'`).
+**Não instanciar um novo cliente no route handler** — importar o existente.
 
 ---
 
 ## 8. Listagem de pacientes — componente de vínculo
 
-Cinco barras verticais crescentes em altura, coloridas:
+Componente `<BondBar level={1..5} />` implementado com divs Tailwind.
 
-| Nível | Cor      |
-|-------|----------|
-| 1     | Vermelho |
-| 2     | Laranja  |
-| 3     | Amarelo  |
-| 4     | Verde claro |
-| 5     | Verde escuro |
+| Nível | Cor              |
+|-------|------------------|
+| 1     | Vermelho         |
+| 2     | Laranja          |
+| 3     | Amarelo          |
+| 4     | Verde claro      |
+| 5     | Verde escuro     |
 
 Barras acima do nível atual aparecem acinzentadas.
-Implementado como componente `<BondBar level={1..5} />` em SVG ou divs Tailwind.
 
 ---
 
-## 9. Gráficos placeholder do dashboard
+## 9. Gráficos placeholder — componente único
 
-Três cards na coluna direita com dados mockados em SVG simples:
+Um único componente `<PlaceholderChart title="" description="" />` reutilizado
+três vezes no dashboard. Renderiza um SVG mockado simples com título, descrição
+e badge *"Em breve"*. Fica em `src/components/charts/PlaceholderChart.tsx`.
 
-- **Desempenho AB4**: gráfico de teia (radar) com 4 eixos (A1–A4), valores fixos mockados
-- **Reputação**: linha do tempo simples mostrando evolução fictícia
-- **Volume de atendimentos**: barras por semana, dados fixos mockados
+Quando SP3 implementar os dados reais, cada uso é substituído por seu componente
+específico — sem precisar refatorar três arquivos com contratos divergentes.
 
-Os cards devem ter um badge discreto *"Em breve"* ou *"Preview"* para indicar
-que os dados são ilustrativos. Os componentes ficam em `src/components/charts/`.
+Usos no dashboard:
+```tsx
+<PlaceholderChart title="Desempenho AB4" description="Eixos A1–A4 do método AB4" />
+<PlaceholderChart title="Reputação" description="Evolução ao longo do tempo" />
+<PlaceholderChart title="Volume de atendimentos" description="Consultas por semana" />
+```
 
 ---
 
@@ -293,11 +358,13 @@ que os dados são ilustrativos. Os componentes ficam em `src/components/charts/`
 
 | Situação | Comportamento |
 |----------|---------------|
-| OpenAI falha ou timeout | Erro exibido, slot não consumido, botão reativado |
-| Aluno sem slots | Botão desabilitado, tooltip explicativo |
-| Paciente sem consultas | Estado clínico inicial gerado, lista de consultas vazia |
-| Resposta OpenAI não é JSON válido | Retry automático uma vez; se falhar novamente, erro 500 |
-| RLS | Todas as queries filtram por `user_id` automaticamente |
+| OpenAI timeout (>25s) | Retorna 408, slot não consumido, botão reativado |
+| OpenAI erro interno | Retorna 500, slot não consumido, botão reativado |
+| Aluno sem slots | Guard server-side redireciona antes de renderizar o form |
+| Tentativa concorrente de criar paciente | Lock pessimista garante que apenas um passa |
+| Paciente sem consultas | Mensagem "Nenhuma consulta realizada ainda" |
+| RLS | Queries filtram por `user_id` automaticamente |
+| total_slots editado via client | Impossível — GRANT UPDATE cobre apenas full_name, crm, role |
 
 ---
 
@@ -305,13 +372,15 @@ que os dados são ilustrativos. Os componentes ficam em `src/components/charts/`
 
 **Unitários (Vitest):**
 - `buildPatientPrompt(specialty, difficulty)` → string de prompt correta
-- `hasAvailableSlot(usedSlots, totalSlots)` → boolean correto
-- `parsePatientsResponse(json)` → parsing e validação do JSON da OpenAI
+- `hasAvailableSlot(usedSlots, totalSlots)` → boolean correto nos limites (0, igual, acima)
+- Constante `SPECIALTIES` — verificar que os valores batem com o CHECK constraint do banco
 
 **Integração (Vitest + Supabase mockado):**
 - `POST /api/patients` com OpenAI mockado → paciente salvo, retorna 201
 - `POST /api/patients` com OpenAI falhando → slot não consumido, retorna 500
+- `POST /api/patients` com timeout simulado → retorna 408, slot não consumido
 - `POST /api/patients` sem slots → retorna 403
+- Duas requisições simultâneas com 1 slot disponível → apenas 1 paciente criado
 
 **E2E (Playwright):**
 - Fluxo completo: escolher especialidade + dificuldade → confirmar → paciente aparece na listagem do dashboard
@@ -325,45 +394,57 @@ src/
 ├── app/
 │   ├── (dashboard)/
 │   │   ├── dashboard/
-│   │   │   └── page.tsx              ← reformulado (2 colunas)
-│   │   └── patients/
-│   │       ├── new/
-│   │       │   └── page.tsx          ← escolha especialidade + dificuldade
-│   │       └── [id]/
-│   │           └── page.tsx          ← detalhe do paciente
+│   │   │   └── page.tsx                  ← reformulado (2 colunas, sem duplo getUser)
+│   │   ├── patients/
+│   │   │   ├── new/
+│   │   │   │   └── page.tsx              ← guard server-side + form
+│   │   │   └── [id]/
+│   │   │       └── page.tsx              ← detalhe do paciente
+│   │   └── consultations/
+│   │       └── stub/
+│   │           └── page.tsx              ← placeholder "Em breve"
 │   └── api/
 │       └── patients/
-│           └── route.ts              ← POST /api/patients
+│           └── route.ts                  ← POST /api/patients
 ├── components/
 │   ├── charts/
-│   │   ├── AbRadarChart.tsx          ← placeholder radar AB4
-│   │   ├── ReputationChart.tsx       ← placeholder linha do tempo
-│   │   └── VolumeChart.tsx           ← placeholder barras
+│   │   └── PlaceholderChart.tsx          ← componente único reutilizado 3x
 │   └── ui/
-│       └── BondBar.tsx               ← 5 barras de vínculo
+│       └── BondBar.tsx                   ← 5 barras de vínculo
 ├── lib/
 │   └── patients/
-│       ├── prompt.ts                 ← buildPatientPrompt()
+│       ├── specialties.ts                ← constante SPECIALTIES + tipo Specialty
+│       ├── prompt.ts                     ← buildPatientPrompt()
 │       ├── prompt.test.ts
-│       ├── slots.ts                  ← hasAvailableSlot()
+│       ├── slots.ts                      ← hasAvailableSlot()
 │       └── slots.test.ts
 └── types/
-    └── domain.ts                     ← adicionar tipos Patient, PatientSlot
+    └── domain.ts                         ← adicionar tipo Patient
 ```
+
+**Ordem de implementação obrigatória:**
+1. Aplicar migration `0002_add_patients.sql` via Supabase CLI
+2. Rodar `supabase gen types typescript --linked > src/types/database.ts`
+3. Adicionar tipo `Patient` em `domain.ts`
+4. Implementar o restante
 
 ---
 
 ## 13. Critérios de conclusão
 
-- [ ] Migration `0002_create_patients.sql` aplicada via Supabase CLI
-- [ ] Tabela `patients` com RLS (SELECT + INSERT + UPDATE) e GRANTs
-- [ ] Tabela `patient_slots` com RLS, trigger `updated_at` e trigger de criação automática
-- [ ] `POST /api/patients` funcional com OpenAI real
-- [ ] Dashboard reformulado em 2 colunas com lista de pacientes e gráficos placeholder
-- [ ] Página `/patients/new` com dropdown de especialidade e botões de dificuldade
+- [ ] Migration `0002_add_patients.sql` aplicada via Supabase CLI
+- [ ] `profiles.total_slots` adicionado com CHECK (> 0) e GRANT UPDATE revogado para a coluna
+- [ ] Tabela `patients` com CHECK constraint em `specialty` e `age (18-80)`, índice em `user_id`, RLS (SELECT + INSERT + UPDATE)
+- [ ] `database.ts` regenerado após migration
+- [ ] `POST /api/patients` funcional com OpenAI real (gpt-4o-mini, response_format json_object, timeout 25s)
+- [ ] Lock pessimista garantindo atomicidade do slot check + insert
+- [ ] Dashboard reformulado em 2 colunas sem `getUser()` redundante
+- [ ] Constante `SPECIALTIES` compartilhada entre frontend e backend
+- [ ] Página `/patients/new` com guard server-side antes de renderizar
 - [ ] Página `/patients/[id]` com tags, estado clínico, histórico e botão de atendimento
+- [ ] Página `/consultations/stub` como placeholder
 - [ ] Componente `<BondBar />` funcional
-- [ ] Controle de slots: botão desabilitado quando esgotados
-- [ ] Testes unitários passando (prompt, slots, parsing)
+- [ ] Componente `<PlaceholderChart />` reutilizado 3x no dashboard
+- [ ] Testes unitários e de concorrência passando
 - [ ] Teste E2E: fluxo completo de criação de paciente
 - [ ] Deploy no Easypanel funcionando após as mudanças
