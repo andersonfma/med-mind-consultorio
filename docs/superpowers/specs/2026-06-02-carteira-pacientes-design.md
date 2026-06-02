@@ -218,7 +218,9 @@ Layout em duas colunas:
 - **Coluna esquerda (40%)**: lista de pacientes + botão "Novo paciente"
 - **Coluna direita (60%)**: 1 componente `<PlaceholderChart>` renderizado 3 vezes
   com props diferentes (ver seção 9)
-- **Header**: nome do aluno + reputação (exibe "0 pts" no MVP; fórmula real no SP3)
+- **Header**: nome do aluno + reputação. Em SP1, **hardcode a string `"0 pts"`**
+  diretamente no JSX — não existe coluna `reputation` na tabela `profiles`.
+  A coluna e a fórmula real chegam no SP3.
 
 O botão "Novo paciente" está desabilitado se `used_slots >= total_slots`, com
 tooltip: *"Aumente sua reputação para desbloquear novos pacientes"*.
@@ -232,12 +234,20 @@ Isso garante que o guard não seja bypassável via navegação direta.
 O guard usa queries paralelas de contagem sem retornar dados — mais eficiente que `select('*')`.
 Usar `Promise.all` — consistente com o padrão do dashboard:
 ```ts
-const [{ count }, { data: profile }] = await Promise.all([
+const [patientsCount, profileResult] = await Promise.all([
   supabase.from('patients').select('id', { count: 'exact', head: true }),
   supabase.from('profiles').select('total_slots').eq('id', user.id).single(),
 ])
 
-if (!profile || (count ?? 0) >= profile.total_slots) {
+// Distinguir erro de DB (throw → error.tsx) de "perfil ausente" (não deve ocorrer)
+if (profileResult.error) throw profileResult.error
+if (!profileResult.data) throw new Error('Profile not found')
+
+// Se a query de contagem falhar, o guard falha "aberto" (mostra o form).
+// O create_patient RPC é a barreira real — o guard é apenas UX.
+const count = patientsCount.count ?? 0
+
+if (count >= profileResult.data.total_slots) {
   redirect(DASHBOARD_ROUTE)
 }
 ```
@@ -254,8 +264,9 @@ if (!profile || (count ?? 0) >= profile.total_slots) {
 - Card de estado clínico atual (texto gerado pela IA)
 - Botão **"Iniciar atendimento"** — no SP1 redireciona para `STUB_CONSULTATION_ROUTE`
   (ver seção 5); fluxo real implementado no SP2
-- Lista de consultas anteriores com data e resumo (vazia no primeiro acesso,
-  exibe mensagem: *"Nenhuma consulta realizada ainda"*)
+- Lista de consultas anteriores: **não fazer query em SP1** — a tabela `consultations`
+  não existe ainda. Hardcode um array vazio e exibir sempre a mensagem
+  *"Nenhuma consulta realizada ainda"*. A query real vem no SP2.
 - Componente `<BondBar level={bond_level} />`
 
 ### `/consultations/stub`
@@ -307,7 +318,10 @@ export const SPECIALTIES = [
   'Infectologia',
 ] as const
 
-export type Specialty = typeof SPECIALTIES[number]
+export const DIFFICULTIES = ['easy', 'medium', 'hard'] as const
+
+export type Specialty   = typeof SPECIALTIES[number]
+export type Difficulty  = typeof DIFFICULTIES[number]
 ```
 
 **Teste de cross-validação obrigatório** (ver seção 11): PostgreSQL normaliza
@@ -330,25 +344,47 @@ conexão de banco não fica aberta durante o I/O externo.
 
 **Fluxo do route handler:**
 ```
-1. Valida body (specialty, difficulty) → 400 se inválido
+1. Valida body (specialty, difficulty) → 400 se inválido:
+   // Usar SPECIALTIES e DIFFICULTIES como fonte canônica de validação
+   const DIFFICULTIES = ['easy', 'medium', 'hard'] as const
+   if (!SPECIALTIES.includes(body.specialty)) return 400
+   if (!DIFFICULTIES.includes(body.difficulty)) return 400
+
 2. Chama OpenAI com timeout de 25s → 408 se timeout, 500 se erro
-3. Valida e mapeia resposta OpenAI + body para os parâmetros do RPC:
-   // Validar age: LLMs podem retornar float ou string apesar das instruções
+
+3. Valida e mapeia resposta OpenAI + body:
+   // age: LLMs podem retornar float ou string; NaN/undefined também cobertos
    const age = Math.round(Number(openAI.age))
-   if (!Number.isInteger(age) || age < 18 || age > 80) throw new Error('Invalid age from OpenAI')
+   if (!Number.isInteger(age) || age < 18 || age > 80) {
+     // Dado inválido vindo do OpenAI — erro interno (500), não do cliente
+     return 500 com mensagem 'OpenAI returned invalid age'
+   }
+
+   // gender: normalizar para 'M' ou 'F'; rejeitar qualquer outro valor
+   const gender = openAI.gender === 'M' || openAI.gender === 'F'
+     ? openAI.gender
+     : (() => { throw new Error('OpenAI returned invalid gender') })()
+   // Lança → Next.js retorna 500
+
+   // conditions: garantir array de strings
+   const conditions = Array.isArray(openAI.conditions)
+     ? openAI.conditions.map((c: unknown) => String(c))
+     : []
 
    supabase.rpc('create_patient', {
      p_name:       String(openAI.name),
      p_age:        age,
-     p_gender:     openAI.gender,
+     p_gender:     gender,
      p_specialty:  body.specialty,       // do request body, não do OpenAI
      p_difficulty: body.difficulty,      // do request body, não do OpenAI
      p_complaint:  String(openAI.chief_complaint),
      p_status:     String(openAI.clinical_status),
-     p_conditions: Array.isArray(openAI.conditions) ? openAI.conditions : [],
+     p_conditions: conditions,
    })
+
 4. Se error.code === 'US001' → retorna 403
    Se qualquer outro erro → retorna 500
+
 5. Retorna NextResponse.json(data, { status: 201 })
    ATENÇÃO: NextResponse.json() retorna 200 por default — status 201 é explícito
 ```
