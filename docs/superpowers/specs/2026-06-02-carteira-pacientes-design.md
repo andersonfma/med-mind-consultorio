@@ -74,9 +74,11 @@ substituímos o GRANT genérico por grants por coluna:
 REVOKE UPDATE ON profiles FROM authenticated;
 
 -- Concede UPDATE apenas nas colunas editáveis pelo usuário
-GRANT UPDATE (full_name, crm, role) ON profiles TO authenticated;
+-- IMPORTANTE: 'role' intencionalmente excluído — nenhum fluxo de UI
+-- permite que o aluno mude seu próprio role
+GRANT UPDATE (full_name, crm) ON profiles TO authenticated;
 
--- total_slots só pode ser alterado via service_role (API interna)
+-- total_slots e role só podem ser alterados via service_role (API interna)
 ```
 
 O trigger `handle_new_user()` (foundation) já cria o perfil com `total_slots = 5`
@@ -167,12 +169,19 @@ operação seja eficiente mesmo se o teto de slots crescer.
 
 ### `/dashboard`
 
-Server component que busca em paralelo:
-- `supabase.auth.getUser()` — já validado pelo layout, usar `user` passado via props
-  ou reutilizar a sessão; **não fazer novo `getUser()` no page.tsx** (tripla chamada
-  desnecessária: middleware → layout → page)
-- Lista de pacientes do usuário
-- `profiles.total_slots` e `COUNT(patients)` para exibir slots disponíveis
+Server component. No Next.js App Router, layouts não passam props para pages —
+cada page é um Server Component independente. O `page.tsx` deve buscar seus
+próprios dados. Para evitar round-trip extra de auth, ler a sessão cacheada
+via `supabase.auth.getUser()` (o cookie já foi validado pelo middleware; a
+chamada no page usa cache de sessão local, não uma nova requisição de rede).
+
+Buscar em paralelo com `Promise.all`:
+```ts
+const [patientsResult, profileResult] = await Promise.all([
+  supabase.from('patients').select('*').order('created_at', { ascending: false }),
+  supabase.from('profiles').select('total_slots, full_name').eq('id', user.id).single(),
+])
+```
 
 Layout em duas colunas:
 - **Coluna esquerda (40%)**: lista de pacientes + botão "Novo paciente"
@@ -199,8 +208,8 @@ Isso garante que o guard não seja bypassável via navegação direta.
 
 - Tags de condições no topo: `#HAS` `#DM` `#DLP` (omitidas se `conditions` vazio)
 - Card de estado clínico atual (texto gerado pela IA)
-- Botão **"Iniciar atendimento"** — no SP1 redireciona para `/consultations/stub`
-  (página placeholder "Em breve"); fluxo real implementado no SP2
+- Botão **"Iniciar atendimento"** — no SP1 redireciona para `STUB_CONSULTATION_ROUTE`
+  (ver seção 5); fluxo real implementado no SP2
 - Lista de consultas anteriores com data e resumo (vazia no primeiro acesso,
   exibe mensagem: *"Nenhuma consulta realizada ainda"*)
 - Componente `<BondBar level={bond_level} />`
@@ -212,11 +221,24 @@ e botão "Voltar". Existe para que o botão "Iniciar atendimento" não fique sem
 
 ---
 
-## 5. Especialidades disponíveis (lista fixa MVP)
+## 5. Constantes de rota e especialidades
 
-Deve ser definida como constante exportável em `src/lib/patients/specialties.ts`
-e reutilizada tanto no frontend (dropdown) quanto no backend (validação da API).
-O CHECK constraint no banco usa os mesmos valores.
+### Rota da consulta (stub)
+
+```ts
+// src/lib/routes.ts
+export const STUB_CONSULTATION_ROUTE = '/consultations/stub'
+```
+
+No SP2, substituir `STUB_CONSULTATION_ROUTE` pelo valor real — um único lugar
+para atualizar em vez de strings espalhadas pelo código.
+
+### Especialidades disponíveis (lista fixa MVP)
+
+Definida em `src/lib/patients/specialties.ts` e reutilizada no frontend
+(dropdown) e no backend (validação da API). O CHECK constraint do banco usa
+os mesmos valores — qualquer adição futura exige migration + atualização desta
+constante.
 
 ```ts
 export const SPECIALTIES = [
@@ -233,6 +255,10 @@ export const SPECIALTIES = [
 export type Specialty = typeof SPECIALTIES[number]
 ```
 
+**Teste de cross-validação obrigatório** (ver seção 11): um teste de integração
+deve ler o CHECK constraint da tabela `patients` via `information_schema` e
+comparar com `SPECIALTIES` — detecta divergência em tempo de CI, não em runtime.
+
 ---
 
 ## 6. API route: `POST /api/patients`
@@ -240,35 +266,73 @@ export type Specialty = typeof SPECIALTIES[number]
 **Autenticação**: middleware garante sessão válida. A route verifica `user_id`
 via `supabase.auth.getUser()` com o client server-side.
 
-**Fluxo — dentro de uma única transação de banco:**
+**Estratégia de atomicidade**: usar função PostgreSQL `create_patient` via
+`supabase.rpc()`. A função encapsula o slot check + insert em uma transação
+atômica. O route handler chama a OpenAI ANTES de invocar o RPC — assim a
+conexão de banco não fica aberta durante o I/O externo.
 
+**Fluxo do route handler:**
 ```
+1. Valida body (specialty, difficulty) → 400 se inválido
+2. Chama OpenAI com timeout de 25s → 408 se timeout, 500 se erro
+3. Chama supabase.rpc('create_patient', { ...dadosOpenAI }) → 403 se sem slots
+4. Retorna o paciente criado com status 201
+   ATENÇÃO: NextResponse.json() retorna 200 por default —
+   usar explicitamente NextResponse.json(data, { status: 201 })
+```
+
+**Função PostgreSQL `create_patient`** (incluir na migration `0002_add_patients.sql`):
+
+```sql
+CREATE OR REPLACE FUNCTION create_patient(
+  p_name         TEXT,
+  p_age          INTEGER,
+  p_gender       TEXT,
+  p_specialty    TEXT,
+  p_difficulty   TEXT,
+  p_complaint    TEXT,
+  p_status       TEXT,
+  p_conditions   TEXT[]
+) RETURNS patients AS $$
+DECLARE
+  v_user_id      UUID := auth.uid();
+  v_total_slots  INTEGER;
+  v_used_slots   INTEGER;
+  v_patient      patients;
 BEGIN
-  1. SELECT total_slots FROM profiles WHERE id = user_id FOR UPDATE
-  2. SELECT COUNT(*) FROM patients WHERE user_id = user_id
-  3. Se COUNT >= total_slots → ROLLBACK → retorna 403
-  4. Chama OpenAI (fora da transação — ver nota abaixo)
-  5. INSERT INTO patients (...)
-COMMIT
+  -- Lock pessimista: impede race condition entre leituras concorrentes
+  SELECT total_slots INTO v_total_slots
+    FROM profiles
+    WHERE id = v_user_id
+    FOR UPDATE;
+
+  SELECT COUNT(*) INTO v_used_slots
+    FROM patients
+    WHERE user_id = v_user_id;
+
+  IF v_used_slots >= v_total_slots THEN
+    RAISE EXCEPTION 'no_slots_available' USING ERRCODE = 'P0001';
+  END IF;
+
+  INSERT INTO patients (
+    user_id, name, age, gender, specialty, difficulty,
+    chief_complaint, clinical_status, conditions
+  ) VALUES (
+    v_user_id, p_name, p_age, p_gender, p_specialty, p_difficulty,
+    p_complaint, p_status, p_conditions
+  ) RETURNING * INTO v_patient;
+
+  RETURN v_patient;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Proteção contra search-path hijacking
+ALTER FUNCTION create_patient(TEXT,INTEGER,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT[])
+  SET search_path = public;
 ```
 
-**Nota sobre OpenAI fora da transação**: a chamada OpenAI não pode ficar dentro
-do BEGIN/COMMIT porque transações abertas enquanto aguardam I/O externo consomem
-conexões do pool. O fluxo correto é:
-
-```
-1. SELECT total_slots FOR UPDATE → abre lock pessimista
-2. Se sem slots → libera lock → retorna 403
-3. Chama OpenAI com timeout de 25 segundos
-4. Se OpenAI falhar → libera lock → retorna 500 (slot NÃO consumido)
-5. INSERT INTO patients dentro de transação com o lock já adquirido
-6. COMMIT
-```
-
-Na prática com Supabase, usar `supabase.rpc('create_patient', {...})` com uma
-função SECURITY DEFINER que encapsula o lock + insert atomicamente é a forma
-mais robusta. Alternativa: usar o service_role client para o insert, que bypassa
-RLS e permite transação explícita.
+O route handler detecta `ERRCODE P0001` e retorna `403`. Qualquer outro erro
+retorna `500`. O slot nunca é consumido se a OpenAI falhar antes do RPC.
 
 **Status codes:**
 - `201` — paciente criado com sucesso, retorna o objeto patient
@@ -373,14 +437,18 @@ Usos no dashboard:
 **Unitários (Vitest):**
 - `buildPatientPrompt(specialty, difficulty)` → string de prompt correta
 - `hasAvailableSlot(usedSlots, totalSlots)` → boolean correto nos limites (0, igual, acima)
-- Constante `SPECIALTIES` — verificar que os valores batem com o CHECK constraint do banco
+
+**Integração — cross-validação de especialidades (Vitest + Supabase real):**
+- Lê o CHECK constraint da coluna `specialty` em `information_schema.check_constraints`
+  e compara com os valores de `SPECIALTIES` — garante que TypeScript e SQL estão em sync.
+  Este teste falha em CI se um developer adicionar uma especialidade em apenas um dos lugares.
 
 **Integração (Vitest + Supabase mockado):**
-- `POST /api/patients` com OpenAI mockado → paciente salvo, retorna 201
+- `POST /api/patients` com OpenAI mockado → paciente salvo, retorna **201**
 - `POST /api/patients` com OpenAI falhando → slot não consumido, retorna 500
 - `POST /api/patients` com timeout simulado → retorna 408, slot não consumido
 - `POST /api/patients` sem slots → retorna 403
-- Duas requisições simultâneas com 1 slot disponível → apenas 1 paciente criado
+- Duas requisições simultâneas com 1 slot disponível → apenas 1 paciente criado (lock pessimista)
 
 **E2E (Playwright):**
 - Fluxo completo: escolher especialidade + dificuldade → confirmar → paciente aparece na listagem do dashboard
@@ -412,8 +480,10 @@ src/
 │   └── ui/
 │       └── BondBar.tsx                   ← 5 barras de vínculo
 ├── lib/
+│   ├── routes.ts                         ← STUB_CONSULTATION_ROUTE e futuras rotas
 │   └── patients/
 │       ├── specialties.ts                ← constante SPECIALTIES + tipo Specialty
+│       ├── specialties.test.ts           ← cross-valida TS vs CHECK constraint do banco
 │       ├── prompt.ts                     ← buildPatientPrompt()
 │       ├── prompt.test.ts
 │       ├── slots.ts                      ← hasAvailableSlot()
@@ -432,19 +502,21 @@ src/
 
 ## 13. Critérios de conclusão
 
-- [ ] Migration `0002_add_patients.sql` aplicada via Supabase CLI
-- [ ] `profiles.total_slots` adicionado com CHECK (> 0) e GRANT UPDATE revogado para a coluna
-- [ ] Tabela `patients` com CHECK constraint em `specialty` e `age (18-80)`, índice em `user_id`, RLS (SELECT + INSERT + UPDATE)
+- [ ] Migration `0002_add_patients.sql` aplicada via Supabase CLI (inclui `create_patient` RPC)
+- [ ] `profiles.total_slots` adicionado com CHECK (> 0); GRANT UPDATE revogado e re-concedido apenas em `(full_name, crm)`
+- [ ] Tabela `patients` com CHECK constraints em `specialty`, `age (18-80)`, `difficulty`, `bond_level`; índice em `user_id`; RLS (SELECT + INSERT + UPDATE)
+- [ ] Função `create_patient` com SECURITY DEFINER e `search_path = public`
 - [ ] `database.ts` regenerado após migration
-- [ ] `POST /api/patients` funcional com OpenAI real (gpt-4o-mini, response_format json_object, timeout 25s)
-- [ ] Lock pessimista garantindo atomicidade do slot check + insert
-- [ ] Dashboard reformulado em 2 colunas sem `getUser()` redundante
+- [ ] `POST /api/patients` funcional: gpt-4o-mini, response_format json_object, timeout 25s, retorna `{ status: 201 }`
+- [ ] Constante `STUB_CONSULTATION_ROUTE` em `src/lib/routes.ts`
 - [ ] Constante `SPECIALTIES` compartilhada entre frontend e backend
+- [ ] Teste de cross-validação: `SPECIALTIES` vs CHECK constraint do banco
+- [ ] Dashboard: `Promise.all` para buscas paralelas, sem `getUser()` redundante
 - [ ] Página `/patients/new` com guard server-side antes de renderizar
-- [ ] Página `/patients/[id]` com tags, estado clínico, histórico e botão de atendimento
+- [ ] Página `/patients/[id]` com tags, estado clínico, histórico e botão usando `STUB_CONSULTATION_ROUTE`
 - [ ] Página `/consultations/stub` como placeholder
 - [ ] Componente `<BondBar />` funcional
 - [ ] Componente `<PlaceholderChart />` reutilizado 3x no dashboard
-- [ ] Testes unitários e de concorrência passando
+- [ ] Testes unitários, de concorrência e cross-validação passando
 - [ ] Teste E2E: fluxo completo de criação de paciente
 - [ ] Deploy no Easypanel funcionando após as mudanças
