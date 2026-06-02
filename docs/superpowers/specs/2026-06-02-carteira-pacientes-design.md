@@ -254,20 +254,36 @@ if (count >= profileResult.data.total_slots) {
 }
 ```
 
-1. Dropdown de especialidade (lista fixa — ver seção 5)
-2. Três botões de dificuldade: Fácil / Médio / Difícil
-3. Botão "Confirmar" → spinner com texto *"Seu próximo paciente está chegando..."*
-4. Em caso de sucesso: redirect para `/patients/[id]` do paciente criado
-5. Em caso de erro: mensagem de erro, slot não consumido, botão reativado
+**Mecanismo do formulário**: o formulário é um **Client Component** (`'use client'`)
+que envolve a parte interativa da página. O guard server-side permanece no Server
+Component pai. O Client Component usa `fetch('POST', '/api/patients', body)` — não
+um Server Action nem HTML form nativo (que enviaria `application/x-www-form-urlencoded`
+em vez de JSON, quebrando o `request.json()` no route handler).
+
+Estrutura da página:
+```
+patients/new/page.tsx          ← Server Component (guard)
+  └── NewPatientForm.tsx        ← Client Component ('use client') com fetch
+```
+
+1. Dropdown de especialidade (lista fixa — importar `SPECIALTIES` de `specialties.ts`)
+2. Três botões de dificuldade: Fácil / Médio / Difícil (valores: `easy`, `medium`, `hard`)
+3. Botão "Confirmar" → `fetch('/api/patients', { method: 'POST', body: JSON.stringify({specialty, difficulty}) })`
+   → spinner com texto *"Seu próximo paciente está chegando..."*
+4. Em caso de sucesso (`response.status === 201`): `router.push('/patients/' + data.id)`
+5. Em caso de erro: exibir `response.json().error`, botão reativado
 
 ### `/patients/[id]`
 
-Server component. Query obrigatória para buscar o paciente:
+Server component. Em Next.js 15+, `params` é uma Promise — sempre aguardar:
 ```ts
+// params deve ser tipado como Promise<{ id: string }> na assinatura do componente
+const { id } = await params
+
 const { data: patient, error } = await supabase
   .from('patients')
   .select('*')
-  .eq('id', params.id)
+  .eq('id', id)
   .eq('user_id', user.id)  // RLS já filtra, mas o .eq explícito protege contra erros futuros
   .single()
 
@@ -365,6 +381,9 @@ conexão de banco não fica aberta durante o I/O externo.
 // Importar no topo do arquivo:
 import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
 
+// 0. Obter e validar body da request
+const body = await request.json()  // obrigatório — sem await, body é uma Promise
+
 // 1. Valida body → 400 se inválido.
 //    SPECIALTIES e DIFFICULTIES são readonly tuples — cast necessário para .includes()
 if (!(SPECIALTIES as readonly string[]).includes(body.specialty))
@@ -375,6 +394,11 @@ if (!(DIFFICULTIES as readonly string[]).includes(body.difficulty))
 // 2. Chama OpenAI com timeout de 25s
 //    timeout → NextResponse.json({ error: 'OpenAI timeout' }, { status: 408 })
 //    erro    → NextResponse.json({ error: 'OpenAI error' }, { status: 500 })
+//
+//    Parsing da resposta (response_format: json_object retorna string, não objeto):
+//    const content = completion.choices[0].message.content
+//    if (!content) return NextResponse.json({ error: 'OpenAI empty response' }, { status: 500 })
+//    const openAI = JSON.parse(content)  // sempre parsear — content é sempre string
 
 // 3. Valida e mapeia resposta OpenAI + body:
 
@@ -383,30 +407,39 @@ const age = Math.round(Number(openAI.age))
 if (!Number.isInteger(age) || age < 18 || age > 80)
   return NextResponse.json({ error: 'OpenAI returned invalid age' }, { status: 500 })
 
-// gender: checar explicitamente; não usar IIFE-throw (produz resposta framework-controlada)
+// gender: checar explicitamente
 if (openAI.gender !== 'M' && openAI.gender !== 'F')
   return NextResponse.json({ error: 'OpenAI returned invalid gender' }, { status: 500 })
 const gender = openAI.gender as 'M' | 'F'
 
+// name, chief_complaint, clinical_status: validar não-vazio (String(null) = "null")
+const name = typeof openAI.name === 'string' && openAI.name.trim()
+  ? openAI.name.trim() : null
+const complaint = typeof openAI.chief_complaint === 'string' && openAI.chief_complaint.trim()
+  ? openAI.chief_complaint.trim() : null
+const status = typeof openAI.clinical_status === 'string' && openAI.clinical_status.trim()
+  ? openAI.clinical_status.trim() : null
+if (!name || !complaint || !status)
+  return NextResponse.json({ error: 'OpenAI returned empty required field' }, { status: 500 })
+
 // conditions: descartar elementos não-string silenciosamente
-// (String(obj) produziria '[object Object]' — filtrar é mais seguro que rejeitar tudo)
 const conditions = Array.isArray(openAI.conditions)
   ? openAI.conditions.filter((c: unknown): c is string => typeof c === 'string')
   : []
 
-// 4. Chama o RPC:
-const { data, error } = await supabase.rpc('create_patient', {
-  p_name:       String(openAI.name),
+// 4. Chama o RPC (renomear error para rpcError — evita redeclaração com o error do getUser())
+const { data, error: rpcError } = await supabase.rpc('create_patient', {
+  p_name:       name,
   p_age:        age,
   p_gender:     gender,
   p_specialty:  body.specialty,    // do request body, não do OpenAI
   p_difficulty: body.difficulty,   // do request body, não do OpenAI
-  p_complaint:  String(openAI.chief_complaint),
-  p_status:     String(openAI.clinical_status),
+  p_complaint:  complaint,
+  p_status:     status,
   p_conditions: conditions,
 })
-if (error) {
-  if (error.code === 'US001')
+if (rpcError) {
+  if (rpcError.code === 'US001')
     return NextResponse.json({ error: 'No slots available' }, { status: 403 })
   return NextResponse.json({ error: 'Internal error' }, { status: 500 })
 }
@@ -628,7 +661,8 @@ src/
 │   │   │   └── page.tsx                  ← reformulado (2 colunas, sem duplo getUser)
 │   │   ├── patients/
 │   │   │   ├── new/
-│   │   │   │   └── page.tsx              ← guard server-side + form
+│   │   │   │   ├── page.tsx              ← Server Component (guard server-side)
+│   │   │   │   └── NewPatientForm.tsx    ← Client Component ('use client') com fetch
 │   │   │   └── [id]/
 │   │   │       └── page.tsx              ← detalhe do paciente
 │   │   └── consultations/
