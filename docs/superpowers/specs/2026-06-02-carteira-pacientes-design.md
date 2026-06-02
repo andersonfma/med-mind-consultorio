@@ -301,27 +301,42 @@ export function NewPatientForm() {
     setLoading(true)
     setFormError(null)
 
-    const response = await fetch('/api/patients', {
-      method: 'POST',
-      body: JSON.stringify({ specialty, difficulty }),
-      // Content-Type não é necessário — request.json() lê o body independentemente
-    })
+    try {
+      const response = await fetch('/api/patients', {
+        method: 'POST',
+        body: JSON.stringify({ specialty, difficulty }),
+        // Content-Type não é necessário — request.json() lê o body independentemente
+      })
 
-    if (response.status === 201) {
-      const data = await response.json()        // await obrigatório antes de acessar data
-      if (!data?.id) {
-        setFormError('Resposta inválida do servidor')  // setFormError, não throw
-        setLoading(false)
-        return
+      if (response.status === 201) {
+        const data = await response.json()      // await obrigatório antes de acessar data
+        if (!data?.id) {
+          setFormError('Resposta inválida do servidor')
+          return
+        }
+        // Não chamar setLoading(false) aqui — a navegação vai desmontar o componente
+        router.push('/patients/' + data.id)
+      } else {
+        const json = await response.json()      // await obrigatório
+        setFormError(json?.error ?? 'Erro desconhecido')
       }
-      router.push('/patients/' + data.id)
-    } else {
-      const json = await response.json()        // await obrigatório
-      setFormError(json?.error ?? 'Erro desconhecido')
+    } finally {
+      // finally garante reset em todos os caminhos de erro; sucesso (router.push) desmonta
       setLoading(false)
     }
   }
-  // ... render: dropdown specialty, botões difficulty, botão submit
+
+  // JSX obrigatório — vincular handleSubmit ao botão:
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }}>
+      {/* Dropdown de especialidade — usar SPECIALTIES */}
+      {/* Botões de dificuldade — usar DIFFICULTIES com labels Fácil/Médio/Difícil */}
+      {formError && <p className="text-red-600">{formError}</p>}
+      <button type="submit" disabled={loading || !specialty || !difficulty}>
+        {loading ? 'Aguardando...' : 'Confirmar'}
+      </button>
+    </form>
+  )
 }
 ```
 
@@ -351,6 +366,22 @@ const { data: patient, error } = await supabase
   .single()
 
 if (error || !patient) notFound()  // Next.js renderiza 404
+
+// JSX da página — render obrigatório:
+return (
+  <div>
+    {/* Tags de condições — patient.conditions é string[] */}
+    <div>{patient.conditions.map(c => <span key={c}>#{c}</span>)}</div>
+    {/* Estado clínico atual */}
+    <p>{patient.clinical_status}</p>
+    {/* Vínculo */}
+    <BondBar level={patient.bond_level} />
+    {/* Botão de atendimento — SP1 usa placeholder */}
+    <a href={STUB_CONSULTATION_ROUTE}>Iniciar atendimento</a>
+    {/* Consultas anteriores — hardcode vazio em SP1 */}
+    <p>Nenhuma consulta realizada ainda</p>
+  </div>
+)
 ```
 
 Campos renderizados a partir de `patient`:
@@ -456,28 +487,32 @@ if (!(SPECIALTIES as readonly string[]).includes(body.specialty))
 if (!(DIFFICULTIES as readonly string[]).includes(body.difficulty))
   return NextResponse.json({ error: 'Invalid difficulty' }, { status: 400 })
 
-// 2. Chama OpenAI com timeout de 25s via opção do SDK:
-//    import { APITimeoutError } from 'openai'
-//    import openai from '@/lib/openai/client'
-//
-//    let completion
-//    try {
-//      completion = await openai.chat.completions.create({ ...payload }, { timeout: 25_000 })
-//    } catch (e) {
-//      if (e instanceof APITimeoutError)
-//        return NextResponse.json({ error: 'OpenAI timeout' }, { status: 408 })
-//      return NextResponse.json({ error: 'OpenAI error' }, { status: 500 })
-//    }
-//
-//    Parsing da resposta (response_format: json_object retorna string, não objeto):
-//    const content = completion.choices[0].message.content
-//    if (!content) return NextResponse.json({ error: 'OpenAI empty response' }, { status: 500 })
-//    // JSON.parse pode lançar SyntaxError se o modelo truncar a resposta (finish_reason: 'length')
-//    // Cast para Record<string, unknown> — elimina erros de 'Object is of type unknown'
-//    // nas 6 acessos de propriedade abaixo. Validação por campo garante segurança.
-//    let openAI: Record<string, unknown>
-//    try { openAI = JSON.parse(content) as Record<string, unknown> }
-//    catch { return NextResponse.json({ error: 'OpenAI returned invalid JSON' }, { status: 500 }) }
+// 2. Chama OpenAI com timeout de 25s — código real, não pseudocode:
+// (imports no topo do arquivo junto com os demais)
+// import { APITimeoutError } from 'openai'
+// import openai from '@/lib/openai/client'
+// import { buildPatientPrompt } from '@/lib/patients/prompt'  ← prompt vem de prompt.ts
+
+let completion: Awaited<ReturnType<typeof openai.chat.completions.create>>
+try {
+  completion = await openai.chat.completions.create(
+    buildPatientPrompt(body.specialty, body.difficulty),
+    { timeout: 25_000 }
+  )
+} catch (e) {
+  if (e instanceof APITimeoutError)
+    return NextResponse.json({ error: 'OpenAI timeout' }, { status: 408 })
+  return NextResponse.json({ error: 'OpenAI error' }, { status: 500 })
+}
+
+// Parsing — response_format: json_object retorna string, não objeto
+const content = completion.choices[0].message.content
+if (!content) return NextResponse.json({ error: 'OpenAI empty response' }, { status: 500 })
+// JSON.parse pode lançar SyntaxError se finish_reason for 'length' (resposta truncada)
+// Cast para Record<string, unknown> elimina erros 'Object is of type unknown' abaixo
+let openAI: Record<string, unknown>
+try { openAI = JSON.parse(content) as Record<string, unknown> }
+catch { return NextResponse.json({ error: 'OpenAI returned invalid JSON' }, { status: 500 }) }
 
 // 3. Valida e mapeia resposta OpenAI + body:
 
@@ -652,6 +687,44 @@ O campo `conditions` pode ser array vazio para casos fáceis.
 O cliente OpenAI já existe em `src/lib/openai/client.ts` (importa `'server-only'`).
 **Não instanciar um novo cliente no route handler** — importar o existente.
 
+### `src/lib/patients/prompt.ts` — função obrigatória
+
+O prompt deve viver em `prompt.ts` para ser testável isoladamente:
+
+```ts
+import type { Specialty, Difficulty } from './specialties'
+
+export function buildPatientPrompt(specialty: Specialty, difficulty: Difficulty) {
+  return {
+    model: 'gpt-4o-mini' as const,
+    response_format: { type: 'json_object' as const },
+    messages: [{
+      role: 'user' as const,
+      content: `Você é um gerador de pacientes simulados para treinamento médico.
+Gere um paciente realista para a especialidade: ${specialty}.
+Nível de dificuldade: ${difficulty}.
+
+Regras por dificuldade:
+- easy: queixa clara, quadro típico, sem comorbidades relevantes
+- medium: queixa moderadamente vaga, 1-2 comorbidades
+- hard: queixa inespecífica, múltiplas comorbidades, quadro atípico
+
+Responda APENAS com JSON válido, sem texto adicional:
+{
+  "name": "nome fictício brasileiro",
+  "age": número inteiro entre 18 e 80,
+  "gender": "M" ou "F",
+  "chief_complaint": "queixa principal em 1 frase, na voz do paciente",
+  "clinical_status": "estado clínico inicial em 1 frase curta, na voz do sistema",
+  "conditions": ["lista", "de", "condições", "preexistentes"]
+}`,
+    }],
+  }
+}
+```
+
+A função retorna o objeto completo passado ao SDK — testável sem mockar o cliente OpenAI.
+
 ---
 
 ## 8. Listagem de pacientes — componente de vínculo
@@ -692,11 +765,15 @@ Usos no dashboard:
 
 | Situação | Comportamento |
 |----------|---------------|
-| OpenAI timeout (>25s) | Retorna 408, slot não consumido, botão reativado |
-| OpenAI erro interno | Retorna 500, slot não consumido, botão reativado |
-| Aluno sem slots | Guard server-side redireciona antes de renderizar o form |
-| Tentativa concorrente de criar paciente | Lock pessimista garante que apenas um passa |
-| Paciente sem consultas | Mensagem "Nenhuma consulta realizada ainda" |
+| OpenAI timeout (>25s) | API retorna 408; `NewPatientForm` exibe `formError`; botão reativado via `finally` |
+| OpenAI erro interno | API retorna 500; `NewPatientForm` exibe `formError`; botão reativado |
+| OpenAI retorna age/gender/name inválido | API retorna 500 com `{ error: 'OpenAI returned invalid ...' }`; botão reativado |
+| OpenAI retorna JSON inválido (finish_reason: length) | API retorna 500; botão reativado |
+| Aluno sem slots | Guard server-side redireciona para `DASHBOARD_ROUTE`; botão no dashboard desabilitado |
+| Tentativa concorrente de criar paciente | Lock pessimista (`FOR UPDATE`) garante que apenas um passa; segundo recebe 403 |
+| Aluno não autenticado | Middleware redireciona para login; fallback `if (!user) redirect(DASHBOARD_ROUTE)` |
+| Paciente não encontrado em `/patients/[id]` | `notFound()` renderiza página 404 do Next.js |
+| Paciente sem consultas | Lista vazia com mensagem "Nenhuma consulta realizada ainda" (hardcode SP1) |
 | RLS | Queries filtram por `user_id` automaticamente |
 | total_slots editado via client | Impossível — GRANT UPDATE cobre apenas full_name, crm |
 
@@ -705,8 +782,10 @@ Usos no dashboard:
 ## 11. Testes
 
 **Unitários (Vitest):**
-- `buildPatientPrompt(specialty, difficulty)` → string de prompt correta
-- `hasAvailableSlot(usedSlots, totalSlots)` → boolean correto nos limites (0, igual, acima)
+- `buildPatientPrompt(specialty, difficulty)` → verifica que o objeto retornado tem o model correto, response_format json_object, e que o content inclui a especialidade e dificuldade interpolados
+- `hasAvailableSlot(usedSlots, totalSlots)` → boolean correto nos limites (0, igual, acima).
+  Esta função é usada na lógica de UI do dashboard para desabilitar o botão "Novo paciente":
+  `disabled={!hasAvailableSlot(used_slots, total_slots)}` — mantida em `slots.ts` para testar isoladamente e evitar duplicar a expressão em múltiplos componentes.
 
 **Integração — cross-validação de constantes vs CHECK constraints (Vitest + Supabase real):**
 
