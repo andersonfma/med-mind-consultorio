@@ -201,7 +201,7 @@ const supabase = await createClient()
 const { data: { user } } = await supabase.auth.getUser()
 // Fallback defensivo: middleware já garante auth, mas se falhar,
 // redirecionar para /login (não para DASHBOARD_ROUTE — causaria loop)
-if (!user) redirect('/login')
+if (!user) redirect(LOGIN_ROUTE)
 ```
 
 Buscar em paralelo com `Promise.all` — obrigatório, não sequential awaits:
@@ -259,7 +259,7 @@ import { DASHBOARD_ROUTE } from '@/lib/routes'
 // No componente — obter supabase e user antes das queries:
 const supabase = await createClient()
 const { data: { user } } = await supabase.auth.getUser()
-if (!user) redirect('/login')  // fallback; nunca redirecionar para DASHBOARD (loop)
+if (!user) redirect(LOGIN_ROUTE)  // fallback; nunca redirecionar para DASHBOARD (loop)
 
 const [patientsCount, profileResult] = await Promise.all([
   supabase.from('patients').select('id', { count: 'exact' }),
@@ -329,7 +329,9 @@ export function NewPatientForm() {
         setFormError(json?.error ?? 'Erro desconhecido')
       }
     } finally {
-      // finally garante reset em todos os caminhos de erro; sucesso (router.push) desmonta
+      // finally executa em TODOS os caminhos, incluindo sucesso.
+      // router.push() é não-bloqueante; o componente ainda está montado quando finally roda.
+      // setLoading(false) reabilita brevemente o botão antes da navegação completar — aceito em SP1.
       setLoading(false)
     }
   }
@@ -364,7 +366,7 @@ import { BondBar } from '@/components/ui/BondBar'
 
 const supabase = await createClient()
 const { data: { user } } = await supabase.auth.getUser()
-if (!user) redirect('/login')  // fallback; nunca redirecionar para DASHBOARD (loop)
+if (!user) redirect(LOGIN_ROUTE)  // fallback; nunca redirecionar para DASHBOARD (loop)
 
 const { id } = await params
 
@@ -416,7 +418,8 @@ e botão "Voltar". Existe para que o botão "Iniciar atendimento" não fique sem
 
 ```ts
 // src/lib/routes.ts
-export const DASHBOARD_ROUTE         = '/dashboard'
+export const LOGIN_ROUTE             = '/login'
+export const DASHBOARD_ROUTE        = '/dashboard'
 export const STUB_CONSULTATION_ROUTE = '/consultations/stub'
 ```
 
@@ -482,101 +485,92 @@ conexão de banco não fica aberta durante o I/O externo.
 `NextResponse.json({ error: string }, { status: N })`. Nunca `{ message }` ou
 `{ detail }`. O frontend sempre lê `response.error`.
 
-**Fluxo do route handler:**
+**Fluxo do route handler** — `src/app/api/patients/route.ts`:
 ```ts
-// Importar no topo do arquivo (todos os imports necessários):
+// Todos os imports no topo do arquivo (nunca dentro de funções):
 import { NextResponse, type NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
+import type { ChatCompletion } from 'openai'                      // 'openai' exporta diretamente
 import { APITimeoutError } from 'openai'
+import { createClient } from '@/lib/supabase/server'
 import openai from '@/lib/openai/client'
 import { buildPatientPrompt } from '@/lib/patients/prompt'
+import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()  // obrigatório para chamar supabase.rpc()
 
-// 0. Obter e validar body da request
-const body = await request.json()  // obrigatório — sem await, body é uma Promise
+  // 0. Obter body da request
+  const body = await request.json()
 
-// 1. Valida body → 400 se inválido.
-//    SPECIALTIES e DIFFICULTIES são readonly tuples — cast necessário para .includes()
-if (!(SPECIALTIES as readonly string[]).includes(body.specialty))
-  return NextResponse.json({ error: 'Invalid specialty' }, { status: 400 })
-if (!(DIFFICULTIES as readonly string[]).includes(body.difficulty))
-  return NextResponse.json({ error: 'Invalid difficulty' }, { status: 400 })
+  // 1. Valida body → 400 se inválido
+  //    SPECIALTIES/DIFFICULTIES são readonly tuples — cast para .includes()
+  if (!(SPECIALTIES as readonly string[]).includes(body.specialty))
+    return NextResponse.json({ error: 'Invalid specialty' }, { status: 400 })
+  if (!(DIFFICULTIES as readonly string[]).includes(body.difficulty))
+    return NextResponse.json({ error: 'Invalid difficulty' }, { status: 400 })
 
-// 2. Chama OpenAI com timeout de 25s
-// Usar ChatCompletion diretamente — ReturnType<> em função overloaded pode resolver
-// para o overload errado (streaming). ChatCompletion é o tipo não-streaming correto.
-import type { ChatCompletion } from 'openai/resources'
-let completion: ChatCompletion
-try {
-  completion = await openai.chat.completions.create(
-    buildPatientPrompt(body.specialty, body.difficulty),
-    { timeout: 25_000 }
-  )
-} catch (e) {
-  if (e instanceof APITimeoutError)
-    return NextResponse.json({ error: 'OpenAI timeout' }, { status: 408 })
-  return NextResponse.json({ error: 'OpenAI error' }, { status: 500 })
+  // 2. Chama OpenAI com timeout de 25s
+  let completion: ChatCompletion
+  try {
+    completion = await openai.chat.completions.create(
+      buildPatientPrompt(body.specialty, body.difficulty),
+      { timeout: 25_000 }
+    ) as ChatCompletion  // cast explícito — create() é overloaded, TypeScript infere streaming
+  } catch (e) {
+    if (e instanceof APITimeoutError)
+      return NextResponse.json({ error: 'OpenAI timeout' }, { status: 408 })
+    return NextResponse.json({ error: 'OpenAI error' }, { status: 500 })
+  }
+
+  // Parsing — response_format: json_object retorna string, não objeto
+  const content = completion.choices[0].message.content
+  if (!content) return NextResponse.json({ error: 'OpenAI empty response' }, { status: 500 })
+  let openAI: Record<string, unknown>
+  try { openAI = JSON.parse(content) as Record<string, unknown> }
+  catch { return NextResponse.json({ error: 'OpenAI returned invalid JSON' }, { status: 500 }) }
+
+  // 3. Valida e mapeia resposta OpenAI + body
+  const age = Math.round(Number(openAI.age))
+  if (!Number.isInteger(age) || age < 18 || age > 80)
+    return NextResponse.json({ error: 'OpenAI returned invalid age' }, { status: 500 })
+
+  if (openAI.gender !== 'M' && openAI.gender !== 'F')
+    return NextResponse.json({ error: 'OpenAI returned invalid gender' }, { status: 500 })
+  const gender = openAI.gender as 'M' | 'F'
+
+  const name      = typeof openAI.name === 'string' && openAI.name.trim()
+    ? openAI.name.trim() : null
+  const complaint = typeof openAI.chief_complaint === 'string' && openAI.chief_complaint.trim()
+    ? openAI.chief_complaint.trim() : null
+  const status    = typeof openAI.clinical_status === 'string' && openAI.clinical_status.trim()
+    ? openAI.clinical_status.trim() : null
+  if (!name || !complaint || !status)
+    return NextResponse.json({ error: 'OpenAI returned empty required field' }, { status: 500 })
+
+  const conditions = Array.isArray(openAI.conditions)
+    ? openAI.conditions.filter((c: unknown): c is string => typeof c === 'string')
+    : []
+
+  // 4. Chama o RPC
+  const { data, error: rpcError } = await supabase.rpc('create_patient', {
+    p_name:       name,
+    p_age:        age,
+    p_gender:     gender,
+    p_specialty:  body.specialty,    // do request body, não do OpenAI
+    p_difficulty: body.difficulty,   // do request body, não do OpenAI
+    p_complaint:  complaint,
+    p_status:     status,
+    p_conditions: conditions,
+  })
+  if (rpcError) {
+    if (rpcError.code === 'US001')
+      return NextResponse.json({ error: 'No slots available' }, { status: 403 })
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
+
+  // 5. Sucesso — status 201 explícito (NextResponse.json() retorna 200 por default)
+  return NextResponse.json(data, { status: 201 })
 }
-
-// Parsing — response_format: json_object retorna string, não objeto
-const content = completion.choices[0].message.content
-if (!content) return NextResponse.json({ error: 'OpenAI empty response' }, { status: 500 })
-// JSON.parse pode lançar SyntaxError se finish_reason for 'length' (resposta truncada)
-// Cast para Record<string, unknown> elimina erros 'Object is of type unknown' abaixo
-let openAI: Record<string, unknown>
-try { openAI = JSON.parse(content) as Record<string, unknown> }
-catch { return NextResponse.json({ error: 'OpenAI returned invalid JSON' }, { status: 500 }) }
-
-// 3. Valida e mapeia resposta OpenAI + body:
-
-// age: LLMs podem retornar float ou string; NaN/undefined cobertos pelo guard
-const age = Math.round(Number(openAI.age))
-if (!Number.isInteger(age) || age < 18 || age > 80)
-  return NextResponse.json({ error: 'OpenAI returned invalid age' }, { status: 500 })
-
-// gender: checar explicitamente
-if (openAI.gender !== 'M' && openAI.gender !== 'F')
-  return NextResponse.json({ error: 'OpenAI returned invalid gender' }, { status: 500 })
-const gender = openAI.gender as 'M' | 'F'
-
-// name, chief_complaint, clinical_status: validar não-vazio (String(null) = "null")
-const name = typeof openAI.name === 'string' && openAI.name.trim()
-  ? openAI.name.trim() : null
-const complaint = typeof openAI.chief_complaint === 'string' && openAI.chief_complaint.trim()
-  ? openAI.chief_complaint.trim() : null
-const status = typeof openAI.clinical_status === 'string' && openAI.clinical_status.trim()
-  ? openAI.clinical_status.trim() : null
-if (!name || !complaint || !status)
-  return NextResponse.json({ error: 'OpenAI returned empty required field' }, { status: 500 })
-
-// conditions: descartar elementos não-string silenciosamente
-const conditions = Array.isArray(openAI.conditions)
-  ? openAI.conditions.filter((c: unknown): c is string => typeof c === 'string')
-  : []
-
-// 4. Chama o RPC (renomear error para rpcError — evita redeclaração com o error do getUser())
-const { data, error: rpcError } = await supabase.rpc('create_patient', {
-  p_name:       name,
-  p_age:        age,
-  p_gender:     gender,
-  p_specialty:  body.specialty,    // do request body, não do OpenAI
-  p_difficulty: body.difficulty,   // do request body, não do OpenAI
-  p_complaint:  complaint,
-  p_status:     status,
-  p_conditions: conditions,
-})
-if (rpcError) {
-  if (rpcError.code === 'US001')
-    return NextResponse.json({ error: 'No slots available' }, { status: 403 })
-  return NextResponse.json({ error: 'Internal error' }, { status: 500 })
-}
-
-// 5. Sucesso — status 201 explícito (NextResponse.json() retorna 200 por default)
-return NextResponse.json(data, { status: 201 })
-} // fecha export async function POST
 ```
 
 **Função PostgreSQL `create_patient`** (incluir na migration gerada por `supabase migration new add_patients`):
@@ -709,7 +703,8 @@ O cliente OpenAI já existe em `src/lib/openai/client.ts` (importa `'server-only
 O prompt deve viver em `prompt.ts` para ser testável isoladamente:
 
 ```ts
-import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources'
+// ChatCompletionCreateParamsNonStreaming exportado diretamente de 'openai'
+import type { ChatCompletionCreateParamsNonStreaming } from 'openai'
 import type { Specialty, Difficulty } from './specialties'
 
 export function buildPatientPrompt(
@@ -792,7 +787,7 @@ Usos no dashboard:
 | OpenAI retorna JSON inválido (finish_reason: length) | API retorna 500; botão reativado |
 | Aluno sem slots | Guard server-side redireciona para `DASHBOARD_ROUTE`; botão no dashboard desabilitado |
 | Tentativa concorrente de criar paciente | Lock pessimista (`FOR UPDATE`) garante que apenas um passa; segundo recebe 403 |
-| Aluno não autenticado | Middleware redireciona para login; fallback `if (!user) redirect('/login')` |
+| Aluno não autenticado | Middleware redireciona para login; fallback `if (!user) redirect(LOGIN_ROUTE)` |
 | Paciente não encontrado em `/patients/[id]` | `notFound()` renderiza página 404 do Next.js |
 | Paciente sem consultas | Lista vazia com mensagem "Nenhuma consulta realizada ainda" (hardcode SP1) |
 | RLS | Queries filtram por `user_id` automaticamente |
@@ -885,7 +880,7 @@ src/
 
 **Ordem de implementação obrigatória:**
 0. Vincular o projeto Supabase local (necessário para migration up e gen types):
-   `supabase link --project-ref zrgjsgorijqlqhvlrpdh`
+   `supabase link --project-ref <ref>`  (ref disponível no dashboard Supabase → Settings → General)
 1. Criar e aplicar a migration: `supabase migration new add_patients` → editar o arquivo → `supabase migration up`
 2. Rodar `supabase gen types typescript --linked > src/types/database.ts`
 3. Adicionar tipo `Patient` em `domain.ts`
@@ -906,7 +901,7 @@ src/
 - [ ] `redirect.ts`, `safe-next.ts` e demais hardcodes de `/dashboard` substituídos por `DASHBOARD_ROUTE`; assertions nos testes dessas funções também atualizadas para usar a constante
 - [ ] Constante `SPECIALTIES` compartilhada entre frontend e backend
 - [ ] Teste de cross-validação: `SPECIALTIES` e `DIFFICULTIES` vs CHECK constraints do banco
-- [ ] Dashboard: `getUser()` + `redirect('/login')` no topo, `Promise.all` com `count: 'exact'`, `used_slots` de `patientsResult.count`, imports de `redirect`/`createClient`/`DASHBOARD_ROUTE`/`hasAvailableSlot`, JSX com `disabled={!hasAvailableSlot(used_slots, total_slots)}`
+- [ ] Dashboard: `getUser()` + `redirect(LOGIN_ROUTE)` no topo, `Promise.all` com `count: 'exact'`, `used_slots` de `patientsResult.count`, imports de `redirect`/`createClient`/`DASHBOARD_ROUTE`/`hasAvailableSlot`, JSX com `disabled={!hasAvailableSlot(used_slots, total_slots)}`
 - [ ] Página `/patients/new` com guard server-side usando `Promise.all` + `select('id', { count: 'exact' })`
 - [ ] `NewPatientForm.tsx` como Client Component com `useRouter`, `fetch`, `await response.json()` e guard `data?.id`
 - [ ] Página `/patients/[id]` com `await params`, `getUser()` no topo, query do paciente, e botão usando `STUB_CONSULTATION_ROUTE`
