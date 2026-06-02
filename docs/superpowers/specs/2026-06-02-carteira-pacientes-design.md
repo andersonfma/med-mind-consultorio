@@ -193,17 +193,14 @@ const [patientsResult, profileResult] = await Promise.all([
   supabase.from('profiles').select('total_slots, full_name').eq('id', user.id).single(),
 ])
 
-// Sempre verificar erro antes de acessar data
-if (!profileResult.data) {
-  // Perfil ausente não deve ocorrer para usuário autenticado.
-  // Redirecionar para /login causaria loop se o erro for transiente e o
-  // middleware redirecionar de volta. Lançar erro deixa o Next.js renderizar
-  // error.tsx sem loop.
-  throw new Error('Profile not found for authenticated user')
-}
+// Verificar error ANTES de !data: erro de DB e perfil ausente são causas distintas.
+// Supabase retorna data=null em ambos os casos; checar error primeiro permite
+// distinguir falha de infraestrutura (throw do error real) de integridade de dados.
 if (profileResult.error) {
-  // Erro transiente de banco — renderizar com fallback em vez de crashar
-  throw profileResult.error
+  throw profileResult.error  // erro transiente de banco → error.tsx sem loop de redirect
+}
+if (!profileResult.data) {
+  throw new Error('Profile not found for authenticated user')
 }
 if (patientsResult.error) {
   // Log do erro; renderizar lista vazia em vez de crashar
@@ -232,17 +229,13 @@ Server component: verifica `used_slots >= total_slots` no servidor antes de
 renderizar. Se sem slots, redireciona para `DASHBOARD_ROUTE` via `redirect()`.
 Isso garante que o guard não seja bypassável via navegação direta.
 
-O guard usa uma query de contagem sem retornar dados — mais eficiente que `select('*')`:
+O guard usa queries paralelas de contagem sem retornar dados — mais eficiente que `select('*')`.
+Usar `Promise.all` — consistente com o padrão do dashboard:
 ```ts
-const { count } = await supabase
-  .from('patients')
-  .select('id', { count: 'exact', head: true })
-
-const { data: profile } = await supabase
-  .from('profiles')
-  .select('total_slots')
-  .eq('id', user.id)
-  .single()
+const [{ count }, { data: profile }] = await Promise.all([
+  supabase.from('patients').select('id', { count: 'exact', head: true }),
+  supabase.from('profiles').select('total_slots').eq('id', user.id).single(),
+])
 
 if (!profile || (count ?? 0) >= profile.total_slots) {
   redirect(DASHBOARD_ROUTE)
@@ -285,6 +278,15 @@ export const STUB_CONSULTATION_ROUTE = '/consultations/stub'
 `DASHBOARD_ROUTE` cobre todos os hardcodes existentes em `redirect.ts`,
 `safe-next.ts` e nas páginas de auth. `STUB_CONSULTATION_ROUTE` é substituído
 em SP2 pelo valor real. Um único arquivo para atualizar em ambos os casos.
+
+**Atenção nos testes**: `redirect.test.ts` e `safe-next.test.ts` têm assertions
+com `'/dashboard'` hardcoded (ex: `.toBe('/dashboard')`). Após a migração para
+`DASHBOARD_ROUTE`, substituir essas strings pelo import da constante:
+```ts
+import { DASHBOARD_ROUTE } from '../routes'
+expect(result).toBe(DASHBOARD_ROUTE)
+```
+Sem isso, os testes continuam verdes mesmo se o valor de `DASHBOARD_ROUTE` mudar.
 
 ### Especialidades disponíveis (lista fixa MVP)
 
@@ -330,16 +332,20 @@ conexão de banco não fica aberta durante o I/O externo.
 ```
 1. Valida body (specialty, difficulty) → 400 se inválido
 2. Chama OpenAI com timeout de 25s → 408 se timeout, 500 se erro
-3. Mapeia resposta OpenAI + body para os parâmetros do RPC:
+3. Valida e mapeia resposta OpenAI + body para os parâmetros do RPC:
+   // Validar age: LLMs podem retornar float ou string apesar das instruções
+   const age = Math.round(Number(openAI.age))
+   if (!Number.isInteger(age) || age < 18 || age > 80) throw new Error('Invalid age from OpenAI')
+
    supabase.rpc('create_patient', {
-     p_name:       openAI.name,
-     p_age:        openAI.age,
+     p_name:       String(openAI.name),
+     p_age:        age,
      p_gender:     openAI.gender,
      p_specialty:  body.specialty,       // do request body, não do OpenAI
      p_difficulty: body.difficulty,      // do request body, não do OpenAI
-     p_complaint:  openAI.chief_complaint,
-     p_status:     openAI.clinical_status,
-     p_conditions: openAI.conditions,
+     p_complaint:  String(openAI.chief_complaint),
+     p_status:     String(openAI.clinical_status),
+     p_conditions: Array.isArray(openAI.conditions) ? openAI.conditions : [],
    })
 4. Se error.code === 'US001' → retorna 403
    Se qualquer outro erro → retorna 500
@@ -347,7 +353,7 @@ conexão de banco não fica aberta durante o I/O externo.
    ATENÇÃO: NextResponse.json() retorna 200 por default — status 201 é explícito
 ```
 
-**Função PostgreSQL `create_patient`** (incluir na migration `0002_add_patients.sql`):
+**Função PostgreSQL `create_patient`** (incluir na migration gerada por `supabase migration new add_patients`):
 
 ```sql
 CREATE OR REPLACE FUNCTION create_patient(
@@ -403,6 +409,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Proteção contra search-path hijacking
 ALTER FUNCTION create_patient(TEXT,INTEGER,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT[])
   SET search_path = public;
+
+-- Least-privilege: revogar PUBLIC e conceder apenas ao role autenticado.
+-- Sem este GRANT, Supabase Postgres 15+ nega EXECUTE para anon/authenticated.
+REVOKE EXECUTE ON FUNCTION create_patient(TEXT,INTEGER,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT[]) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION create_patient(TEXT,INTEGER,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT[]) TO authenticated;
 ```
 
 O route handler inspeciona `error.code` (não o status HTTP) para distinguir erros.
@@ -429,6 +440,11 @@ O slot nunca é consumido se a OpenAI falhar antes do RPC.
 
 **Configuração**: usar `response_format: { type: "json_object" }` para garantir
 JSON válido sem necessidade de retry ou parsing defensivo.
+
+**ATENÇÃO**: OpenAI exige que a palavra "json" (case-insensitive) apareça no
+prompt quando `response_format: json_object` é usado. O prompt atual contém
+"JSON" — qualquer refatoração que remova essa palavra causará `BadRequestError: 400`.
+Nunca remover "JSON" do prompt sem verificar essa restrição.
 
 **Timeout**: 25 segundos (deixa margem para o servidor retornar 408 antes de
 atingir timeout da plataforma de deploy).
@@ -575,7 +591,7 @@ src/
 ```
 
 **Ordem de implementação obrigatória:**
-1. Aplicar migration `0002_add_patients.sql` via Supabase CLI
+1. Criar e aplicar a migration com `supabase migration new add_patients` + `supabase db push`
 2. Rodar `supabase gen types typescript --linked > src/types/database.ts`
 3. Adicionar tipo `Patient` em `domain.ts`
 4. Implementar o restante
@@ -587,15 +603,15 @@ src/
 - [ ] Migration criada com `supabase migration new add_patients` e aplicada via Supabase CLI (inclui `create_patient` RPC)
 - [ ] `profiles.total_slots` adicionado com CHECK (> 0); GRANT UPDATE revogado e re-concedido apenas em `(full_name, crm)`
 - [ ] Tabela `patients` com CHECK constraints em `specialty`, `age (18-80)`, `difficulty`, `bond_level`; índice em `user_id`; RLS (SELECT + INSERT + UPDATE)
-- [ ] Função `create_patient` com SECURITY DEFINER, `search_path = public`, ERRCODEs US001/US002
+- [ ] Função `create_patient` com SECURITY DEFINER, `search_path = public`, ERRCODEs US001/US002, REVOKE PUBLIC + GRANT TO authenticated
 - [ ] `database.ts` regenerado após migration
 - [ ] `POST /api/patients` funcional: gpt-4o-mini, response_format json_object, timeout 25s, mapeamento explícito dos parâmetros do RPC, retorna `{ status: 201 }`
 - [ ] Constantes `DASHBOARD_ROUTE` e `STUB_CONSULTATION_ROUTE` em `src/lib/routes.ts`
-- [ ] `redirect.ts`, `safe-next.ts` e demais hardcodes de `/dashboard` substituídos por `DASHBOARD_ROUTE`
+- [ ] `redirect.ts`, `safe-next.ts` e demais hardcodes de `/dashboard` substituídos por `DASHBOARD_ROUTE`; assertions nos testes dessas funções também atualizadas para usar a constante
 - [ ] Constante `SPECIALTIES` compartilhada entre frontend e backend
 - [ ] Teste de cross-validação: `SPECIALTIES` vs CHECK constraint do banco
 - [ ] Dashboard: `Promise.all` com `count: 'exact'`, `used_slots` de `patientsResult.count`, sem `getUser()` redundante
-- [ ] Página `/patients/new` com guard server-side usando `select('id', { count: 'exact', head: true })`
+- [ ] Página `/patients/new` com guard server-side usando `Promise.all` + `select('id', { count: 'exact', head: true })`
 - [ ] Página `/patients/[id]` com tags, estado clínico, histórico e botão usando `STUB_CONSULTATION_ROUTE`
 - [ ] Página `/consultations/stub` como placeholder
 - [ ] Componente `<BondBar />` funcional
