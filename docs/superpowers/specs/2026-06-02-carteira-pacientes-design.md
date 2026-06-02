@@ -240,8 +240,19 @@ Layout em duas colunas:
   diretamente no JSX — não existe coluna `reputation` na tabela `profiles`.
   A coluna e a fórmula real chegam no SP3.
 
-O botão "Novo paciente" está desabilitado se `used_slots >= total_slots`, com
-tooltip: *"Aumente sua reputação para desbloquear novos pacientes"*.
+O botão "Novo paciente" usa `hasAvailableSlot` para o `disabled`:
+```tsx
+<Link
+  href="/patients/new"
+  aria-disabled={!hasAvailableSlot(used_slots, total_slots)}
+  title={!hasAvailableSlot(used_slots, total_slots)
+    ? 'Aumente sua reputação para desbloquear novos pacientes'
+    : undefined}
+>
+  Novo paciente
+</Link>
+```
+Nota: `<Link>` com `aria-disabled` é a abordagem acessível. Um `<button>` com `disabled` e `onClick` que chama `router.push` é alternativa válida.
 
 ### `/patients/new`
 
@@ -325,7 +336,8 @@ export function NewPatientForm() {
           setFormError('Resposta inválida do servidor')
           return
         }
-        // Não chamar setLoading(false) aqui — a navegação vai desmontar o componente
+        // O finally abaixo chama setLoading(false) em todos os caminhos, incluindo aqui.
+        // router.push é não-bloqueante — componente ainda está montado quando finally roda.
         router.push(patientDetailRoute(data.id))  // usa helper de rota centralizado
       } else {
         const json = await response.json()      // await obrigatório
@@ -855,7 +867,7 @@ PostgreSQL normaliza `IN ('A','B')` para `= ANY (ARRAY['A'::text, 'B'::text])`.
 src/
 ├── app/
 │   ├── (dashboard)/
-│   │   ├── error.tsx                     ← captura throw de DB error nas pages (getUser, profileResult)
+│   │   ├── error.tsx                     ← OBRIGATÓRIO: 'use client' + default export (ver spec abaixo)
 │   │   ├── dashboard/
 │   │   │   └── page.tsx                  ← reformulado (2 colunas, sem duplo getUser)
 │   │   ├── patients/
@@ -870,6 +882,33 @@ src/
 │   └── api/
 │       └── patients/
 │           └── route.ts                  ← POST /api/patients
+
+### `(dashboard)/error.tsx` — implementação obrigatória
+
+Next.js Error Boundaries requerem `'use client'` e `export default`:
+
+```tsx
+'use client'
+
+export default function DashboardError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  return (
+    <div className="p-8 text-center">
+      <p className="text-red-600 mb-4">Erro ao carregar dados. Tente novamente.</p>
+      <button onClick={reset} className="btn btn--primary">
+        Tentar novamente
+      </button>
+    </div>
+  )
+}
+```
+
+Sem `'use client'`, o Next.js rejeita o arquivo. Sem `export default`, o error boundary silenciosamente não funciona.
 ├── components/
 │   ├── charts/
 │   │   └── PlaceholderChart.tsx          ← componente único reutilizado 3x
@@ -908,15 +947,15 @@ src/
 - [ ] `database.ts` regenerado após migration
 - [ ] `POST /api/patients` funcional: gpt-4o-mini, response_format json_object, timeout 25s, mapeamento explícito dos parâmetros do RPC, retorna `{ status: 201 }`
 - [ ] Constantes `LOGIN_ROUTE`, `DASHBOARD_ROUTE`, `STUB_CONSULTATION_ROUTE` e helper `patientDetailRoute(id)` em `src/lib/routes.ts`
-- [ ] `redirect.ts`: `/dashboard` → `DASHBOARD_ROUTE`, `/login` → `LOGIN_ROUTE`; assertions nos testes atualizadas para importar as constantes
+- [ ] `redirect.ts` e `safe-next.ts`: `/dashboard` → `DASHBOARD_ROUTE`, `/login` → `LOGIN_ROUTE`; assertions em `redirect.test.ts` e `safe-next.test.ts` atualizadas para importar as constantes (não usar strings hardcoded)
 - [ ] Constante `SPECIALTIES` compartilhada entre frontend e backend
 - [ ] Teste de cross-validação: `SPECIALTIES` e `DIFFICULTIES` vs CHECK constraints do banco
 - [ ] Dashboard: `getUser()` + `redirect(LOGIN_ROUTE)` no topo, `Promise.all` com `count: 'exact'`, `used_slots` de `patientsResult.count`, imports de `redirect`/`createClient`/`DASHBOARD_ROUTE`/`hasAvailableSlot`, JSX com `disabled={!hasAvailableSlot(used_slots, total_slots)}`
-- [ ] Página `/patients/new` com guard server-side usando `Promise.all` + `select('id', { count: 'exact' })`
+- [ ] Página `/patients/new` com guard server-side usando `Promise.all` + `select('*', { count: 'exact', head: true })` e `return <NewPatientForm />`
 - [ ] `NewPatientForm.tsx` como Client Component com `useRouter`, `fetch`, `await response.json()` e guard `data?.id`
 - [ ] Página `/patients/[id]` com `await params`, `getUser()` no topo, query do paciente, e botão usando `STUB_CONSULTATION_ROUTE`
 - [ ] Página `/consultations/stub` como placeholder
-- [ ] `(dashboard)/error.tsx` criado para capturar erros de DB nas pages
+- [ ] `(dashboard)/error.tsx` criado com `'use client'` e `export default function DashboardError({ error, reset })` (ver spec Section 12)
 - [ ] Componente `<BondBar />` funcional
 - [ ] Componente `<PlaceholderChart />` reutilizado 3x no dashboard
 - [ ] Testes unitários, de concorrência e cross-validação passando
