@@ -52,8 +52,13 @@ supabase migration new add_patients
 ```
 
 O CLI cria um arquivo como `supabase/migrations/20260602XXXXXX_add_patients.sql`.
-Editar esse arquivo com o SQL desta seção. Aplicar com `supabase db push` ou
-`supabase migration up`.
+Editar esse arquivo com o SQL desta seção. Aplicar com:
+```bash
+supabase migration up
+```
+**Nunca usar `supabase db push` quando o banco já tem dados** (aviado na Foundation spec)
+— `db push` faz diff destrutivo do schema local. Usar `migration up` que aplica apenas
+as migrations pendentes de forma incremental.
 
 Esta migration faz três coisas:
 1. Adiciona `total_slots` à tabela `profiles` existente
@@ -189,6 +194,7 @@ independentemente com `supabase.auth.getUser()`.
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DASHBOARD_ROUTE } from '@/lib/routes'
+import { hasAvailableSlot } from '@/lib/patients/slots'
 
 // No componente:
 const supabase = await createClient()
@@ -304,8 +310,8 @@ export function NewPatientForm() {
     try {
       const response = await fetch('/api/patients', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ specialty, difficulty }),
-        // Content-Type não é necessário — request.json() lê o body independentemente
       })
 
       if (response.status === 201) {
@@ -345,10 +351,11 @@ export function NewPatientForm() {
 Server component. Em Next.js 15+, `params` é uma Promise — sempre aguardar:
 ```ts
 // Imports obrigatórios no topo de patients/[id]/page.tsx:
-import { redirect } from 'next/navigation'
-import { notFound } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { DASHBOARD_ROUTE } from '@/lib/routes'
+import { DASHBOARD_ROUTE, STUB_CONSULTATION_ROUTE } from '@/lib/routes'
+import { BondBar } from '@/components/ui/BondBar'
 
 // No componente — obter supabase e user antes das queries:
 const supabase = await createClient()
@@ -377,7 +384,7 @@ return (
     {/* Vínculo */}
     <BondBar level={patient.bond_level} />
     {/* Botão de atendimento — SP1 usa placeholder */}
-    <a href={STUB_CONSULTATION_ROUTE}>Iniciar atendimento</a>
+    <Link href={STUB_CONSULTATION_ROUTE}>Iniciar atendimento</Link>
     {/* Consultas anteriores — hardcode vazio em SP1 */}
     <p>Nenhuma consulta realizada ainda</p>
   </div>
@@ -474,8 +481,16 @@ conexão de banco não fica aberta durante o I/O externo.
 
 **Fluxo do route handler:**
 ```ts
-// Importar no topo do arquivo:
+// Importar no topo do arquivo (todos os imports necessários):
+import { NextResponse, type NextRequest } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
+import { APITimeoutError } from 'openai'
+import openai from '@/lib/openai/client'
+import { buildPatientPrompt } from '@/lib/patients/prompt'
+
+export async function POST(request: NextRequest) {
+  const supabase = await createClient()  // obrigatório para chamar supabase.rpc()
 
 // 0. Obter e validar body da request
 const body = await request.json()  // obrigatório — sem await, body é uma Promise
@@ -487,12 +502,7 @@ if (!(SPECIALTIES as readonly string[]).includes(body.specialty))
 if (!(DIFFICULTIES as readonly string[]).includes(body.difficulty))
   return NextResponse.json({ error: 'Invalid difficulty' }, { status: 400 })
 
-// 2. Chama OpenAI com timeout de 25s — código real, não pseudocode:
-// (imports no topo do arquivo junto com os demais)
-// import { APITimeoutError } from 'openai'
-// import openai from '@/lib/openai/client'
-// import { buildPatientPrompt } from '@/lib/patients/prompt'  ← prompt vem de prompt.ts
-
+// 2. Chama OpenAI com timeout de 25s
 let completion: Awaited<ReturnType<typeof openai.chat.completions.create>>
 try {
   completion = await openai.chat.completions.create(
@@ -784,8 +794,15 @@ Usos no dashboard:
 **Unitários (Vitest):**
 - `buildPatientPrompt(specialty, difficulty)` → verifica que o objeto retornado tem o model correto, response_format json_object, e que o content inclui a especialidade e dificuldade interpolados
 - `hasAvailableSlot(usedSlots, totalSlots)` → boolean correto nos limites (0, igual, acima).
-  Esta função é usada na lógica de UI do dashboard para desabilitar o botão "Novo paciente":
-  `disabled={!hasAvailableSlot(used_slots, total_slots)}` — mantida em `slots.ts` para testar isoladamente e evitar duplicar a expressão em múltiplos componentes.
+
+  Implementação em `src/lib/patients/slots.ts`:
+  ```ts
+  // Retorna true se há slots disponíveis (used < total)
+  // Usado no dashboard: disabled={!hasAvailableSlot(used_slots, total_slots)}
+  export function hasAvailableSlot(usedSlots: number, totalSlots: number): boolean {
+    return usedSlots < totalSlots
+  }
+  ```
 
 **Integração — cross-validação de constantes vs CHECK constraints (Vitest + Supabase real):**
 
@@ -874,7 +891,7 @@ src/
 - [ ] Constantes `DASHBOARD_ROUTE` e `STUB_CONSULTATION_ROUTE` em `src/lib/routes.ts`
 - [ ] `redirect.ts`, `safe-next.ts` e demais hardcodes de `/dashboard` substituídos por `DASHBOARD_ROUTE`; assertions nos testes dessas funções também atualizadas para usar a constante
 - [ ] Constante `SPECIALTIES` compartilhada entre frontend e backend
-- [ ] Teste de cross-validação: `SPECIALTIES` vs CHECK constraint do banco
+- [ ] Teste de cross-validação: `SPECIALTIES` e `DIFFICULTIES` vs CHECK constraints do banco
 - [ ] Dashboard: `getUser()` no topo, `Promise.all` com `count: 'exact'`, `used_slots` de `patientsResult.count`, imports de `redirect`/`createClient`/`DASHBOARD_ROUTE`
 - [ ] Página `/patients/new` com guard server-side usando `Promise.all` + `select('id', { count: 'exact' })`
 - [ ] `NewPatientForm.tsx` como Client Component com `useRouter`, `fetch`, `await response.json()` e guard `data?.id`
