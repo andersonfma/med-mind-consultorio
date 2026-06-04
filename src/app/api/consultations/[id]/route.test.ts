@@ -57,4 +57,11 @@ describe('PATCH /api/consultations/[id]', () => {
     expect(res.status).toBe(200)
     expect((await res.json()).ok).toBe(true)
   })
+
+  it('retorna 500 se DB retornar erro', async () => {
+    const chain = { eq: vi.fn().mockReturnThis(), error: { message: 'db error' } }
+    mockUpdate.mockReturnValue(chain)
+    const res = await PATCH(...makeRequest({ clinical_reasoning: 'texto' }))
+    expect(res.status).toBe(500)
+  })
 })
