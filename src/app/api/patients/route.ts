@@ -7,19 +7,28 @@ import { buildPatientPrompt } from '@/lib/patients/prompt'
 import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient()
+  // Fix 7: validation before createClient
+  let body: unknown
+  try { body = await request.json() }
+  catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
+  if (!body || typeof body !== 'object')
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  const b = body as Record<string, unknown>
 
-  const body = await request.json()
-
-  if (!(SPECIALTIES as readonly string[]).includes(body.specialty))
+  if (!(SPECIALTIES as readonly string[]).includes(b.specialty as string))
     return NextResponse.json({ error: 'Invalid specialty' }, { status: 400 })
-  if (!(DIFFICULTIES as readonly string[]).includes(body.difficulty))
+  if (!(DIFFICULTIES as readonly string[]).includes(b.difficulty as string))
     return NextResponse.json({ error: 'Invalid difficulty' }, { status: 400 })
+
+  // Fix 1: auth check after validation
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let completion: ChatCompletion
   try {
     completion = await openai.chat.completions.create(
-      buildPatientPrompt(body.specialty, body.difficulty),
+      buildPatientPrompt(b.specialty as string, b.difficulty as string),
       { timeout: 25_000 }
     ) as ChatCompletion
   } catch (e) {
@@ -27,6 +36,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'OpenAI timeout' }, { status: 408 })
     return NextResponse.json({ error: 'OpenAI error' }, { status: 500 })
   }
+
+  // Fix 3: guard empty choices array
+  if (!completion.choices.length)
+    return NextResponse.json({ error: 'OpenAI empty response' }, { status: 500 })
 
   const content = completion.choices[0].message.content
   if (!content)
@@ -61,8 +74,8 @@ export async function POST(request: NextRequest) {
     p_name:       name,
     p_age:        age,
     p_gender:     gender,
-    p_specialty:  body.specialty,
-    p_difficulty: body.difficulty,
+    p_specialty:  b.specialty,
+    p_difficulty: b.difficulty,
     p_complaint:  complaint,
     p_status:     status,
     p_conditions: conditions,
@@ -70,9 +83,12 @@ export async function POST(request: NextRequest) {
 
   if (rpcError) {
     if (rpcError.code === 'US001')
-      return NextResponse.json({ error: 'No slots available' }, { status: 403 })
+      return NextResponse.json({ error: 'No slots available' }, { status: 409 }) // Fix 5: 403 → 409
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
+
+  // Fix 4: guard null data from RPC
+  if (!data) return NextResponse.json({ error: 'Internal error' }, { status: 500 })
 
   return NextResponse.json(data, { status: 201 })
 }
