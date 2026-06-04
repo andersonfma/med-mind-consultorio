@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import type { ChatCompletion } from 'openai'
-import { APITimeoutError } from 'openai'
+import { APIConnectionTimeoutError } from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
 import { buildPatientPrompt } from '@/lib/patients/prompt'
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       { timeout: 25_000 }
     ) as ChatCompletion
   } catch (e) {
-    if (e instanceof APITimeoutError)
+    if (e instanceof APIConnectionTimeoutError)
       return NextResponse.json({ error: 'OpenAI timeout' }, { status: 408 })
     return NextResponse.json({ error: 'OpenAI error' }, { status: 500 })
   }
