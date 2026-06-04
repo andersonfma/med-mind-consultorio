@@ -1,3 +1,5 @@
+import { DASHBOARD_ROUTE } from '../routes'
+
 export function getSafeNext(next: string | null): string {
   if (
     next &&
@@ -7,5 +9,5 @@ export function getSafeNext(next: string | null): string {
   ) {
     return next
   }
-  return '/dashboard'
+  return DASHBOARD_ROUTE
 }

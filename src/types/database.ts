@@ -1,7 +1,3 @@
-// ARQUIVO GERADO AUTOMATICAMENTE
-// Rodar após aplicar migrations: supabase gen types typescript --linked > src/types/database.ts
-// Não editar manualmente
-
 export type Json =
   | string
   | number
@@ -16,8 +12,84 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
+      patients: {
+        Row: {
+          age: number
+          bond_level: number
+          chief_complaint: string
+          clinical_status: string
+          conditions: string[]
+          created_at: string
+          diagnosis: string | null
+          difficulty: string
+          gender: string
+          id: string
+          last_consulted_at: string | null
+          name: string
+          specialty: string
+          user_id: string
+        }
+        Insert: {
+          age: number
+          bond_level?: number
+          chief_complaint: string
+          clinical_status: string
+          conditions?: string[]
+          created_at?: string
+          diagnosis?: string | null
+          difficulty: string
+          gender: string
+          id?: string
+          last_consulted_at?: string | null
+          name: string
+          specialty: string
+          user_id: string
+        }
+        Update: {
+          age?: number
+          bond_level?: number
+          chief_complaint?: string
+          clinical_status?: string
+          conditions?: string[]
+          created_at?: string
+          diagnosis?: string | null
+          difficulty?: string
+          gender?: string
+          id?: string
+          last_consulted_at?: string | null
+          name?: string
+          specialty?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -25,6 +97,7 @@ export type Database = {
           full_name: string
           id: string
           role: string
+          total_slots: number
           updated_at: string
         }
         Insert: {
@@ -33,6 +106,7 @@ export type Database = {
           full_name: string
           id: string
           role?: string
+          total_slots?: number
           updated_at?: string
         }
         Update: {
@@ -41,6 +115,7 @@ export type Database = {
           full_name?: string
           id?: string
           role?: string
+          total_slots?: number
           updated_at?: string
         }
         Relationships: []
@@ -50,7 +125,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_patient: {
+        Args: {
+          p_age: number
+          p_complaint: string
+          p_conditions: string[]
+          p_difficulty: string
+          p_gender: string
+          p_name: string
+          p_specialty: string
+          p_status: string
+        }
+        Returns: {
+          age: number
+          bond_level: number
+          chief_complaint: string
+          clinical_status: string
+          conditions: string[]
+          created_at: string
+          diagnosis: string | null
+          difficulty: string
+          gender: string
+          id: string
+          last_consulted_at: string | null
+          name: string
+          specialty: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "patients"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never
@@ -179,6 +287,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
