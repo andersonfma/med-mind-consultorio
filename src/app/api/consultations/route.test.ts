@@ -3,19 +3,22 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-const { mockGetUser, mockSelect, mockInsert } = vi.hoisted(() => {
+const { mockGetUser, mockPatientSelect, mockConsultationSelect, mockInsert } = vi.hoisted(() => {
   const mockGetUser = vi.fn()
-  const mockSelect = vi.fn()
+  const mockPatientSelect = vi.fn()
+  const mockConsultationSelect = vi.fn()
   const mockInsert = vi.fn()
-  return { mockGetUser, mockSelect, mockInsert }
+  return { mockGetUser, mockPatientSelect, mockConsultationSelect, mockInsert }
 })
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn().mockResolvedValue({
     auth: { getUser: mockGetUser },
-    from: vi.fn().mockReturnValue({
-      select: mockSelect,
-      insert: mockInsert,
+    from: vi.fn().mockImplementation((table: string) => {
+      if (table === 'patients') {
+        return { select: mockPatientSelect }
+      }
+      return { select: mockConsultationSelect, insert: mockInsert }
     }),
   }),
 }))
@@ -32,6 +35,14 @@ function makeRequest(body: unknown) {
 }
 
 const user = { id: 'user-123' }
+
+// Default patient ownership check: returns a valid patient
+function mockPatientFound() {
+  mockPatientSelect.mockReturnValue({
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: { id: 'p-1' }, error: null }),
+  })
+}
 
 describe('POST /api/consultations', () => {
   beforeEach(() => {
@@ -50,8 +61,19 @@ describe('POST /api/consultations', () => {
     expect(res.status).toBe(401)
   })
 
+  it('retorna 403 se paciente não pertence ao usuário', async () => {
+    // mockPatientSelect returns null for patient ownership check
+    mockPatientSelect.mockReturnValue({
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    })
+    const res = await POST(makeRequest({ patient_id: 'other-user-patient' }))
+    expect(res.status).toBe(403)
+  })
+
   it('retorna 200 com id existente se consulta ongoing já existe', async () => {
-    mockSelect.mockReturnValue({
+    mockPatientFound()
+    mockConsultationSelect.mockReturnValue({
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: { id: 'existing-id' }, error: null }),
     })
@@ -61,11 +83,12 @@ describe('POST /api/consultations', () => {
   })
 
   it('retorna 201 com novo id ao criar consulta', async () => {
+    mockPatientFound()
     const selectChain = {
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: null }),
     }
-    mockSelect.mockReturnValueOnce(selectChain)
+    mockConsultationSelect.mockReturnValueOnce(selectChain)
     mockInsert.mockReturnValue({
       select: vi.fn().mockReturnValue({
         single: vi.fn().mockResolvedValue({ data: { id: 'new-id' }, error: null }),
@@ -77,13 +100,14 @@ describe('POST /api/consultations', () => {
   })
 
   it('retorna 200 ao capturar race condition (UNIQUE VIOLATION 23505)', async () => {
+    mockPatientFound()
     const selectChain = {
       eq: vi.fn().mockReturnThis(),
       single: vi.fn()
         .mockResolvedValueOnce({ data: null, error: null })
         .mockResolvedValueOnce({ data: { id: 'race-id' }, error: null }),
     }
-    mockSelect.mockReturnValue(selectChain)
+    mockConsultationSelect.mockReturnValue(selectChain)
     mockInsert.mockReturnValue({
       select: vi.fn().mockReturnValue({
         single: vi.fn().mockResolvedValue({ data: null, error: { code: '23505' } }),

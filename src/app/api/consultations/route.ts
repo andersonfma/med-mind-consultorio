@@ -16,11 +16,22 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Check for existing ongoing consultation
+  // Verify the patient belongs to the authenticated user (prevents IDOR)
+  const { data: patient } = await supabase
+    .from('patients')
+    .select('id')
+    .eq('id', patient_id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!patient) return NextResponse.json({ error: 'Patient not found' }, { status: 403 })
+
+  // Check for existing ongoing consultation scoped to this user (prevents info disclosure)
   const { data: existing } = await supabase
     .from('consultations')
     .select('id')
     .eq('patient_id', patient_id)
+    .eq('user_id', user.id)
     .eq('status', 'ongoing')
     .single()
 
@@ -39,6 +50,7 @@ export async function POST(request: NextRequest) {
         .from('consultations')
         .select('id')
         .eq('patient_id', patient_id)
+        .eq('user_id', user.id)
         .eq('status', 'ongoing')
         .single()
       return NextResponse.json({ id: raceExisting!.id }, { status: 200 })
