@@ -212,8 +212,20 @@ Responda de forma concisa (1-3 frases).
 ```
 
 **Request body:** `{ message: string }`
-**Histórico completo** é enviado como `messages` para manter contexto.
-**Resposta salva** no `chat_history` da consulta.
+
+**Mapeamento de roles obrigatório antes de enviar à OpenAI API:**
+O `chat_history` usa `role: 'student' | 'patient'`, mas a OpenAI só aceita
+`'system' | 'user' | 'assistant'`. Antes de chamar `openai.chat.completions.create`,
+mapear:
+- `'student'` → `'user'`
+- `'patient'` → `'assistant'`
+
+Enviar o histórico completo como `messages` para manter contexto da conversa.
+
+**Captura de timeout:** usar `APIConnectionTimeoutError` (não `APITimeoutError` —
+esse nome não existe no SDK v4). Retornar 408 nesse caso.
+
+**Resposta salva** no `chat_history` da consulta com `role: 'patient'`.
 
 ### 6.2 Atualizar anamnese
 
@@ -288,10 +300,26 @@ POST /api/consultations
 
 1. Verifica se `consultations` tem registro `ongoing` para este `patient_id`
 2. **Se sim:** retorna `{ id: existingId }` com status `200` — o frontend redireciona para a consulta existente
-3. **Se não:** insere nova consulta, retorna `{ id: newId }` com status `201`
+3. **Se não:** tenta inserir nova consulta
 
-O UNIQUE INDEX `consultations_patient_ongoing_idx` garante atomicidade no banco —
-mesmo com requisições concorrentes, apenas uma consulta `ongoing` por paciente é possível.
+**Race condition:** dois requests simultâneos podem passar pelo passo 1 antes de
+qualquer INSERT ocorrer. O UNIQUE INDEX rejeita o segundo INSERT com erro
+PostgreSQL `23505` (UNIQUE VIOLATION). O handler **deve capturar esse código**:
+
+```ts
+if (insertError?.code === '23505') {
+  // outro request ganhou a corrida — buscar o id existente e retornar 200
+  const { data: existing } = await supabase
+    .from('consultations')
+    .select('id')
+    .eq('patient_id', patientId)
+    .eq('status', 'ongoing')
+    .single()
+  return NextResponse.json({ id: existing!.id }, { status: 200 })
+}
+```
+
+Qualquer outro erro de INSERT → retornar 500.
 
 ---
 
@@ -361,8 +389,10 @@ export const consultationRoute = (id: string) => `/consultations/${id}`
 
 - `POST /api/consultations` → cria consulta, retorna 201
 - `POST /api/consultations` → duplicata retorna 200 com id existente
-- `POST /api/consultations/[id]/chat` → salva mensagem, retorna resposta
-- `POST /api/consultations/[id]/chat` → timeout retorna 408, consulta não perdida
+- `POST /api/consultations` → race condition (UNIQUE VIOLATION `23505`) retorna 200 com id existente
+- `PATCH /api/consultations/[id]` → atualiza `clinical_reasoning`, retorna 200
+- `POST /api/consultations/[id]/chat` → salva mensagem, retorna resposta do paciente
+- `POST /api/consultations/[id]/chat` → timeout (`APIConnectionTimeoutError`) retorna 408, consulta não perdida
 - `POST /api/consultations/[id]/anamnesis` → atualiza anamnese, retorna 200
 - `POST /api/consultations/[id]/finish` → finaliza consulta, atualiza paciente
 
@@ -394,8 +424,9 @@ src/
 │   │           └── StartConsultationButton.tsx ← novo Client Component
 │   └── api/
 │       └── consultations/
-│           ├── route.ts                   ← POST (criar)
+│           ├── route.ts                   ← POST (criar nova consulta)
 │           └── [id]/
+│               ├── route.ts               ← PATCH (auto-save clinical_reasoning)
 │               ├── chat/
 │               │   └── route.ts           ← POST (enviar mensagem)
 │               ├── anamnesis/
@@ -407,7 +438,7 @@ src/
         ├── prompts.ts                     ← buildPatientSystemPrompt, buildAnamnesisPrompt, buildFinishPrompt
         ├── prompts.test.ts
         ├── parse.ts                       ← parseAnamnesisResponse
-    └── parse.test.ts
+        └── parse.test.ts
 ```
 
 ---
@@ -419,14 +450,15 @@ src/
 3. Adicionar `consultationRoute` em `src/lib/routes.ts`
 4. `src/lib/consultations/prompts.ts` + testes (TDD)
 5. `src/lib/consultations/parse.ts` + testes (TDD)
-6. `POST /api/consultations` + testes
-7. `POST /api/consultations/[id]/chat` + testes
-8. `POST /api/consultations/[id]/anamnesis` + testes
-9. `POST /api/consultations/[id]/finish` + testes
-10. Componentes de UI (ConsultationChat, AnamnesisPanel, ClinicalReasoningField, FinishModal)
-11. Página `/consultations/[id]` (Server + Client)
-12. Atualizar `/patients/[id]` (StartConsultationButton + histórico)
-13. E2E tests
+6. `POST /api/consultations` + testes (incluindo race condition `23505`)
+7. `PATCH /api/consultations/[id]` + testes
+8. `POST /api/consultations/[id]/chat` + testes
+9. `POST /api/consultations/[id]/anamnesis` + testes
+10. `POST /api/consultations/[id]/finish` + testes
+11. Componentes de UI (ConsultationChat, AnamnesisPanel, ClinicalReasoningField, FinishModal)
+12. Página `/consultations/[id]` (Server + Client)
+13. Atualizar `/patients/[id]` (StartConsultationButton + histórico)
+14. E2E tests
 
 ---
 
