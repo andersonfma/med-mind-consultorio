@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import type { ChatCompletion } from 'openai'
+import type { ChatCompletion } from 'openai/resources/chat/completions'
 import { APIConnectionTimeoutError } from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
 import { buildPatientPrompt } from '@/lib/patients/prompt'
 import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
+import type { Specialty, Difficulty } from '@/lib/patients/specialties'
 
 export async function POST(request: NextRequest) {
   // Fix 7: validation before createClient
@@ -20,6 +21,10 @@ export async function POST(request: NextRequest) {
   if (!(DIFFICULTIES as readonly string[]).includes(b.difficulty as string))
     return NextResponse.json({ error: 'Invalid difficulty' }, { status: 400 })
 
+  // Narrowed after validation — safe to cast
+  const specialty = b.specialty as Specialty
+  const difficulty = b.difficulty as Difficulty
+
   // Fix 1: auth check after validation
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -28,7 +33,7 @@ export async function POST(request: NextRequest) {
   let completion: ChatCompletion
   try {
     completion = await openai.chat.completions.create(
-      buildPatientPrompt(b.specialty as string, b.difficulty as string),
+      buildPatientPrompt(specialty, difficulty),
       { timeout: 25_000 }
     ) as ChatCompletion
   } catch (e) {
@@ -74,8 +79,8 @@ export async function POST(request: NextRequest) {
     p_name:       name,
     p_age:        age,
     p_gender:     gender,
-    p_specialty:  b.specialty,
-    p_difficulty: b.difficulty,
+    p_specialty:  specialty,
+    p_difficulty: difficulty,
     p_complaint:  complaint,
     p_status:     status,
     p_conditions: conditions,

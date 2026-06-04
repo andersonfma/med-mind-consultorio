@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { LOGIN_ROUTE } from '@/lib/routes'
+import { LOGIN_ROUTE, patientDetailRoute } from '@/lib/routes'
 import { hasAvailableSlot } from '@/lib/patients/slots'
 import { BondBar } from '@/components/ui/BondBar'
 import { PlaceholderChart } from '@/components/charts/PlaceholderChart'
@@ -34,18 +34,19 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-bold text-gray-900">{full_name}</h1>
           <p className="text-sm text-gray-500">Reputação: 0 pts</p>
         </div>
-        <Link
-          href="/patients/new"
-          aria-disabled={!hasAvailableSlot(used_slots, total_slots)}
-          title={
-            !hasAvailableSlot(used_slots, total_slots)
-              ? 'Aumente sua reputação para desbloquear novos pacientes'
-              : undefined
-          }
-          className="btn btn--primary"
-        >
-          Novo paciente
-        </Link>
+        {hasAvailableSlot(used_slots, total_slots) ? (
+          <Link href="/patients/new" className="btn btn--primary">
+            Novo paciente
+          </Link>
+        ) : (
+          <button
+            disabled
+            title="Aumente sua reputação para desbloquear novos pacientes"
+            className="btn btn--primary"
+          >
+            Novo paciente
+          </button>
+        )}
       </div>
 
       <div className="flex gap-6">
@@ -60,7 +61,7 @@ export default async function DashboardPage() {
               {patients.map((patient) => (
                 <li key={patient.id}>
                   <Link
-                    href={`/patients/${patient.id}`}
+                    href={patientDetailRoute(patient.id)}
                     className="block border border-gray-200 rounded-lg p-3 hover:bg-gray-50"
                   >
                     <div className="flex items-center justify-between mb-1">
