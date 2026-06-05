@@ -4,8 +4,9 @@ import { ConsultationChat } from './ConsultationChat'
 import { AnamnesisPanel } from './AnamnesisPanel'
 import { ClinicalReasoningField } from './ClinicalReasoningField'
 import { FinishModal } from './FinishModal'
+import { PhysicalExamPanel } from './PhysicalExamPanel'
 import type { ChatMessage } from '@/lib/consultations/prompts'
-import type { Anamnesis } from '@/lib/consultations/parse'
+import type { Anamnesis, PhysicalExam } from '@/lib/consultations/parse'
 import type { Patient, Consultation } from '@/types/domain'
 
 type Props = {
@@ -25,6 +26,19 @@ export function ConsultationClient({ consultation, patient }: Props) {
     ad:       ((consultation.anamnesis as Record<string, string>)?.ad)       ?? '',
     social:   ((consultation.anamnesis as Record<string, string>)?.social)   ?? '',
     familiar: ((consultation.anamnesis as Record<string, string>)?.familiar) ?? '',
+  }
+
+  const rawExam = (consultation.physical_exam ?? {}) as Record<string, unknown>
+  const initialPhysicalExam: PhysicalExam = {
+    inspecao_geral:          typeof rawExam.inspecao_geral === 'string'          ? rawExam.inspecao_geral          : '',
+    sinais_vitais:           typeof rawExam.sinais_vitais === 'string'           ? rawExam.sinais_vitais           : '',
+    aparelho_respiratorio:   typeof rawExam.aparelho_respiratorio === 'string'   ? rawExam.aparelho_respiratorio   : '',
+    aparelho_cardiovascular: typeof rawExam.aparelho_cardiovascular === 'string' ? rawExam.aparelho_cardiovascular : '',
+    abdome:                  typeof rawExam.abdome === 'string'                  ? rawExam.abdome                  : '',
+    membros_inferiores:      typeof rawExam.membros_inferiores === 'string'      ? rawExam.membros_inferiores      : '',
+    sistemas_adicionais:     (rawExam.sistemas_adicionais && typeof rawExam.sistemas_adicionais === 'object' && !Array.isArray(rawExam.sistemas_adicionais))
+                               ? rawExam.sistemas_adicionais as Record<string, string>
+                               : {},
   }
 
   return (
@@ -65,6 +79,15 @@ export function ConsultationClient({ consultation, patient }: Props) {
             <AnamnesisPanel
               consultationId={consultation.id}
               initialAnamnesis={initialAnamnesis}
+            />
+          </div>
+          <div className="border-b">
+            <p className="px-4 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
+              Exame Físico
+            </p>
+            <PhysicalExamPanel
+              consultationId={consultation.id}
+              initialExam={initialPhysicalExam}
             />
           </div>
           <div className="flex-1 flex flex-col">
