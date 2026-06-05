@@ -30,10 +30,17 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Fetch existing complaints to enforce variety
+  const { data: existingPatients } = await supabase
+    .from('patients')
+    .select('chief_complaint')
+    .eq('user_id', user.id)
+  const existingComplaints = existingPatients?.map(p => p.chief_complaint) ?? []
+
   let completion: ChatCompletion
   try {
     completion = await openai.chat.completions.create(
-      buildPatientPrompt(specialty, difficulty),
+      buildPatientPrompt(specialty, difficulty, existingComplaints),
       { timeout: 25_000 }
     ) as ChatCompletion
   } catch (e) {

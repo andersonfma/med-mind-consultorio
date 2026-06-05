@@ -20,14 +20,21 @@ Perfil do paciente simulado:
 Diagnóstico proposto pelo aluno: "${studentDiagnosis}"
 
 Sua tarefa (duas partes):
-1. Determine qual seria o diagnóstico verdadeiro mais provável para este paciente simulado, considerando o perfil clínico acima.
-2. Avalie se o diagnóstico do aluno é clinicamente compatível com o diagnóstico verdadeiro (aceite variações de terminologia, especificidade, ou diagnóstico sindrômico equivalente).
+1. Determine qual seria o diagnóstico verdadeiro mais provável para este paciente simulado.
+2. Avalie se o diagnóstico do aluno é clinicamente válido E compatível com o diagnóstico verdadeiro.
+
+REGRAS RÍGIDAS para "compatible: true":
+- O aluno DEVE nomear uma condição clínica específica (ex: "Insuficiência Cardíaca", "DPOC", "Hipertireoidismo", "Colite Microscópica")
+- Sintomas isolados NUNCA são diagnósticos: "falta de ar", "cansaço", "dor", "febre" → sempre "compatible: false"
+- Síndromes genéricas sem especificidade: "processo inflamatório", "síndrome gripal" → "compatible: false"
+- Aceite variações de terminologia, siglas reconhecidas (IAM, DPOC, TEP) ou síndrome equivalente bem definida
+- Em caso de dúvida → "compatible: false"
 
 Responda APENAS com JSON válido:
 {
   "true_diagnosis": "diagnóstico verdadeiro em termos médicos precisos",
-  "compatible": true,
-  "reasoning": "frase curta explicando se é compatível ou não"
+  "compatible": false,
+  "reasoning": "frase curta: se sintoma, dizer que não é diagnóstico; se incorreto, explicar brevemente"
 }`
 }
 
