@@ -158,12 +158,14 @@ export type Database = {
           conditions: string[]
           created_at: string
           diagnosis: string | null
+          diagnosis_status: string
           difficulty: string
           gender: string
           id: string
           last_consulted_at: string | null
           name: string
           specialty: string
+          true_diagnosis: string | null
           user_id: string
         }
         Insert: {
@@ -174,12 +176,14 @@ export type Database = {
           conditions?: string[]
           created_at?: string
           diagnosis?: string | null
+          diagnosis_status?: string
           difficulty: string
           gender: string
           id?: string
           last_consulted_at?: string | null
           name: string
           specialty: string
+          true_diagnosis?: string | null
           user_id: string
         }
         Update: {
@@ -190,12 +194,14 @@ export type Database = {
           conditions?: string[]
           created_at?: string
           diagnosis?: string | null
+          diagnosis_status?: string
           difficulty?: string
           gender?: string
           id?: string
           last_consulted_at?: string | null
           name?: string
           specialty?: string
+          true_diagnosis?: string | null
           user_id?: string
         }
         Relationships: []
@@ -254,12 +260,14 @@ export type Database = {
           conditions: string[]
           created_at: string
           diagnosis: string | null
+          diagnosis_status: string
           difficulty: string
           gender: string
           id: string
           last_consulted_at: string | null
           name: string
           specialty: string
+          true_diagnosis: string | null
           user_id: string
         }
         SetofOptions: {

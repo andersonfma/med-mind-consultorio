@@ -81,5 +81,43 @@ export async function POST(
   if (cUpdateError)
     return NextResponse.json({ error: 'Failed to finish consultation' }, { status: 500 })
 
-  return NextResponse.json({ patient_id: patient.id }, { status: 200 })
+  // Evaluate student's diagnosis vs true diagnosis
+  let diagnosisAchieved = false
+  try {
+    const currentPatient = (await supabase
+      .from('patients')
+      .select('diagnosis_status, true_diagnosis')
+      .eq('id', patient.id as string)
+      .single()).data
+
+    if (currentPatient?.diagnosis_status === 'none') {
+      const { buildTrueDiagnosisAndEvalPrompt } = await import('@/lib/patients/diagnosis-prompts')
+      const evalCompletion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        response_format: { type: 'json_object' },
+        messages: [{ role: 'user', content: buildTrueDiagnosisAndEvalPrompt(patient as never, diagnosis.trim()) }],
+      }, { timeout: 25_000 })
+
+      if (evalCompletion.choices[0]?.message?.content) {
+        const evalResult = JSON.parse(evalCompletion.choices[0].message.content) as {
+          true_diagnosis: string
+          compatible: boolean
+          reasoning: string
+        }
+        await supabase
+          .from('patients')
+          .update({
+            true_diagnosis: evalResult.true_diagnosis,
+            ...(evalResult.compatible ? { diagnosis_status: 'achieved' } : {}),
+          })
+          .eq('id', patient.id as string)
+          .eq('user_id', user.id)
+        diagnosisAchieved = evalResult.compatible
+      }
+    }
+  } catch {
+    // Non-blocking — evaluation failure doesn't fail the consultation finish
+  }
+
+  return NextResponse.json({ patient_id: patient.id, diagnosis_achieved: diagnosisAchieved }, { status: 200 })
 }
