@@ -52,14 +52,43 @@ export async function POST(
   if ((examCount ?? 0) < 1)
     return NextResponse.json({ error: 'At least 1 approved exam required' }, { status: 403 })
 
-  // Generate true diagnosis if not yet generated
+  // Generate true diagnosis if not yet generated — use clinical data for accuracy
   let trueDiagnosis = patient.true_diagnosis as string | null
   if (!trueDiagnosis) {
+    // Fetch the latest finished consultation's clinical data for better inference
+    let clinicalContext = ''
     try {
+      const { data: lastConsult } = await supabase
+        .from('consultations')
+        .select('chat_history, anamnesis, physical_exam, clinical_reasoning')
+        .eq('patient_id', id)
+        .eq('user_id', user.id)
+        .eq('status', 'finished')
+        .order('finished_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (lastConsult) {
+        const anamnesis = lastConsult.anamnesis as Record<string, string> | null
+        const physExam = lastConsult.physical_exam as Record<string, string> | null
+        const parts: string[] = []
+        if (anamnesis?.hda) parts.push(`HDA: ${anamnesis.hda}`)
+        if (anamnesis?.hpp) parts.push(`HPP: ${anamnesis.hpp}`)
+        if (physExam?.sinais_vitais) parts.push(`Sinais vitais: ${physExam.sinais_vitais}`)
+        if (lastConsult.clinical_reasoning) parts.push(`Pensamento clínico: ${lastConsult.clinical_reasoning}`)
+        clinicalContext = parts.join('\n')
+      }
+    } catch { /* non-blocking */ }
+
+    try {
+      const promptText = clinicalContext
+        ? `${buildTrueDiagnosisOnlyPrompt(patient as unknown as Patient)}\n\nDados clínicos coletados nas consultas:\n${clinicalContext}`
+        : buildTrueDiagnosisOnlyPrompt(patient as unknown as Patient)
+
       const diagCompletion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: buildTrueDiagnosisOnlyPrompt(patient as unknown as Patient) }],
+        messages: [{ role: 'user', content: promptText }],
       }, { timeout: 25_000 })
       const parsed = JSON.parse(diagCompletion.choices[0]?.message?.content ?? '{}') as { true_diagnosis?: string }
       trueDiagnosis = parsed.true_diagnosis ?? 'Diagnóstico não determinado'

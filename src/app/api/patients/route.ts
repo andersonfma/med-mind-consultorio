@@ -82,6 +82,10 @@ export async function POST(request: NextRequest) {
     ? openAI.conditions.filter((c: unknown): c is string => typeof c === 'string')
     : []
 
+  const trueDiagnosis = typeof openAI.true_diagnosis === 'string' && openAI.true_diagnosis.trim()
+    ? openAI.true_diagnosis.trim()
+    : null
+
   const { data, error: rpcError } = await supabase.rpc('create_patient', {
     p_name:       name,
     p_age:        age,
@@ -101,6 +105,15 @@ export async function POST(request: NextRequest) {
 
   // Fix 4: guard null data from RPC
   if (!data) return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+
+  // Save true_diagnosis generated at creation time (non-blocking)
+  if (trueDiagnosis && (data as Record<string, unknown>).id) {
+    await supabase
+      .from('patients')
+      .update({ true_diagnosis: trueDiagnosis })
+      .eq('id', (data as Record<string, unknown>).id as string)
+      .eq('user_id', user.id)
+  }
 
   return NextResponse.json(data, { status: 201 })
 }

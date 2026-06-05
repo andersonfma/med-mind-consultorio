@@ -24,14 +24,17 @@ Regras por dificuldade:
 - medium: queixa moderadamente vaga, 1-2 comorbidades
 - hard: queixa inespecífica, múltiplas comorbidades, quadro atípico
 
+IMPORTANTE: Escolha o diagnóstico verdadeiro PRIMEIRO, depois construa o caso clínico de forma consistente com ele. O chief_complaint, clinical_status e conditions devem ser compatíveis com o true_diagnosis escolhido.
+
 Responda APENAS com JSON válido, sem texto adicional:
 {
   "name": "nome fictício brasileiro",
   "age": número inteiro entre 18 e 80,
   "gender": "M" ou "F",
-  "chief_complaint": "queixa principal em 1 frase, na voz do paciente",
+  "chief_complaint": "queixa principal em 1 frase, na voz do paciente, compatível com o diagnóstico",
   "clinical_status": "estado clínico inicial em 1 frase curta, na voz do sistema",
-  "conditions": ["lista", "de", "condições", "preexistentes"]
+  "conditions": ["comorbidades preexistentes relevantes ao caso"],
+  "true_diagnosis": "diagnóstico médico preciso e fechado (ex: Colite Microscópica, IAM sem supra, DPOC em exacerbação)"
 }`,
     }],
   }
