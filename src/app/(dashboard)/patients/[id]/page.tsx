@@ -13,7 +13,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   const { id } = await params
 
-  const [patientResult, consultationsResult, examCountResult] = await Promise.all([
+  const [patientResult, consultationsResult] = await Promise.all([
     supabase.from('patients').select('*').eq('id', id).eq('user_id', user.id).single(),
     supabase
       .from('consultations')
@@ -21,12 +21,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       .eq('patient_id', id)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('exam_requests')
-      .select('id', { count: 'exact', head: true })
-      .eq('patient_id', id)
-      .eq('user_id', user.id)
-      .eq('status', 'approved'),
   ])
 
   if (patientResult.error || !patientResult.data) notFound()
@@ -36,8 +30,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const ongoing = consultations.find(c => c.status === 'ongoing')
   const finished = consultations.filter(c => c.status === 'finished')
 
+  // Exam count — separate defensive query, defaults to 0 on any failure
+  let approvedExamCount = 0
+  const { data: approvedExams } = await supabase
+    .from('exam_requests')
+    .select('id')
+    .eq('patient_id', id)
+    .eq('user_id', user.id)
+    .eq('status', 'approved')
+  approvedExamCount = approvedExams?.length ?? 0
+
   const finishedCount = finished.length
-  const approvedExamCount = examCountResult.count ?? 0
   const revealEligible =
     patient.diagnosis_status === 'none' &&
     finishedCount >= 2 &&
