@@ -31,9 +31,8 @@ export function ClinicalReasoningField({ consultationId, initialValue }: Props) 
   }, [consultationId, value])
 
   return (
-    <div className="p-4 flex flex-col h-full">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-gray-500">PENSAMENTO CLÍNICO</p>
+    <div className="flex flex-col h-full">
+      <div className="flex justify-end px-0 mb-1">
         <span className="text-xs text-gray-400">{saved ? 'Salvo' : 'Não salvo'}</span>
       </div>
       <textarea

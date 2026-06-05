@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { ConsultationChat } from './ConsultationChat'
 import { AnamnesisPanel } from './AnamnesisPanel'
 import { ClinicalReasoningField } from './ClinicalReasoningField'
@@ -9,13 +10,15 @@ import { ExamRequestPanel } from './ExamRequestPanel'
 import type { ChatMessage } from '@/lib/consultations/prompts'
 import type { Anamnesis, PhysicalExam } from '@/lib/consultations/parse'
 import type { Patient, Consultation } from '@/types/domain'
+import { patientDetailRoute } from '@/lib/routes'
 
 type Props = {
   consultation: Consultation
   patient: Patient
+  previousExamResults: Array<{ exam_name: string; result: string | null }>
 }
 
-export function ConsultationClient({ consultation, patient }: Props) {
+export function ConsultationClient({ consultation, patient, previousExamResults }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(
     (consultation.chat_history as ChatMessage[]) ?? []
   )
@@ -43,14 +46,17 @@ export function ConsultationClient({ consultation, patient }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b bg-white">
-        <div>
-          <h1 className="font-semibold text-gray-900">{patient.name}</h1>
-          <p className="text-xs text-gray-500">
-            {patient.age} anos · {patient.specialty} · {patient.difficulty}
-          </p>
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-white shrink-0">
+        <div className="flex items-center gap-3">
+          <Link href={patientDetailRoute(patient.id)} className="text-gray-400 hover:text-gray-600 text-sm">
+            ←
+          </Link>
+          <div>
+            <h1 className="font-semibold text-gray-900 text-sm leading-tight">{patient.name}</h1>
+            <p className="text-xs text-gray-400">{patient.age} anos · {patient.specialty} · {patient.difficulty}</p>
+          </div>
         </div>
         <button
           onClick={() => setShowFinishModal(true)}
@@ -60,10 +66,11 @@ export function ConsultationClient({ consultation, patient }: Props) {
         </button>
       </div>
 
-      {/* Body */}
+      {/* 3-column body */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Chat — 40% */}
-        <div className="w-[40%] border-r flex flex-col">
+
+        {/* Column 1 — Chat (38%) */}
+        <div className="w-[38%] border-r flex flex-col">
           <ConsultationChat
             consultationId={consultation.id}
             initialMessages={messages}
@@ -71,33 +78,31 @@ export function ConsultationClient({ consultation, patient }: Props) {
           />
         </div>
 
-        {/* Right panel — 60% */}
-        <div className="w-[60%] flex flex-col overflow-y-auto">
+        {/* Column 2 — Documentação clínica (37%) */}
+        <div className="w-[37%] border-r flex flex-col overflow-y-auto">
           <div className="border-b">
-            <p className="px-4 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
-              Anamnese
-            </p>
-            <AnamnesisPanel
+            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Anamnese</p>
+            <AnamnesisPanel consultationId={consultation.id} initialAnamnesis={initialAnamnesis} />
+          </div>
+          <div className="border-b">
+            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Exame Físico</p>
+            <PhysicalExamPanel consultationId={consultation.id} initialExam={initialPhysicalExam} />
+          </div>
+          <div>
+            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Exames</p>
+            <ExamRequestPanel
               consultationId={consultation.id}
-              initialAnamnesis={initialAnamnesis}
+              previousExamResults={previousExamResults}
             />
           </div>
-          <div className="border-b">
-            <p className="px-4 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
-              Exame Físico
-            </p>
-            <PhysicalExamPanel
-              consultationId={consultation.id}
-              initialExam={initialPhysicalExam}
-            />
-          </div>
-          <div className="border-b">
-            <p className="px-4 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
-              Exames Solicitados
-            </p>
-            <ExamRequestPanel consultationId={consultation.id} />
-          </div>
-          <div className="flex-1 flex flex-col">
+        </div>
+
+        {/* Column 3 — Pensamento Clínico (25%) */}
+        <div className="w-[25%] flex flex-col">
+          <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide shrink-0">
+            Pensamento Clínico
+          </p>
+          <div className="flex-1 px-3 pb-3">
             <ClinicalReasoningField
               consultationId={consultation.id}
               initialValue={consultation.clinical_reasoning ?? ''}

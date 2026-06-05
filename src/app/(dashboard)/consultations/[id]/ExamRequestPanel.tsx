@@ -5,9 +5,10 @@ import type { ExamRequest } from '@/lib/exams/types'
 
 type Props = {
   consultationId: string
+  previousExamResults?: Array<{ exam_name: string; result: string | null }>
 }
 
-export function ExamRequestPanel({ consultationId }: Props) {
+export function ExamRequestPanel({ consultationId, previousExamResults = [] }: Props) {
   const [exams, setExams] = useState<ExamRequest[]>([])
   const [examName, setExamName] = useState('')
   const [justification, setJustification] = useState('')
@@ -80,6 +81,27 @@ export function ExamRequestPanel({ consultationId }: Props) {
 
   return (
     <div className="p-4 space-y-4">
+      {/* Previous exam results */}
+      {previousExamResults.length > 0 && (
+        <div className="mb-4 border border-blue-100 rounded-lg bg-blue-50 p-3">
+          <p className="text-xs font-bold text-blue-700 mb-2 uppercase tracking-wide">
+            Resultados da consulta anterior
+          </p>
+          <ul className="space-y-2">
+            {previousExamResults.map((exam, i) => (
+              <li key={i}>
+                <p className="text-xs font-semibold text-gray-700">{exam.exam_name}</p>
+                {exam.result ? (
+                  <p className="text-xs text-gray-600 whitespace-pre-wrap">{exam.result}</p>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">Laudo não disponível</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Request form */}
       <div className="space-y-2">
         <div className="relative">
