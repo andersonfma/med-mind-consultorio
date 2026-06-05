@@ -22,6 +22,11 @@ Pensamento clínico: ${clinicalReasoning || '(não registrado)'}
 Exame solicitado: ${examName}
 Justificativa do aluno: ${justification}
 
+Critérios de aprovação:
+- Exames diretamente relacionados à queixa ou hipótese diagnóstica: aprovar se a justificativa for razoável
+- Exames de rastreio/prevenção (ex: colonoscopia para rastreio colorretal, mamografia, PSA, densitometria): aprovar se o aluno mencionar rastreio ou prevenção como justificativa — mesmo sem relação com a queixa principal
+- Rejeitar apenas quando o exame não tem qualquer relação clínica ou preventiva com o caso E a justificativa for inadequada
+
 Responda APENAS com JSON válido:
 {
   "approved": true,
@@ -48,5 +53,5 @@ Regras por dificuldade:
 - medium: 1-2 achados alterados que requerem raciocínio clínico para interpretar
 - hard: alterações sutis ou atípicas, com achados que podem confundir
 
-IMPORTANTE: Retorne APENAS os valores brutos do exame, no formato de um laudo laboratorial ou de imagem. NÃO inclua impressão diagnóstica, interpretação, considerações finais, conclusão ou qualquer texto além dos resultados. Sem JSON, sem explicação.`
+IMPORTANTE: Retorne APENAS os valores brutos do exame, no formato de um laudo laboratorial ou de imagem. NÃO inclua impressão diagnóstica, interpretação, considerações finais, conclusão ou qualquer texto além dos resultados. Sem JSON, sem explicação. Sem formatação markdown — NÃO use asteriscos, traços de tabela, #, **, ou qualquer símbolo de formatação. Use apenas texto simples com quebras de linha.`
 }

@@ -79,26 +79,36 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
     }
   }
 
+  function cleanText(text: string): string {
+    return text
+      .replace(/\*\*/g, '').replace(/\*/g, '')
+      .replace(/^#{1,6}\s*/gm, '')
+      .replace(/\|/g, ' ')
+      .replace(/^[-=]{2,}$/gm, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  }
+
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-3 space-y-3">
       {/* Previous exam results */}
       {previousExamResults.length > 0 && (
-        <div className="mb-4 border border-blue-100 rounded-lg bg-blue-50 p-3">
-          <p className="text-xs font-bold text-blue-700 mb-2 uppercase tracking-wide">
-            Resultados da consulta anterior
+        <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 space-y-2">
+          <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+            Resultados anteriores
           </p>
-          <ul className="space-y-2">
-            {previousExamResults.map((exam, i) => (
-              <li key={i}>
-                <p className="text-xs font-semibold text-gray-700">{exam.exam_name}</p>
-                {exam.result ? (
-                  <p className="text-xs text-gray-600 whitespace-pre-wrap">{exam.result}</p>
-                ) : (
-                  <p className="text-xs text-gray-400 italic">Laudo não disponível</p>
-                )}
-              </li>
-            ))}
-          </ul>
+          {previousExamResults.map((exam, i) => (
+            <div key={i} className="bg-white rounded p-2">
+              <p className="text-xs font-semibold text-gray-700 mb-1">{exam.exam_name}</p>
+              {exam.result ? (
+                <pre className="text-xs text-gray-600 font-sans whitespace-pre-wrap leading-relaxed">
+                  {cleanText(exam.result)}
+                </pre>
+              ) : (
+                <p className="text-xs text-gray-400 italic">Laudo não disponível</p>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
@@ -111,7 +121,7 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
             onChange={e => { setExamName(e.target.value); setShowSuggestions(true) }}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
             placeholder="Nome do exame..."
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm"
           />
           {showSuggestions && suggestions.length > 0 && (
             <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-32 overflow-y-auto">
@@ -133,39 +143,43 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
           placeholder="Justificativa clínica..."
           rows={2}
           maxLength={2000}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm resize-none"
+          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm resize-none"
         />
         {error && <p className="text-red-500 text-xs">{error}</p>}
         <button
           onClick={requestExam}
           disabled={loading || !examName.trim() || !justification.trim()}
-          className="w-full text-sm border border-gray-300 rounded-md py-1.5 hover:bg-gray-50 text-gray-600"
+          className="w-full text-xs bg-gray-100 hover:bg-gray-200 rounded-md py-1.5 text-gray-600 font-medium"
         >
-          {loading ? 'Solicitando...' : 'Solicitar exame'}
+          {loading ? 'Solicitando...' : '+ Solicitar exame'}
         </button>
       </div>
 
       {/* Exam list */}
       {exams.length > 0 && (
-        <ul className="space-y-3">
+        <div className="space-y-1.5">
           {exams.map(exam => (
-            <li key={exam.id} className="border border-gray-100 rounded-lg p-3 text-sm">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-medium text-gray-800">{exam.exam_name}</span>
-                <div className="flex items-center gap-2">
-                  {exam.status === 'rejected' && (
-                    <span className={`text-xs font-mono ${exam.attempts >= 2 ? 'text-red-500' : 'text-gray-400'}`}>
+            <div key={exam.id} className="rounded-md px-3 py-2 bg-gray-50 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-800">{exam.exam_name}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {exam.status === 'rejected' && exam.attempts > 1 && (
+                    <span className={`text-xs ${exam.attempts >= 2 ? 'text-red-400' : 'text-gray-400'}`}>
                       {exam.attempts}/3
                     </span>
                   )}
-                  <span className={`text-xs font-semibold ${
-                    exam.status === 'approved' ? 'text-green-600' : 'text-red-500'
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                    exam.status === 'approved'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-red-100 text-red-600'
                   }`}>
-                    {exam.status === 'approved' ? '✓ Aprovado' : '✗ Rejeitado'}
+                    {exam.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
                   </span>
                 </div>
               </div>
-              <p className="text-gray-500 text-xs mb-1">{exam.ai_feedback}</p>
+              {exam.ai_feedback && (
+                <p className="text-xs text-gray-400 mt-0.5 leading-tight">{exam.ai_feedback}</p>
+              )}
 
               {exam.status === 'rejected' && exam.attempts < 3 && (
                 retryingId === exam.id ? (
@@ -176,13 +190,13 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
                       placeholder="Nova justificativa..."
                       rows={2}
                       maxLength={2000}
-                      className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs resize-none"
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs resize-none"
                     />
                     <div className="flex gap-2">
                       <button
                         onClick={() => retryExam(exam.id)}
                         disabled={loading || !retryJustification.trim()}
-                        className="flex-1 text-xs border border-gray-300 rounded py-1 hover:bg-gray-50"
+                        className="flex-1 text-xs bg-gray-100 rounded py-1 hover:bg-gray-200"
                       >
                         Enviar
                       </button>
@@ -203,9 +217,9 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
                   </button>
                 )
               )}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   )
