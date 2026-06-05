@@ -62,8 +62,8 @@ export function ConsultationClient({ consultation, patient }: Props) {
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Chat — 55% */}
-        <div className="w-[55%] border-r flex flex-col">
+        {/* Chat — 40% */}
+        <div className="w-[40%] border-r flex flex-col">
           <ConsultationChat
             consultationId={consultation.id}
             initialMessages={messages}
@@ -71,8 +71,8 @@ export function ConsultationClient({ consultation, patient }: Props) {
           />
         </div>
 
-        {/* Right panel — 45% */}
-        <div className="w-[45%] flex flex-col overflow-y-auto">
+        {/* Right panel — 60% */}
+        <div className="w-[60%] flex flex-col overflow-y-auto">
           <div className="border-b">
             <p className="px-4 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
               Anamnese
