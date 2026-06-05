@@ -40,7 +40,33 @@ export async function POST(
 
   const patient = (consultation as Record<string, unknown>).patients as Record<string, unknown>
   const chatHistory = (consultation.chat_history ?? []) as ChatMessage[]
-  const systemPrompt = buildPatientSystemPrompt(patient as never)
+
+  // Fetch approved exam results from the last finished consultation for this patient
+  let pendingResults: string[] | undefined
+  const patientId = (patient as Record<string, unknown>).id as string
+  const { data: lastConsultation } = await supabase
+    .from('consultations')
+    .select('id')
+    .eq('patient_id', patientId)
+    .eq('user_id', user.id)
+    .eq('status', 'finished')
+    .order('finished_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (lastConsultation) {
+    const { data: examResults } = await supabase
+      .from('exam_requests')
+      .select('exam_name')
+      .eq('consultation_id', lastConsultation.id)
+      .eq('user_id', user.id)
+      .eq('status', 'approved')
+    if (examResults && examResults.length > 0) {
+      pendingResults = examResults.map((e: { exam_name: string }) => e.exam_name)
+    }
+  }
+
+  const systemPrompt = buildPatientSystemPrompt(patient as never, pendingResults)
 
   // Map roles: student→user, patient→assistant (OpenAI only accepts standard roles)
   const messages = [
