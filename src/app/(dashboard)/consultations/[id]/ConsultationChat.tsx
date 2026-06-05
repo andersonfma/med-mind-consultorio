@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { ChatMessage } from '@/lib/consultations/prompts'
 
 type Props = {
@@ -13,6 +13,11 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
 
   async function sendMessage() {
     const text = input.trim()
@@ -73,6 +78,7 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
             </div>
           </div>
         )}
+        <div ref={bottomRef} />
       </div>
       {error && <p className="px-4 text-red-500 text-xs">{error}</p>}
       <div className="border-t p-4 flex gap-2">

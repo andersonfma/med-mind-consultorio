@@ -69,21 +69,25 @@ export function ConsultationClient({ consultation, patient, previousExamResults 
       {/* 3-column body */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Column 1 — Chat (38%) */}
+        {/* Column 1 — Chat + Anamnese (38%) */}
         <div className="w-[38%] border-r flex flex-col">
-          <ConsultationChat
-            consultationId={consultation.id}
-            initialMessages={messages}
-            onMessagesUpdate={setMessages}
-          />
-        </div>
-
-        {/* Column 2 — Documentação clínica (37%) */}
-        <div className="w-[37%] border-r flex flex-col overflow-y-auto">
-          <div className="border-b">
-            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Anamnese</p>
+          {/* Chat — ocupa a parte superior, scrollável */}
+          <div className="flex-[3] flex flex-col overflow-hidden border-b">
+            <ConsultationChat
+              consultationId={consultation.id}
+              initialMessages={messages}
+              onMessagesUpdate={setMessages}
+            />
+          </div>
+          {/* Anamnese — parte inferior */}
+          <div className="flex-[2] flex flex-col overflow-y-auto">
+            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide shrink-0">Anamnese</p>
             <AnamnesisPanel consultationId={consultation.id} initialAnamnesis={initialAnamnesis} />
           </div>
+        </div>
+
+        {/* Column 2 — Exame Físico + Exames (37%) */}
+        <div className="w-[37%] border-r flex flex-col overflow-y-auto">
           <div className="border-b">
             <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Exame Físico</p>
             <PhysicalExamPanel consultationId={consultation.id} initialExam={initialPhysicalExam} />

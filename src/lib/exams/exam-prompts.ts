@@ -43,10 +43,10 @@ Dificuldade do caso: ${patient.difficulty}
 
 Exame: ${examName}
 
-Regras:
-- Nível easy: resultado claramente compatível com o diagnóstico esperado
-- Nível medium: resultado com 1-2 achados que requerem interpretação
-- Nível hard: resultado com achados sutis ou atípicos
+Regras por dificuldade:
+- easy: valores claramente alterados de forma compatível com o diagnóstico esperado
+- medium: 1-2 achados alterados que requerem raciocínio clínico para interpretar
+- hard: alterações sutis ou atípicas, com achados que podem confundir
 
-Gere apenas o texto do laudo, como um laudo real. Sem JSON, sem explicação.`
+IMPORTANTE: Retorne APENAS os valores brutos do exame, no formato de um laudo laboratorial ou de imagem. NÃO inclua impressão diagnóstica, interpretação, considerações finais, conclusão ou qualquer texto além dos resultados. Sem JSON, sem explicação.`
 }
