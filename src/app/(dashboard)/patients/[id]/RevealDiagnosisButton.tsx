@@ -3,10 +3,9 @@ import { useState } from 'react'
 
 type Props = {
   patientId: string
-  onRevealed: (trueDiagnosis: string, clinicalSummary: string) => void
 }
 
-export function RevealDiagnosisButton({ patientId, onRevealed }: Props) {
+export function RevealDiagnosisButton({ patientId }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,7 +27,8 @@ export function RevealDiagnosisButton({ patientId, onRevealed }: Props) {
         }
         return
       }
-      onRevealed(data.true_diagnosis, data.clinical_summary)
+      // Page will show updated status on next navigation
+      router.refresh()
     } catch {
       setError('Erro de conexão.')
     } finally {

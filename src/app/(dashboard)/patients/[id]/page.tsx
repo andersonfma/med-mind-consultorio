@@ -94,7 +94,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <div className="mb-4">
           {revealEligible ? (
             <>
-              <RevealDiagnosisButton patientId={patient.id} onRevealed={() => {}} />
+              <RevealDiagnosisButton patientId={patient.id} />
               <p className="text-xs text-gray-400 mt-1">Revelar diagnóstico não afeta sua reputação nem scores.</p>
             </>
           ) : (
