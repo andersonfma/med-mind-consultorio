@@ -5,6 +5,7 @@ import { AnamnesisPanel } from './AnamnesisPanel'
 import { ClinicalReasoningField } from './ClinicalReasoningField'
 import { FinishModal } from './FinishModal'
 import { PhysicalExamPanel } from './PhysicalExamPanel'
+import { ExamRequestPanel } from './ExamRequestPanel'
 import type { ChatMessage } from '@/lib/consultations/prompts'
 import type { Anamnesis, PhysicalExam } from '@/lib/consultations/parse'
 import type { Patient, Consultation } from '@/types/domain'
@@ -89,6 +90,12 @@ export function ConsultationClient({ consultation, patient }: Props) {
               consultationId={consultation.id}
               initialExam={initialPhysicalExam}
             />
+          </div>
+          <div className="border-b">
+            <p className="px-4 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
+              Exames Solicitados
+            </p>
+            <ExamRequestPanel consultationId={consultation.id} />
           </div>
           <div className="flex-1 flex flex-col">
             <ClinicalReasoningField
