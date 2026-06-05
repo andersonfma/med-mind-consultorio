@@ -1,8 +1,9 @@
 import { redirect, notFound } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { LOGIN_ROUTE, STUB_CONSULTATION_ROUTE } from '@/lib/routes'
+import { LOGIN_ROUTE, consultationRoute } from '@/lib/routes'
 import { BondBar } from '@/components/ui/BondBar'
+import { StartConsultationButton } from './StartConsultationButton'
+import Link from 'next/link'
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
@@ -11,14 +12,22 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   const { id } = await params
 
-  const { data: patient, error } = await supabase
-    .from('patients')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
+  const [patientResult, consultationsResult] = await Promise.all([
+    supabase.from('patients').select('*').eq('id', id).eq('user_id', user.id).single(),
+    supabase
+      .from('consultations')
+      .select('id, status, finished_at, diagnosis')
+      .eq('patient_id', id)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+  ])
 
-  if (error || !patient) notFound()
+  if (patientResult.error || !patientResult.data) notFound()
+
+  const patient = patientResult.data
+  const consultations = consultationsResult.data ?? []
+  const ongoing = consultations.find(c => c.status === 'ongoing')
+  const finished = consultations.filter(c => c.status === 'finished')
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -49,13 +58,39 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <BondBar level={patient.bond_level} />
       </div>
 
-      <Link href={STUB_CONSULTATION_ROUTE} className="btn btn--primary">
-        Iniciar atendimento
-      </Link>
+      {ongoing ? (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 flex items-center justify-between">
+          <p className="text-sm text-yellow-800">Consulta em andamento</p>
+          <Link href={consultationRoute(ongoing.id)} className="btn btn--primary text-sm">
+            Continuar consulta
+          </Link>
+        </div>
+      ) : (
+        <div className="mb-6">
+          <StartConsultationButton patientId={patient.id} />
+        </div>
+      )}
 
       <div className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-800 mb-2">Consultas anteriores</h2>
-        <p className="text-gray-400 text-sm">Nenhuma consulta realizada ainda.</p>
+        <h2 className="text-lg font-semibold text-gray-800 mb-3">Consultas anteriores</h2>
+        {finished.length === 0 ? (
+          <p className="text-gray-400 text-sm">Nenhuma consulta realizada ainda.</p>
+        ) : (
+          <ul className="space-y-2">
+            {finished.map(c => (
+              <li key={c.id} className="border border-gray-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-gray-800">
+                  {c.diagnosis ?? 'Diagnóstico não registrado'}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {c.finished_at
+                    ? new Date(c.finished_at).toLocaleDateString('pt-BR')
+                    : '—'}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   )

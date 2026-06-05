@@ -6,4 +6,6 @@ export type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 
 export type Patient = Database['public']['Tables']['patients']['Row']
 
+export type Consultation = Database['public']['Tables']['consultations']['Row']
+
 export type Role = 'student' | 'resident' | 'physician'

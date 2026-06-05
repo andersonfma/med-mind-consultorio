@@ -39,6 +39,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      consultations: {
+        Row: {
+          anamnesis: Json
+          chat_history: Json
+          clinical_reasoning: string
+          created_at: string
+          diagnosis: string | null
+          finished_at: string | null
+          id: string
+          patient_id: string
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          anamnesis?: Json
+          chat_history?: Json
+          clinical_reasoning?: string
+          created_at?: string
+          diagnosis?: string | null
+          finished_at?: string | null
+          id?: string
+          patient_id: string
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          anamnesis?: Json
+          chat_history?: Json
+          clinical_reasoning?: string
+          created_at?: string
+          diagnosis?: string | null
+          finished_at?: string | null
+          id?: string
+          patient_id?: string
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           age: number
