@@ -60,7 +60,7 @@ export async function POST(
     try {
       const { data: lastConsult } = await supabase
         .from('consultations')
-        .select('chat_history, anamnesis, physical_exam, clinical_reasoning')
+        .select('id, chat_history, anamnesis, physical_exam, clinical_reasoning')
         .eq('patient_id', id)
         .eq('user_id', user.id)
         .eq('status', 'finished')
@@ -74,8 +74,29 @@ export async function POST(
         const parts: string[] = []
         if (anamnesis?.hda) parts.push(`HDA: ${anamnesis.hda}`)
         if (anamnesis?.hpp) parts.push(`HPP: ${anamnesis.hpp}`)
+        if (anamnesis?.ad) parts.push(`AD: ${anamnesis.ad}`)
         if (physExam?.sinais_vitais) parts.push(`Sinais vitais: ${physExam.sinais_vitais}`)
-        if (lastConsult.clinical_reasoning) parts.push(`Pensamento clínico: ${lastConsult.clinical_reasoning}`)
+        if (physExam?.aparelho_cardiovascular) parts.push(`Cardiovascular: ${physExam.aparelho_cardiovascular}`)
+        if (physExam?.sistemas_adicionais) {
+          const sistemas = physExam.sistemas_adicionais as unknown as Record<string, string>
+          Object.entries(sistemas).forEach(([k, v]) => parts.push(`${k}: ${v}`))
+        }
+        if (lastConsult.clinical_reasoning) parts.push(`Pensamento clínico do aluno: ${lastConsult.clinical_reasoning}`)
+
+        // Include approved exam results — critical for diagnosis accuracy
+        const { data: exams } = await supabase
+          .from('exam_requests')
+          .select('exam_name, result')
+          .eq('consultation_id', lastConsult.id)
+          .eq('user_id', user.id)
+          .eq('status', 'approved')
+        if (exams && exams.length > 0) {
+          parts.push('Resultados de exames:')
+          exams.forEach((e: { exam_name: string; result: string | null }) => {
+            parts.push(`  ${e.exam_name}: ${e.result ?? '(sem laudo)'}`)
+          })
+        }
+
         clinicalContext = parts.join('\n')
       }
     } catch { /* non-blocking */ }

@@ -68,7 +68,8 @@ export async function POST(
     }
   }
 
-  const systemPrompt = buildPatientSystemPrompt(patient as never, pendingResults)
+  const isFirstConsultation = !lastConsultation
+  const systemPrompt = buildPatientSystemPrompt(patient as never, pendingResults, isFirstConsultation)
 
   // Map roles: student→user, patient→assistant (OpenAI only accepts standard roles)
   const messages = [
