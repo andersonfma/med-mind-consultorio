@@ -18,6 +18,8 @@ export async function POST(
   const { message } = body as Record<string, unknown>
   if (!message || typeof message !== 'string' || !message.trim())
     return NextResponse.json({ error: 'message required' }, { status: 400 })
+  if (message.trim().length > 2000)
+    return NextResponse.json({ error: 'message too long' }, { status: 400 })
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

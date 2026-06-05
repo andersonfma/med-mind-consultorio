@@ -14,6 +14,8 @@ export async function PATCH(
   const { clinical_reasoning } = body as Record<string, unknown>
   if (typeof clinical_reasoning !== 'string')
     return NextResponse.json({ error: 'clinical_reasoning must be a string' }, { status: 400 })
+  if (clinical_reasoning.length > 10000)
+    return NextResponse.json({ error: 'clinical_reasoning too long' }, { status: 400 })
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

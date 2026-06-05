@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
         .eq('user_id', user.id)
         .eq('status', 'ongoing')
         .single()
-      return NextResponse.json({ id: raceExisting!.id }, { status: 200 })
+      if (!raceExisting) return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+      return NextResponse.json({ id: raceExisting.id }, { status: 200 })
     }
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }

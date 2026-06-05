@@ -16,6 +16,8 @@ export async function POST(
   const { diagnosis } = body as Record<string, unknown>
   if (!diagnosis || typeof diagnosis !== 'string' || !diagnosis.trim())
     return NextResponse.json({ error: 'diagnosis required' }, { status: 400 })
+  if (diagnosis.trim().length > 5000)
+    return NextResponse.json({ error: 'diagnosis too long' }, { status: 400 })
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -57,15 +59,6 @@ export async function POST(
 
   const now = new Date().toISOString()
 
-  const { error: cUpdateError } = await supabase
-    .from('consultations')
-    .update({ status: 'finished', finished_at: now, diagnosis: diagnosis.trim() })
-    .eq('id', id)
-    .eq('user_id', user.id)
-
-  if (cUpdateError)
-    return NextResponse.json({ error: 'Failed to finish consultation' }, { status: 500 })
-
   const { error: pUpdateError } = await supabase
     .from('patients')
     .update({
@@ -78,6 +71,15 @@ export async function POST(
 
   if (pUpdateError)
     return NextResponse.json({ error: 'Failed to update patient' }, { status: 500 })
+
+  const { error: cUpdateError } = await supabase
+    .from('consultations')
+    .update({ status: 'finished', finished_at: now, diagnosis: diagnosis.trim() })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (cUpdateError)
+    return NextResponse.json({ error: 'Failed to finish consultation' }, { status: 500 })
 
   return NextResponse.json({ patient_id: patient.id }, { status: 200 })
 }

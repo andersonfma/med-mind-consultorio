@@ -15,11 +15,12 @@ export function ClinicalReasoningField({ consultationId, initialValue }: Props) 
     const interval = setInterval(async () => {
       if (value === lastSavedRef.current) return
       try {
-        await fetch(`/api/consultations/${consultationId}`, {
+        const res = await fetch(`/api/consultations/${consultationId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ clinical_reasoning: value }),
         })
+        if (!res.ok) throw new Error('save failed')
         lastSavedRef.current = value
         setSaved(true)
       } catch {
