@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { LOGIN_ROUTE, consultationRoute } from '@/lib/routes'
 import { BondBar } from '@/components/ui/BondBar'
 import { StartConsultationButton } from './StartConsultationButton'
+import { RevealDiagnosisButton } from './RevealDiagnosisButton'
 import Link from 'next/link'
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
@@ -12,7 +13,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   const { id } = await params
 
-  const [patientResult, consultationsResult] = await Promise.all([
+  const [patientResult, consultationsResult, examCountResult] = await Promise.all([
     supabase.from('patients').select('*').eq('id', id).eq('user_id', user.id).single(),
     supabase
       .from('consultations')
@@ -20,6 +21,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       .eq('patient_id', id)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('exam_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('patient_id', id)
+      .eq('user_id', user.id)
+      .eq('status', 'approved'),
   ])
 
   if (patientResult.error || !patientResult.data) notFound()
@@ -28,6 +35,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const consultations = consultationsResult.data ?? []
   const ongoing = consultations.find(c => c.status === 'ongoing')
   const finished = consultations.filter(c => c.status === 'finished')
+
+  const finishedCount = finished.length
+  const approvedExamCount = examCountResult.count ?? 0
+  const revealEligible =
+    patient.diagnosis_status === 'none' &&
+    finishedCount >= 2 &&
+    approvedExamCount >= 1
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -57,6 +71,28 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <p className="text-sm font-medium text-gray-700 mb-1">Vínculo</p>
         <BondBar level={patient.bond_level} />
       </div>
+
+      {/* Diagnosis status */}
+      {patient.diagnosis_status === 'achieved' && (
+        <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
+          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">✓ Diagnóstico alcançado</p>
+          <p className="text-sm text-green-800 font-medium">{patient.diagnosis ?? patient.true_diagnosis}</p>
+        </div>
+      )}
+
+      {patient.diagnosis_status === 'revealed' && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
+          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Diagnóstico revelado</p>
+          <p className="text-sm text-amber-900 font-medium">{patient.true_diagnosis}</p>
+        </div>
+      )}
+
+      {revealEligible && (
+        <div className="mb-4">
+          <RevealDiagnosisButton patientId={patient.id} onRevealed={() => {}} />
+          <p className="text-xs text-gray-400 mt-1">Revelar diagnóstico não afeta sua reputação nem scores.</p>
+        </div>
+      )}
 
       {ongoing ? (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 flex items-center justify-between">
