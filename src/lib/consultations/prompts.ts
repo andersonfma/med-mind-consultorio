@@ -12,7 +12,7 @@ export function buildPatientSystemPrompt(patient: Patient, pendingResults?: stri
     : 'nenhuma'
 
   const resultsSection = pendingResults && pendingResults.length > 0
-    ? `\nVocê recebeu os resultados dos seguintes exames e deve mencioná-los naturalmente durante a consulta quando o médico perguntar ou quando for clinicamente oportuno: ${pendingResults.join(', ')}. Os resultados completos serão fornecidos quando o médico solicitar.`
+    ? `\nVocê recebeu os resultados dos seguintes exames da consulta anterior. Mencione-os naturalmente quando o médico perguntar:\n${pendingResults.map(r => `- ${r}`).join('\n')}`
     : ''
 
   return `Você é um paciente simulado para treinamento médico. Responda APENAS como o paciente, na primeira pessoa. Nunca quebre o personagem ou mencione que é uma simulação.

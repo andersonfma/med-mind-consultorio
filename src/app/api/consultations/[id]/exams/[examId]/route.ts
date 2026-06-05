@@ -30,6 +30,7 @@ export async function PUT(
     .from('exam_requests')
     .select('*')
     .eq('id', examId)
+    .eq('consultation_id', id)
     .eq('user_id', user.id)
     .single()
 

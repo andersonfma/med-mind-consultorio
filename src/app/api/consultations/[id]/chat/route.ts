@@ -57,12 +57,14 @@ export async function POST(
   if (lastConsultation) {
     const { data: examResults } = await supabase
       .from('exam_requests')
-      .select('exam_name')
+      .select('exam_name, result')
       .eq('consultation_id', lastConsultation.id)
       .eq('user_id', user.id)
       .eq('status', 'approved')
     if (examResults && examResults.length > 0) {
-      pendingResults = examResults.map((e: { exam_name: string }) => e.exam_name)
+      pendingResults = examResults.map((e: { exam_name: string; result: string | null }) =>
+        e.result ? `${e.exam_name}: ${e.result}` : e.exam_name
+      )
     }
   }
 
