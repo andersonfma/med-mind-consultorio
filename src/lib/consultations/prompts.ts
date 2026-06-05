@@ -37,17 +37,67 @@ export function buildAnamnesisPrompt(chatHistory: ChatMessage[]): string {
 
   return `Analise a conversa abaixo entre um médico e um paciente e extraia as informações para cada seção da anamnese. Se uma seção não tiver informações suficientes, deixe como string vazia.
 
+Definições dos campos:
+- hda: História da Doença Atual — cronologia dos sintomas presentes (quando começou, como evoluiu, fatores de melhora/piora, sintomas associados)
+- hpp: História Patológica Pregressa — doenças já diagnosticadas anteriormente (ex: hipertensão, diabetes), cirurgias, internações, alergias a medicamentos; INCLUA negativas relevantes (ex: "nega hipertensão, nega diabetes")
+- ad: Antecedentes Dirigidos — informações adicionais relacionadas ao quadro atual: uso de medicamentos, vacinas, hábitos de vida relevantes ao caso
+- social: História Social — tabagismo, etilismo, uso de drogas, ocupação, condições de moradia
+- familiar: História Familiar — doenças hereditárias ou relevantes em familiares de primeiro grau
+
 Responda APENAS com JSON válido:
 {
-  "hda": "História da Doença Atual",
-  "hpp": "História Patológica Pregressa",
-  "ad": "Antecedentes e Doenças",
-  "social": "História Social",
-  "familiar": "História Familiar"
+  "hda": "...",
+  "hpp": "...",
+  "ad": "...",
+  "social": "...",
+  "familiar": "..."
 }
 
 Conversa:
 ${conversation}`
+}
+
+export function buildPhysicalExamPrompt(patient: Patient, chatHistory: ChatMessage[]): string {
+  const conditions = Array.isArray(patient.conditions) && patient.conditions.length > 0
+    ? (patient.conditions as string[]).join(', ')
+    : 'nenhuma'
+
+  const conversationSummary = chatHistory
+    .slice(-10)
+    .map(m => `${m.role === 'student' ? 'Médico' : 'Paciente'}: ${m.content}`)
+    .join('\n')
+
+  return `Você é um simulador médico. Gere os achados do exame físico para o paciente abaixo, compatíveis com o quadro clínico.
+
+Paciente: ${patient.name}, ${patient.age} anos, ${patient.gender === 'M' ? 'masculino' : 'feminino'}
+Especialidade: ${patient.specialty}
+Queixa principal: ${patient.chief_complaint}
+Condições preexistentes: ${conditions}
+Dificuldade: ${patient.difficulty}
+
+Trecho da consulta:
+${conversationSummary || '(sem conversa ainda)'}
+
+Regras:
+- Gere achados REALISTAS e COMPATÍVEIS com o quadro clínico
+- Nível easy: achados claros e esperados para o diagnóstico
+- Nível medium: achados moderadamente alterados, 1-2 achados relevantes
+- Nível hard: achados sutis ou combinados, que exigem interpretação cuidadosa
+- Os sinais vitais devem ser coerentes com a gravidade do quadro
+- Adicione exames de sistemas adicionais APENAS se relevantes para o caso (ex: neurológico para cefaleia, linfonodos para febre, osteoarticular para dor articular)
+
+Responda APENAS com JSON válido:
+{
+  "inspecao_geral": "aparência geral, nível de consciência, hidratação, coloração",
+  "sinais_vitais": "PA: X/Y mmHg | FC: X bpm | FR: X irpm | Tax: X°C | SatO2: X%",
+  "aparelho_respiratorio": "achados da ausculta e percussão pulmonar",
+  "aparelho_cardiovascular": "achados da ausculta cardíaca, pulsos",
+  "abdome": "inspeção, ausculta, percussão, palpação",
+  "membros_inferiores": "edema, pulsos, perfusão",
+  "sistemas_adicionais": {}
+}
+
+O campo sistemas_adicionais deve ser um objeto com chaves descritivas apenas se relevante (ex: {"neurologico": "...", "linfonodos": "..."}). Se não houver sistemas adicionais relevantes, use {}.`
 }
 
 export function buildFinishPrompt(
