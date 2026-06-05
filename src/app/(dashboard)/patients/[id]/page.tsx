@@ -90,10 +90,26 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         </div>
       )}
 
-      {revealEligible && (
+      {patient.diagnosis_status === 'none' && (
         <div className="mb-4">
-          <RevealDiagnosisButton patientId={patient.id} onRevealed={() => {}} />
-          <p className="text-xs text-gray-400 mt-1">Revelar diagnóstico não afeta sua reputação nem scores.</p>
+          {revealEligible ? (
+            <>
+              <RevealDiagnosisButton patientId={patient.id} onRevealed={() => {}} />
+              <p className="text-xs text-gray-400 mt-1">Revelar diagnóstico não afeta sua reputação nem scores.</p>
+            </>
+          ) : (
+            <div className="border border-gray-200 rounded-md px-4 py-2.5 bg-gray-50">
+              <p className="text-sm text-gray-400">
+                Revelar diagnóstico disponível após{' '}
+                {finishedCount < 2 && <span className="text-gray-500 font-medium">2 consultas finalizadas</span>}
+                {finishedCount < 2 && approvedExamCount < 1 && ' e '}
+                {approvedExamCount < 1 && <span className="text-gray-500 font-medium">1 exame aprovado</span>}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {finishedCount}/2 consultas · {approvedExamCount}/1 exame aprovado
+              </p>
+            </div>
+          )}
         </div>
       )}
 
