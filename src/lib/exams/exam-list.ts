@@ -1,0 +1,16 @@
+export const COMMON_EXAMS = [
+  'Hemograma completo', 'Glicemia em jejum', 'HbA1c', 'Creatinina', 'Ureia',
+  'TGO/TGP', 'Bilirrubinas', 'Fosfatase alcalina', 'GGT', 'Albumina',
+  'TSH', 'T4 livre', 'Sódio', 'Potássio', 'Magnésio', 'Cálcio', 'Fósforo',
+  'PCR', 'VHS', 'Ferritina', 'Ferro sérico', 'Transferrina',
+  'Proteína C-reativa ultrassensível', 'Ácido úrico', 'Amilase', 'Lipase',
+  'Troponina I', 'CK-MB', 'BNP', 'D-dímero', 'Tempo de protrombina (TP/INR)',
+  'TTPA', 'Urina I (EQU)', 'Urocultura', 'Hemocultura',
+  'Proteínas totais e frações', 'Colesterol total e frações', 'Triglicerídeos',
+  'Radiografia de tórax', 'Radiografia de abdome', 'Ecografia abdominal',
+  'Ecocardiograma', 'ECG (Eletrocardiograma)', 'Tomografia de tórax',
+  'Tomografia de abdome e pelve', 'Tomografia de crânio', 'Ressonância magnética',
+  'Doppler venoso de membros inferiores', 'Holter 24h', 'MAPA',
+  'Espirometria', 'Gasometria arterial', 'Peak flow',
+  'Endoscopia digestiva alta', 'Colonoscopia', 'Punção lombar',
+] as const

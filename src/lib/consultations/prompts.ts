@@ -6,10 +6,14 @@ export type ChatMessage = {
   timestamp: string
 }
 
-export function buildPatientSystemPrompt(patient: Patient): string {
+export function buildPatientSystemPrompt(patient: Patient, pendingResults?: string[]): string {
   const conditions = Array.isArray(patient.conditions) && patient.conditions.length > 0
     ? (patient.conditions as string[]).join(', ')
     : 'nenhuma'
+
+  const resultsSection = pendingResults && pendingResults.length > 0
+    ? `\nVocê recebeu os resultados dos seguintes exames da consulta anterior. Mencione-os naturalmente quando o médico perguntar:\n${pendingResults.map(r => `- ${r}`).join('\n')}`
+    : ''
 
   return `Você é um paciente simulado para treinamento médico. Responda APENAS como o paciente, na primeira pessoa. Nunca quebre o personagem ou mencione que é uma simulação.
 
@@ -20,7 +24,7 @@ Especialidade: ${patient.specialty}
 Queixa principal: ${patient.chief_complaint}
 Estado clínico: ${patient.clinical_status}
 Condições preexistentes: ${conditions}
-Dificuldade: ${patient.difficulty}
+Dificuldade: ${patient.difficulty}${resultsSection}
 
 Regras por dificuldade:
 - easy: fale de forma clara e objetiva

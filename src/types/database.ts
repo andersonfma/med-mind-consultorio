@@ -92,6 +92,63 @@ export type Database = {
           },
         ]
       }
+      exam_requests: {
+        Row: {
+          ai_feedback: string
+          attempts: number
+          consultation_id: string
+          created_at: string
+          exam_name: string
+          id: string
+          justification: string
+          patient_id: string
+          result: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          ai_feedback?: string
+          attempts?: number
+          consultation_id: string
+          created_at?: string
+          exam_name: string
+          id?: string
+          justification: string
+          patient_id: string
+          result?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          ai_feedback?: string
+          attempts?: number
+          consultation_id?: string
+          created_at?: string
+          exam_name?: string
+          id?: string
+          justification?: string
+          patient_id?: string
+          result?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_requests_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_requests_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           age: number

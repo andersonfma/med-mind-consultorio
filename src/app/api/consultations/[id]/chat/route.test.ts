@@ -52,13 +52,29 @@ describe('POST /api/consultations/[id]/chat', () => {
     mockGetUser.mockResolvedValue({ data: { user }, error: null })
     mockCreate.mockResolvedValue({ choices: [{ message: { content: 'Estou bem.' } }] })
 
-    const updateChain = { eq: vi.fn().mockReturnThis(), error: null }
-    mockFrom.mockImplementation(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: mockConsultation, error: null }),
-      update: vi.fn().mockReturnValue(updateChain),
-    }))
+    // Track call count per table so we can differentiate the two consultations queries
+    let consultationsCallCount = 0
+    mockFrom.mockImplementation((table: string) => {
+      const updateChain = { eq: vi.fn().mockReturnThis(), error: null }
+      const chain: Record<string, unknown> = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnValue(updateChain),
+        single: vi.fn().mockImplementation(() => {
+          if (table === 'consultations') {
+            consultationsCallCount++
+            // First call: fetch ongoing consultation; second call: fetch last finished consultation (none)
+            if (consultationsCallCount === 1)
+              return Promise.resolve({ data: mockConsultation, error: null })
+            return Promise.resolve({ data: null, error: { code: 'PGRST116' } })
+          }
+          return Promise.resolve({ data: null, error: null })
+        }),
+      }
+      return chain
+    })
   })
 
   it('retorna 401 se não autenticado', async () => {
