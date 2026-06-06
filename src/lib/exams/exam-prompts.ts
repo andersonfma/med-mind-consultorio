@@ -40,10 +40,12 @@ export function buildExamResultPrompt(patient: Patient, examName: string, trueDi
     : 'nenhuma'
 
   const diagnosisAnchor = trueDiagnosis
-    ? `\nDIAGNÓSTICO VERDADEIRO DO CASO: ${trueDiagnosis}\nOs resultados DEVEM ser compatíveis com este diagnóstico. Se o exame for específico para ele (ex: Dix-Hallpike para VPPB, painel viral para infecção viral), o resultado deve confirmá-lo ou ser coerente com ele.`
+    ? `\nDIAGNÓSTICO VERDADEIRO DO CASO (contexto interno, não é o exame pedido): ${trueDiagnosis}
+COMO USAR O DIAGNÓSTICO: ele influencia APENAS os VALORES dos parâmetros que JÁ pertencem ao exame "${examName}". Ex: se o exame for "${examName}" e algum de seus parâmetros próprios for tipicamente alterado por este diagnóstico, ajuste o VALOR desse parâmetro.
+PROIBIÇÃO ABSOLUTA: NUNCA adicione um parâmetro que não pertence ao exame "${examName}" só porque é "relevante ao diagnóstico" (ex: NÃO coloque HbA1c, glicemia ou lipídios dentro de um exame que não os mede). NUNCA substitua o exame pedido por um painel metabólico/bioquímico do diagnóstico. Se NENHUM parâmetro próprio de "${examName}" for afetado pelo diagnóstico, retorne valores normais — está CORRETO um exame vir normal.`
     : ''
 
-  return `Você é um sistema de laudo médico simulado. Gere o resultado do exame solicitado, compatível com o quadro clínico do paciente.
+  return `Você é um sistema de laudo médico simulado. Gere o resultado do exame solicitado.
 
 Paciente: ${patient.name}, ${patient.age} anos, ${patient.gender === 'M' ? 'masculino' : 'feminino'}
 Queixa: ${patient.chief_complaint}
@@ -53,8 +55,11 @@ Dificuldade do caso: ${patient.difficulty}${diagnosisAnchor}
 Exame solicitado: ${examName}
 
 REGRA MAIS IMPORTANTE — ESCOPO DO EXAME:
-- Inclua EXCLUSIVAMENTE os parâmetros que pertencem ao exame "${examName}" e a NENHUM outro exame.
-- NÃO adicione exames complementares, parâmetros de outros exames, nem "achados relacionados". O aluno pediu apenas "${examName}" — retorne apenas isso.
+- Gere o laudo de UM ÚNICO exame: exatamente "${examName}". NUNCA produza um segundo exame, bloco ou painel adicional, mesmo que pareça relacionado. Uma solicitação = um laudo.
+- PRIMEIRO identifique (apenas para si, não imprima a expansão) o que é o exame "${examName}" e qual seu conjunto PADRÃO de parâmetros. Reconheça siglas brasileiras: FAN = Fator Antinuclear (qualitativo: reagente/não reagente + título + padrão); EAS/EQU = urina tipo 1 / sedimento urinário; TGO/TGP = transaminases; EPF = parasitológico de fezes; PCR = proteína C reativa; VHS = velocidade de hemossedimentação. Use isto SOMENTE para identificar o exame pedido e então emita o laudo APENAS dele.
+- Inclua TODOS e EXCLUSIVAMENTE os parâmetros que pertencem ao exame "${examName}" e a NENHUM outro exame. NÃO adicione exames complementares, parâmetros de outros exames, nem "achados relacionados".
+- COERÊNCIA DE AMOSTRA: os parâmetros devem corresponder ao TIPO DE MATERIAL do exame. Exame de URINA (EAS) contém SOMENTE parâmetros urinários (aspecto, cor, densidade, pH, proteínas, glicose, corpos cetônicos, nitrito, urobilinogênio, leucócitos, hemácias, cilindros, cristais) — NUNCA parâmetros de sangue (HbA1c, creatinina sérica, transaminases). Exame de sangue não traz parâmetros de urina.
+- Exames QUALITATIVOS/sorológicos têm formato próprio: FAN → "Resultado: Reagente/Não reagente | Título: 1:X | Padrão: ...". Não force valores numéricos de bioquímica neles.
 - Exemplos de escopo correto:
   • "Hemograma completo" → APENAS série vermelha (Hb, Ht, VCM, HCM, CHCM, RDW), série branca (leucócitos totais + diferencial) e plaquetas. NUNCA inclua TSH, ferritina, LDH, vitaminas, bioquímica ou hormônios.
   • "TSH" → SOMENTE o valor de TSH. Nada mais.
