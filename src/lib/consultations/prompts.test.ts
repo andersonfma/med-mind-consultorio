@@ -91,3 +91,21 @@ describe('buildCaseSummaryPrompt', () => {
     expect(p.toLowerCase()).toContain('sem json')
   })
 })
+
+describe('buildPatientSystemPrompt — memória do caso', () => {
+  it('NÃO injeta memória na primeira consulta, mesmo com summary', () => {
+    const p = buildPatientSystemPrompt(mockPatient as Patient, undefined, true, 'MEMORIA_XYZ')
+    expect(p).not.toContain('MEMORIA_XYZ')
+  })
+
+  it('injeta memória em retorno quando há summary', () => {
+    const p = buildPatientSystemPrompt(mockPatient as Patient, undefined, false, 'MEMORIA_XYZ')
+    expect(p).toContain('MEMÓRIA DO CASO')
+    expect(p).toContain('MEMORIA_XYZ')
+  })
+
+  it('não injeta bloco de memória em retorno sem summary', () => {
+    const p = buildPatientSystemPrompt(mockPatient as Patient, undefined, false, null)
+    expect(p).not.toContain('MEMÓRIA DO CASO')
+  })
+})

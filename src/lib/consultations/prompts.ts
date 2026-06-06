@@ -6,13 +6,17 @@ export type ChatMessage = {
   timestamp: string
 }
 
-export function buildPatientSystemPrompt(patient: Patient, pendingResults?: string[], isFirstConsultation = true): string {
+export function buildPatientSystemPrompt(patient: Patient, pendingResults?: string[], isFirstConsultation = true, caseSummary?: string | null): string {
   const conditions = Array.isArray(patient.conditions) && patient.conditions.length > 0
     ? (patient.conditions as string[]).join(', ')
     : 'nenhuma'
 
   const resultsSection = pendingResults && pendingResults.length > 0
     ? `\nIMPORTANTE: Você recebeu os resultados dos exames pedidos na consulta anterior. Na sua PRIMEIRA resposta desta consulta, avise espontaneamente que recebeu os resultados (ex: "Doutor, recebi os resultados dos exames que o senhor pediu"). Depois, forneça os valores quando o médico solicitar:\n${pendingResults.map(r => `- ${r}`).join('\n')}`
+    : ''
+
+  const memorySection = !isFirstConsultation && caseSummary && caseSummary.trim()
+    ? `\nMEMÓRIA DO CASO (o que você lembra das consultas anteriores — use para responder de forma coerente e variada, na 1ª pessoa, sem recitar literalmente; você LEMBRA das medicações que toma e dos exames que já fez):\n${caseSummary}`
     : ''
 
   return `Você é um paciente simulado para treinamento médico. Responda APENAS como o paciente, na primeira pessoa. Nunca quebre o personagem ou mencione que é uma simulação.
@@ -24,7 +28,7 @@ Especialidade: ${patient.specialty}
 Queixa principal: ${patient.chief_complaint}
 Estado de saúde atual (use como guia para como você se sente, expresse em primeira pessoa de forma natural — NÃO repita este texto literalmente): ${patient.clinical_status}
 Condições preexistentes: ${conditions}
-Dificuldade: ${patient.difficulty}${resultsSection}
+Dificuldade: ${patient.difficulty}${resultsSection}${memorySection}
 
 ${isFirstConsultation ? `Comportamento (PRIMEIRA CONSULTA):
 - Você está vendo este médico pela PRIMEIRA VEZ. Ao ser cumprimentado, apresente sua queixa principal espontaneamente como um paciente novo: "Doutor, estou com..."
