@@ -38,6 +38,7 @@ export async function POST(
     .eq('status', 'ongoing')
     .single()
 
+
   if (cError || !consultation)
     return NextResponse.json({ error: 'Consultation not found' }, { status: 404 })
 
@@ -93,11 +94,12 @@ export async function POST(
   let result: string | null = null
   if (approved) {
     try {
+      const trueDiagnosis = (patient as Record<string, unknown>).true_diagnosis as string | null ?? null
       const resultCompletion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{
           role: 'user',
-          content: buildExamResultPrompt(patient, exam_name.trim()),
+          content: buildExamResultPrompt(patient, exam_name.trim(), trueDiagnosis),
         }],
       }, { timeout: 25_000 })
       result = resultCompletion.choices[0]?.message?.content?.trim() ?? null

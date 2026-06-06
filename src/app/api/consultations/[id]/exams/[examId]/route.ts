@@ -89,9 +89,10 @@ export async function PUT(
   let result: string | null = exam.result
   if (approved && !result) {
     try {
+      const trueDiagnosis = (patient as Record<string, unknown>).true_diagnosis as string | null ?? null
       const resultCompletion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: buildExamResultPrompt(patient, exam.exam_name) }],
+        messages: [{ role: 'user', content: buildExamResultPrompt(patient, exam.exam_name, trueDiagnosis) }],
       }, { timeout: 25_000 })
       result = resultCompletion.choices[0]?.message?.content?.trim() ?? null
     } catch {
