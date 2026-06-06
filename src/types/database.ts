@@ -166,6 +166,7 @@ export type Database = {
           name: string
           specialty: string
           true_diagnosis: string | null
+          case_summary: string | null
           user_id: string
         }
         Insert: {
@@ -184,6 +185,7 @@ export type Database = {
           name: string
           specialty: string
           true_diagnosis?: string | null
+          case_summary?: string | null
           user_id: string
         }
         Update: {
@@ -202,6 +204,7 @@ export type Database = {
           name?: string
           specialty?: string
           true_diagnosis?: string | null
+          case_summary?: string | null
           user_id?: string
         }
         Relationships: []
