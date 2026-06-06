@@ -34,6 +34,7 @@ export function ConsultationClient({ consultation, patient, previousExamResults 
 
   const rawExam = (consultation.physical_exam ?? {}) as Record<string, unknown>
   const initialPhysicalExam: PhysicalExam = {
+    antropometria:           typeof rawExam.antropometria === 'string'           ? rawExam.antropometria           : '',
     inspecao_geral:          typeof rawExam.inspecao_geral === 'string'          ? rawExam.inspecao_geral          : '',
     sinais_vitais:           typeof rawExam.sinais_vitais === 'string'           ? rawExam.sinais_vitais           : '',
     aparelho_respiratorio:   typeof rawExam.aparelho_respiratorio === 'string'   ? rawExam.aparelho_respiratorio   : '',

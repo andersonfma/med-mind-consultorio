@@ -94,26 +94,30 @@ Dificuldade: ${patient.difficulty}
 Trecho da consulta:
 ${conversationSummary || '(sem conversa ainda)'}
 
+REGRA FUNDAMENTAL: O exame físico contém APENAS achados OBJETIVOS que o médico OBSERVA ou PALPA/AUSCULTA/PERCUTE. NUNCA inclua sintomas RELATADOS pelo paciente (disúria, dor relatada, urgência miccional, náusea, tontura — isso é ANAMNESE, não exame físico). Descreva apenas o que é objetivamente examinável.
+
 Regras:
 - Gere achados REALISTAS e COMPATÍVEIS com o quadro clínico
 - Nível easy: achados claros e esperados para o diagnóstico
 - Nível medium: achados moderadamente alterados, 1-2 achados relevantes
 - Nível hard: achados sutis ou combinados, que exigem interpretação cuidadosa
 - Os sinais vitais devem ser coerentes com a gravidade do quadro
-- Adicione exames de sistemas adicionais APENAS se relevantes para o caso (ex: neurológico para cefaleia, linfonodos para febre, osteoarticular para dor articular)
+- O IMC deve ser calculado e classificado (ex: "IMC 27,3 kg/m² - sobrepeso")
+- Adicione sistemas adicionais APENAS se houver ACHADOS OBJETIVOS relevantes ao exame (ex: exame neurológico com rigidez de nuca; exame osteoarticular com edema articular; palpação de linfonodos). NUNCA coloque sintomas relatados aqui.
 
 Responda APENAS com JSON válido:
 {
-  "inspecao_geral": "aparência geral, nível de consciência, hidratação, coloração",
+  "antropometria": "Peso: X kg | Altura: X,XX m | IMC: X,X kg/m² - classificação",
+  "inspecao_geral": "aparência geral, nível de consciência, hidratação, coloração (achados objetivos)",
   "sinais_vitais": "PA: X/Y mmHg | FC: X bpm | FR: X irpm | Tax: X°C | SatO2: X%",
   "aparelho_respiratorio": "achados da ausculta e percussão pulmonar",
   "aparelho_cardiovascular": "achados da ausculta cardíaca, pulsos",
-  "abdome": "inspeção, ausculta, percussão, palpação",
+  "abdome": "inspeção, ausculta, percussão, palpação (achados objetivos, não dor relatada)",
   "membros_inferiores": "edema, pulsos, perfusão",
   "sistemas_adicionais": {}
 }
 
-O campo sistemas_adicionais deve ser um objeto com chaves descritivas apenas se relevante (ex: {"neurologico": "...", "linfonodos": "..."}). Se não houver sistemas adicionais relevantes, use {}.`
+O campo sistemas_adicionais deve conter apenas ACHADOS OBJETIVOS de sistemas adicionais relevantes (ex: {"neurologico": "força preservada, reflexos simétricos", "osteoarticular": "edema em joelho direito"}). Se não houver achados objetivos adicionais, use {}.`
 }
 
 export function buildFinishPrompt(

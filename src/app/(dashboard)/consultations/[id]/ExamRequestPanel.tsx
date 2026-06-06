@@ -80,7 +80,10 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
   }
 
   function cleanText(text: string): string {
-    return text
+    // Remove interpretive lines (impression/conclusion/comments) that should not be shown
+    const interpretiveStart = /^\s*(impress[ãa]o|conclus[ãa]o|coment[áa]rio|observa[çc][ãa]o|nota|interpreta[çc][ãa]o|considera[çc][õo]es|sugere-se|compat[íi]vel com|achados sugestivos)/i
+    const lines = text.split('\n').filter(line => !interpretiveStart.test(line))
+    return lines.join('\n')
       .replace(/\*\*/g, '').replace(/\*/g, '')
       .replace(/^#{1,6}\s*/gm, '')
       .replace(/\|/g, ' ')

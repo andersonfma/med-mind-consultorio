@@ -28,6 +28,7 @@ export function parseAnamnesisResponse(raw: string): Anamnesis {
 }
 
 export type PhysicalExam = {
+  antropometria: string
   inspecao_geral: string
   sinais_vitais: string
   aparelho_respiratorio: string
@@ -38,6 +39,7 @@ export type PhysicalExam = {
 }
 
 const EMPTY_PHYSICAL_EXAM: PhysicalExam = {
+  antropometria: '',
   inspecao_geral: '',
   sinais_vitais: '',
   aparelho_respiratorio: '',
@@ -58,6 +60,7 @@ export function parsePhysicalExamResponse(raw: string): PhysicalExam {
       }
     }
     return {
+      antropometria:         str(parsed.antropometria),
       inspecao_geral:        str(parsed.inspecao_geral),
       sinais_vitais:         str(parsed.sinais_vitais),
       aparelho_respiratorio: str(parsed.aparelho_respiratorio),

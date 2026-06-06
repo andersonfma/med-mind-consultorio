@@ -8,6 +8,7 @@ type Props = {
 }
 
 const BASE_LABELS: Record<keyof Omit<PhysicalExam, 'sistemas_adicionais'>, string> = {
+  antropometria:           'Antropometria',
   inspecao_geral:          'Inspeção Geral',
   sinais_vitais:           'Sinais Vitais',
   aparelho_respiratorio:   'Ap. Respiratório',

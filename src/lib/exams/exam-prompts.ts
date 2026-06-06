@@ -57,5 +57,11 @@ Regras por dificuldade:
 - medium: 1-2 achados que requerem raciocínio clínico para interpretar
 - hard: alterações sutis ou atípicas que podem confundir
 
-IMPORTANTE: Retorne APENAS os valores brutos do exame, no formato de um laudo laboratorial ou de imagem. NÃO inclua impressão diagnóstica, interpretação, considerações finais, conclusão ou qualquer texto além dos resultados. Sem JSON, sem explicação. Sem formatação markdown — NÃO use asteriscos, traços de tabela, #, **, ou qualquer símbolo de formatação. Use apenas texto simples com quebras de linha.`
+IMPORTANTE — REGRAS ESTRITAS DE FORMATO:
+- Retorne SOMENTE os valores brutos do exame (números, medidas, descrições objetivas de achados), exatamente como num laudo laboratorial ou de imagem real.
+- PROIBIDO incluir: "Impressão", "Impressão diagnóstica", "Conclusão", "Comentário", "Observação", "Nota", "Interpretação", "Considerações", "Sugere-se", "Compatível com", "Achados sugestivos de", ou qualquer frase que interprete ou conclua. O aluno deve interpretar sozinho.
+- Para exames laboratoriais: liste apenas parâmetro, valor e referência (ex: "Hemoglobina: 9,2 g/dL (VR: 12-16)").
+- Para exames de imagem: descreva apenas os achados objetivos, sem impressão final.
+- Sem formatação markdown — NÃO use asteriscos, traços de tabela, #, **, ou qualquer símbolo de formatação. Apenas texto simples com quebras de linha.
+- Sem JSON.`
 }
