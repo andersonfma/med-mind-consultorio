@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildPatientSystemPrompt, buildAnamnesisPrompt, buildFinishPrompt } from './prompts'
+import { buildPatientSystemPrompt, buildAnamnesisPrompt, buildFinishPrompt, buildCaseSummaryPrompt } from './prompts'
 import type { Patient } from '@/types/domain'
 
 const mockPatient: Partial<Patient> = {
@@ -60,5 +60,34 @@ describe('buildFinishPrompt', () => {
     const prompt = buildFinishPrompt(mockPatient as Patient, '')
     expect(prompt).toContain('frase')
     expect(prompt.toLowerCase()).toContain('estado clínico')
+  })
+})
+
+describe('buildCaseSummaryPrompt', () => {
+  it('inclui as quatro seções rotuladas', () => {
+    const p = buildCaseSummaryPrompt(mockPatient as Patient, null, [], '', [])
+    expect(p).toContain('Medicações em uso:')
+    expect(p).toContain('Exames já realizados:')
+    expect(p).toContain('Evolução:')
+    expect(p).toContain('Plano/pendências:')
+  })
+
+  it('incorpora o resumo anterior quando presente', () => {
+    const p = buildCaseSummaryPrompt(mockPatient as Patient, 'RESUMO_ANTERIOR_XYZ', [], '', [])
+    expect(p).toContain('RESUMO_ANTERIOR_XYZ')
+  })
+
+  it('lista os exames realizados e o pensamento clínico desta consulta', () => {
+    const p = buildCaseSummaryPrompt(mockPatient as Patient, null, [], 'iniciei furosemida', [
+      { exam_name: 'Ecocardiograma', result: 'FE 40%' },
+    ])
+    expect(p).toContain('Ecocardiograma')
+    expect(p).toContain('iniciei furosemida')
+  })
+
+  it('proíbe inventar conduta e pede texto simples sem JSON', () => {
+    const p = buildCaseSummaryPrompt(mockPatient as Patient, null, [], '', [])
+    expect(p).toContain('NÃO invente')
+    expect(p.toLowerCase()).toContain('sem json')
   })
 })

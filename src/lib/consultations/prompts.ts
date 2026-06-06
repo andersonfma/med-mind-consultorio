@@ -46,6 +46,51 @@ Regras por dificuldade:
 Responda de forma concisa (1-3 frases).`
 }
 
+export function buildCaseSummaryPrompt(
+  patient: Patient,
+  priorSummary: string | null,
+  chatHistory: ChatMessage[],
+  clinicalReasoning: string,
+  examResults: { exam_name: string; result: string | null }[]
+): string {
+  const conversation = chatHistory
+    .map(m => `${m.role === 'student' ? 'Médico' : 'Paciente'}: ${m.content}`)
+    .join('\n')
+
+  const exams = examResults.length > 0
+    ? examResults.map(e => e.result ? `${e.exam_name}: ${e.result}` : `${e.exam_name} (sem resultado)`).join('\n')
+    : '(nenhum exame aprovado nesta consulta)'
+
+  return `Você é um sistema de prontuário médico. Atualize o resumo cumulativo do caso deste paciente após mais uma consulta.
+
+Paciente: ${patient.name}, ${patient.age} anos
+Queixa original: ${patient.chief_complaint}
+
+RESUMO ANTERIOR (consultas passadas):
+${priorSummary && priorSummary.trim() ? priorSummary : '(nenhum — primeira consulta finalizada)'}
+
+CONSULTA ATUAL — conversa:
+${conversation || '(sem conversa)'}
+
+CONSULTA ATUAL — pensamento clínico do aluno:
+${clinicalReasoning || '(não registrado)'}
+
+CONSULTA ATUAL — exames realizados:
+${exams}
+
+Gere o NOVO resumo cumulativo, INCORPORANDO o resumo anterior e ADICIONANDO o que houve nesta consulta. Use EXATAMENTE estas quatro seções, em texto simples:
+
+Medicações em uso: <medicações/condutas que o aluno prescreveu até agora, extraídas do pensamento clínico e da conversa; se nenhuma, escreva "nenhuma">
+Exames já realizados: <exames feitos e seus achados-chave ao longo das consultas>
+Evolução: <linha do tempo curta, uma linha por consulta>
+Plano/pendências: <o que ficou combinado / o que monitorar na próxima consulta>
+
+REGRAS:
+- NÃO invente medicações ou condutas que o aluno não mencionou.
+- Seja conciso — resuma consultas antigas, não deixe o texto crescer indefinidamente.
+- Texto simples, sem markdown e sem JSON; não adicione rótulos além das quatro seções.`
+}
+
 export function buildAnamnesisPrompt(chatHistory: ChatMessage[]): string {
   const conversation = chatHistory
     .map(m => `${m.role === 'student' ? 'Médico' : 'Paciente'}: ${m.content}`)
