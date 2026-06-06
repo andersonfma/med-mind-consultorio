@@ -83,13 +83,20 @@ export function buildPhysicalExamPrompt(patient: Patient, chatHistory: ChatMessa
     .map(m => `${m.role === 'student' ? 'Médico' : 'Paciente'}: ${m.content}`)
     .join('\n')
 
+  const trueDiag = (patient as Record<string, unknown>).true_diagnosis as string | null
+  const diagnosisAnchor = trueDiag
+    ? `\nDIAGNÓSTICO VERDADEIRO DO CASO (não revele ao aluno, use apenas para gerar achados coerentes): ${trueDiag}
+ANCORAGEM OBRIGATÓRIA: Os achados do exame físico DEVEM corroborar este diagnóstico. Se o diagnóstico tipicamente altera o exame físico, os sinais objetivos esperados PRECISAM aparecer no sistema correspondente.
+Exemplos: Edema agudo de pulmão → estertores crepitantes bilaterais, taquipneia, SatO2 reduzida, turgência jugular, ritmo de galope (B3); Pneumonia → estertores localizados + macicez à percussão no lobo afetado; Insuficiência cardíaca → estertores em bases, edema de MMII, turgência jugular, hepatomegalia; VPPB → Dix-Hallpike positivo com nistagmo. NÃO gere um exame físico normal quando o diagnóstico exige achados anormais.`
+    : ''
+
   return `Você é um simulador médico. Gere os achados do exame físico para o paciente abaixo, compatíveis com o quadro clínico.
 
 Paciente: ${patient.name}, ${patient.age} anos, ${patient.gender === 'M' ? 'masculino' : 'feminino'}
 Especialidade: ${patient.specialty}
 Queixa principal: ${patient.chief_complaint}
 Condições preexistentes: ${conditions}
-Dificuldade: ${patient.difficulty}
+Dificuldade: ${patient.difficulty}${diagnosisAnchor}
 
 Trecho da consulta:
 ${conversationSummary || '(sem conversa ainda)'}
@@ -97,7 +104,7 @@ ${conversationSummary || '(sem conversa ainda)'}
 REGRA FUNDAMENTAL: O exame físico contém APENAS achados OBJETIVOS que o médico OBSERVA ou PALPA/AUSCULTA/PERCUTE. NUNCA inclua sintomas RELATADOS pelo paciente (disúria, dor relatada, urgência miccional, náusea, tontura — isso é ANAMNESE, não exame físico). Descreva apenas o que é objetivamente examinável.
 
 Regras:
-- Gere achados REALISTAS e COMPATÍVEIS com o quadro clínico
+- Gere achados REALISTAS e COMPATÍVEIS com o quadro clínico e o diagnóstico verdadeiro
 - Nível easy: achados claros e esperados para o diagnóstico
 - Nível medium: achados moderadamente alterados, 1-2 achados relevantes
 - Nível hard: achados sutis ou combinados, que exigem interpretação cuidadosa
