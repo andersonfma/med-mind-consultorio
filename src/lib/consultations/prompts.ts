@@ -86,8 +86,9 @@ export function buildPhysicalExamPrompt(patient: Patient, chatHistory: ChatMessa
   const trueDiag = (patient as Record<string, unknown>).true_diagnosis as string | null
   const diagnosisAnchor = trueDiag
     ? `\nDIAGNÓSTICO VERDADEIRO DO CASO (não revele ao aluno, use apenas para gerar achados coerentes): ${trueDiag}
-ANCORAGEM OBRIGATÓRIA: Os achados do exame físico DEVEM corroborar este diagnóstico. Se o diagnóstico tipicamente altera o exame físico, os sinais objetivos esperados PRECISAM aparecer no sistema correspondente.
-Exemplos: Edema agudo de pulmão → estertores crepitantes bilaterais, taquipneia, SatO2 reduzida, turgência jugular, ritmo de galope (B3); Pneumonia → estertores localizados + macicez à percussão no lobo afetado; Insuficiência cardíaca → estertores em bases, edema de MMII, turgência jugular, hepatomegalia; VPPB → Dix-Hallpike positivo com nistagmo. NÃO gere um exame físico normal quando o diagnóstico exige achados anormais.`
+ANCORAGEM OBRIGATÓRIA (PRIORIDADE MÁXIMA): Os achados do exame físico DEVEM corroborar ESTE diagnóstico verdadeiro. Para QUALQUER diagnóstico que tipicamente altere o exame físico, os sinais objetivos esperados PRECISAM aparecer no sistema correspondente — não se limite aos exemplos abaixo, raciocine a fisiopatologia do diagnóstico e produza os achados condizentes.
+PRECEDÊNCIA SOBRE A QUEIXA: Se a queixa principal ou a conversa parecerem leves, inespecíficas ou apontarem para outra direção, IGNORE essa impressão — a verdade do caso é o diagnóstico verdadeiro, e o exame físico deve refletir a GRAVIDADE e os sinais desse diagnóstico, não a aparente leveza da queixa. NUNCA gere um exame físico normal quando o diagnóstico verdadeiro exige achados anormais.
+Exemplos: Edema agudo de pulmão → estertores crepitantes bilaterais, taquipneia (FR elevada), SatO2 reduzida, turgência jugular, ritmo de galope (B3); Pneumonia → estertores localizados + macicez à percussão no lobo afetado; Insuficiência cardíaca → estertores em bases, edema de MMII, turgência jugular, hepatomegalia; Tromboembolismo pulmonar → taquipneia, taquicardia, SatO2 reduzida; VPPB → Dix-Hallpike positivo com nistagmo.`
     : ''
 
   return `Você é um simulador médico. Gere os achados do exame físico para o paciente abaixo, compatíveis com o quadro clínico.
