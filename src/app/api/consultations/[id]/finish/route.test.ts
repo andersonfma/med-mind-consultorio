@@ -66,17 +66,12 @@ describe('POST /api/consultations/[id]/finish', () => {
 
   it('retorna 401 se não autenticado', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: null })
-    const res = await POST(...makeRequest({ diagnosis: 'IAM' }))
+    const res = await POST(...makeRequest({}))
     expect(res.status).toBe(401)
   })
 
-  it('retorna 400 se diagnosis ausente', async () => {
+  it('retorna 200 com patient_id ao finalizar (sem campo diagnosis)', async () => {
     const res = await POST(...makeRequest({}))
-    expect(res.status).toBe(400)
-  })
-
-  it('retorna 200 com patient_id ao finalizar', async () => {
-    const res = await POST(...makeRequest({ diagnosis: 'IAM' }))
     expect(res.status).toBe(200)
     expect((await res.json()).patient_id).toBe('p-1')
   })

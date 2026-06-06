@@ -10,7 +10,7 @@ type Props = {
 const LABELS: Record<keyof Anamnesis, string> = {
   hda:      'HDA — História da Doença Atual',
   hpp:      'HPP — História Patológica Pregressa',
-  ad:       'AD — Antecedentes e Doenças',
+  ad:       'AD — Anamnese Dirigida',
   social:   'História Social',
   familiar: 'História Familiar',
 }

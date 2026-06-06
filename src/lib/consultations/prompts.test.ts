@@ -50,15 +50,14 @@ describe('buildAnamnesisPrompt', () => {
 })
 
 describe('buildFinishPrompt', () => {
-  it('inclui dados do paciente, diagnóstico e raciocínio', () => {
-    const prompt = buildFinishPrompt(mockPatient as Patient, 'IAM', 'Pensei em síndrome coronariana')
+  it('inclui dados do paciente e raciocínio clínico', () => {
+    const prompt = buildFinishPrompt(mockPatient as Patient, 'Pensei em síndrome coronariana')
     expect(prompt).toContain('João Silva')
-    expect(prompt).toContain('IAM')
     expect(prompt).toContain('Pensei em síndrome coronariana')
   })
 
   it('pede apenas uma frase de estado clínico', () => {
-    const prompt = buildFinishPrompt(mockPatient as Patient, 'IAM', '')
+    const prompt = buildFinishPrompt(mockPatient as Patient, '')
     expect(prompt).toContain('frase')
     expect(prompt.toLowerCase()).toContain('estado clínico')
   })

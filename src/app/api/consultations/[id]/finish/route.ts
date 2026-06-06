@@ -7,18 +7,6 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let body: unknown
-  try { body = await request.json() }
-  catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
-  if (!body || typeof body !== 'object')
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-
-  const { diagnosis } = body as Record<string, unknown>
-  if (!diagnosis || typeof diagnosis !== 'string' || !diagnosis.trim())
-    return NextResponse.json({ error: 'diagnosis required' }, { status: 400 })
-  if (diagnosis.trim().length > 5000)
-    return NextResponse.json({ error: 'diagnosis too long' }, { status: 400 })
-
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -39,13 +27,14 @@ export async function POST(
   const patient = (consultation as Record<string, unknown>).patients as Record<string, unknown>
   const clinicalReasoning = consultation.clinical_reasoning ?? ''
 
+  // Generate new clinical_status anchored to true_diagnosis (not student hypothesis)
   let newClinicalStatus: string
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{
         role: 'user',
-        content: buildFinishPrompt(patient as never, diagnosis.trim(), clinicalReasoning),
+        content: buildFinishPrompt(patient as never, clinicalReasoning),
       }],
     }, { timeout: 25_000 })
 
@@ -59,12 +48,12 @@ export async function POST(
 
   const now = new Date().toISOString()
 
+  // Update patient: clinical_status and last_consulted_at (no longer saving student's diagnosis here)
   const { error: pUpdateError } = await supabase
     .from('patients')
     .update({
       clinical_status: newClinicalStatus,
       last_consulted_at: now,
-      diagnosis: diagnosis.trim(),
     })
     .eq('id', patient.id as string)
     .eq('user_id', user.id)
@@ -74,14 +63,14 @@ export async function POST(
 
   const { error: cUpdateError } = await supabase
     .from('consultations')
-    .update({ status: 'finished', finished_at: now, diagnosis: diagnosis.trim() })
+    .update({ status: 'finished', finished_at: now })
     .eq('id', id)
     .eq('user_id', user.id)
 
   if (cUpdateError)
     return NextResponse.json({ error: 'Failed to finish consultation' }, { status: 500 })
 
-  // Evaluate student's diagnosis vs true diagnosis
+  // Evaluate if student's clinical_reasoning mentions the correct diagnosis (non-blocking)
   let diagnosisAchieved = false
   try {
     const currentPatient = (await supabase
@@ -90,12 +79,12 @@ export async function POST(
       .eq('id', patient.id as string)
       .single()).data
 
-    if (currentPatient?.diagnosis_status === 'none') {
+    if (currentPatient?.diagnosis_status === 'none' && clinicalReasoning.trim()) {
       const { buildTrueDiagnosisAndEvalPrompt } = await import('@/lib/patients/diagnosis-prompts')
       const evalCompletion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: buildTrueDiagnosisAndEvalPrompt(patient as never, diagnosis.trim()) }],
+        messages: [{ role: 'user', content: buildTrueDiagnosisAndEvalPrompt(patient as never, clinicalReasoning) }],
       }, { timeout: 25_000 })
 
       if (evalCompletion.choices[0]?.message?.content) {
@@ -116,7 +105,7 @@ export async function POST(
       }
     }
   } catch {
-    // Non-blocking — evaluation failure doesn't fail the consultation finish
+    // Non-blocking
   }
 
   return NextResponse.json({ patient_id: patient.id, diagnosis_achieved: diagnosisAchieved }, { status: 200 })

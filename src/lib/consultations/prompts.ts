@@ -22,7 +22,7 @@ Idade: ${patient.age} anos
 Gênero: ${patient.gender === 'M' ? 'Masculino' : 'Feminino'}
 Especialidade: ${patient.specialty}
 Queixa principal: ${patient.chief_complaint}
-Estado clínico: ${patient.clinical_status}
+Estado de saúde atual (use como guia para como você se sente, expresse em primeira pessoa de forma natural — NÃO repita este texto literalmente): ${patient.clinical_status}
 Condições preexistentes: ${conditions}
 Dificuldade: ${patient.difficulty}${resultsSection}
 
@@ -56,7 +56,7 @@ export function buildAnamnesisPrompt(chatHistory: ChatMessage[]): string {
 Definições dos campos:
 - hda: História da Doença Atual — cronologia dos sintomas presentes (quando começou, como evoluiu, fatores de melhora/piora, sintomas associados)
 - hpp: História Patológica Pregressa — doenças já diagnosticadas anteriormente (ex: hipertensão, diabetes), cirurgias, internações, alergias a medicamentos; INCLUA negativas relevantes (ex: "nega hipertensão, nega diabetes")
-- ad: Antecedentes Dirigidos — informações adicionais relacionadas ao quadro atual: uso de medicamentos, vacinas, hábitos de vida relevantes ao caso
+- ad: Anamnese Dirigida — informações adicionais relacionadas ao quadro atual: uso de medicamentos, vacinas, hábitos de vida relevantes ao caso
 - social: História Social — tabagismo, etilismo, uso de drogas, ocupação, condições de moradia
 - familiar: História Familiar — doenças hereditárias ou relevantes em familiares de primeiro grau
 
@@ -118,18 +118,28 @@ O campo sistemas_adicionais deve ser um objeto com chaves descritivas apenas se 
 
 export function buildFinishPrompt(
   patient: Patient,
-  diagnosis: string,
   clinicalReasoning: string
 ): string {
+  const trueDiag = (patient as Record<string, unknown>).true_diagnosis as string | null
+  const diagContext = trueDiag
+    ? `Diagnóstico verdadeiro do caso: ${trueDiag}`
+    : `Especialidade: ${patient.specialty} — infira a evolução clínica provável`
+
   return `Você é um sistema de simulação médica. Uma consulta foi realizada.
 
-Paciente: ${patient.name}, ${patient.age} anos, ${patient.specialty}
-Queixa inicial: ${patient.chief_complaint}
+Paciente: ${patient.name}, ${patient.age} anos
+Queixa original: ${patient.chief_complaint}
 Estado clínico anterior: ${patient.clinical_status}
-Diagnóstico proposto pelo aluno: ${diagnosis}
-Pensamento clínico registrado: ${clinicalReasoning || '(não registrado)'}
+${diagContext}
+Pensamento clínico registrado pelo aluno: ${clinicalReasoning || '(não registrado)'}
 
-Gere uma frase curta descrevendo o novo estado clínico do paciente após esta consulta, considerando o diagnóstico proposto. Se o diagnóstico parecer razoável, melhore o estado. Se parecer inadequado, mantenha ou piore levemente.
+Gere uma frase curta descrevendo o novo estado clínico do paciente após esta consulta.
+REGRAS:
+- Base a evolução no diagnóstico VERDADEIRO do caso, não no que o aluno escreveu
+- NUNCA mencione o nome da doença/diagnóstico explicitamente — descreva apenas os sintomas e evolução
+- Se o pensamento clínico indica tratamento razoável para o caso → melhora parcial
+- Se o tratamento parece inadequado ou ausente → sem melhora ou piora leve
+- Use linguagem de sistema médico (3ª pessoa, concisa)
 
 Responda APENAS com a frase do estado clínico (sem JSON, sem explicação).`
 }
