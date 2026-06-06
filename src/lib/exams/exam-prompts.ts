@@ -43,25 +43,33 @@ export function buildExamResultPrompt(patient: Patient, examName: string, trueDi
     ? `\nDIAGNÓSTICO VERDADEIRO DO CASO: ${trueDiagnosis}\nOs resultados DEVEM ser compatíveis com este diagnóstico. Se o exame for específico para ele (ex: Dix-Hallpike para VPPB, painel viral para infecção viral), o resultado deve confirmá-lo ou ser coerente com ele.`
     : ''
 
-  return `Você é um sistema de laudo médico simulado. Gere um resultado realista para o exame abaixo, compatível com o quadro clínico do paciente.
+  return `Você é um sistema de laudo médico simulado. Gere o resultado do exame solicitado, compatível com o quadro clínico do paciente.
 
 Paciente: ${patient.name}, ${patient.age} anos, ${patient.gender === 'M' ? 'masculino' : 'feminino'}
 Queixa: ${patient.chief_complaint}
 Condições: ${conditions}
 Dificuldade do caso: ${patient.difficulty}${diagnosisAnchor}
 
-Exame: ${examName}
+Exame solicitado: ${examName}
+
+REGRA MAIS IMPORTANTE — ESCOPO DO EXAME:
+- Inclua EXCLUSIVAMENTE os parâmetros que pertencem ao exame "${examName}" e a NENHUM outro exame.
+- NÃO adicione exames complementares, parâmetros de outros exames, nem "achados relacionados". O aluno pediu apenas "${examName}" — retorne apenas isso.
+- Exemplos de escopo correto:
+  • "Hemograma completo" → APENAS série vermelha (Hb, Ht, VCM, HCM, CHCM, RDW), série branca (leucócitos totais + diferencial) e plaquetas. NUNCA inclua TSH, ferritina, LDH, vitaminas, bioquímica ou hormônios.
+  • "TSH" → SOMENTE o valor de TSH. Nada mais.
+  • "Vitamina B12" → SOMENTE dosagem de vitamina B12. Não inclua ácido fólico, homocisteína, TSH nem anti-TPO, a menos que o nome do exame os mencione explicitamente.
+- Se o exame nomeado for um painel reconhecido (ex: "Perfil lipídico", "Função hepática"), inclua apenas os componentes padrão DESSE painel.
 
 Regras por dificuldade:
 - easy: resultado claramente compatível com o diagnóstico
 - medium: 1-2 achados que requerem raciocínio clínico para interpretar
 - hard: alterações sutis ou atípicas que podem confundir
 
-IMPORTANTE — REGRAS ESTRITAS DE FORMATO:
-- Retorne SOMENTE os valores brutos do exame (números, medidas, descrições objetivas de achados), exatamente como num laudo laboratorial ou de imagem real.
-- PROIBIDO incluir: "Impressão", "Impressão diagnóstica", "Conclusão", "Comentário", "Observação", "Nota", "Interpretação", "Considerações", "Sugere-se", "Compatível com", "Achados sugestivos de", ou qualquer frase que interprete ou conclua. O aluno deve interpretar sozinho.
-- Para exames laboratoriais: liste apenas parâmetro, valor e referência (ex: "Hemoglobina: 9,2 g/dL (VR: 12-16)").
-- Para exames de imagem: descreva apenas os achados objetivos, sem impressão final.
-- Sem formatação markdown — NÃO use asteriscos, traços de tabela, #, **, ou qualquer símbolo de formatação. Apenas texto simples com quebras de linha.
+REGRAS DE FORMATO:
+- Retorne SOMENTE os valores brutos do exame (parâmetro, valor e valor de referência), como num laudo real.
+- PROIBIDO incluir: "Impressão", "Conclusão", "Comentário", "Observação", "Nota", "Interpretação", "Considerações", "Sugere-se", "Compatível com", "Achados sugestivos de", ou qualquer frase interpretativa. O aluno interpreta sozinho.
+- Não repita o nome/idade do paciente no laudo.
+- Sem formatação markdown — NÃO use asteriscos, #, ** ou tabelas. Apenas texto simples com quebras de linha.
 - Sem JSON.`
 }
