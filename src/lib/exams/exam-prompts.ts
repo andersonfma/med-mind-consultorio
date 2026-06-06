@@ -5,11 +5,21 @@ export function buildExamValidationPrompt(
   examName: string,
   justification: string,
   clinicalReasoning: string,
-  physicalExamSummary: string
+  physicalExamSummary: string,
+  caseSummary?: string | null,
+  isFollowUp = false
 ): string {
   const conditions = Array.isArray(patient.conditions) && patient.conditions.length > 0
     ? (patient.conditions as string[]).join(', ')
     : 'nenhuma'
+
+  const memorySection = caseSummary && caseSummary.trim()
+    ? `\nMEMÓRIA DO CASO (consultas anteriores):\n${caseSummary}`
+    : ''
+
+  const followUpRule = isFollowUp
+    ? `\n- CONSULTA DE RETORNO: exames de monitoramento/controle/seguimento de um tratamento já iniciado ou de um diagnóstico em investigação (ver memória do caso) são VÁLIDOS, mesmo sem relação direta com a queixa inicial. Ex: repetir função renal/eletrólitos após iniciar diurético; repetir hemoglobina glicada para acompanhar controle glicêmico; reavaliar imagem para resposta ao tratamento.`
+    : ''
 
   return `Você é um supervisor clínico. Avalie se a solicitação de exame é clinicamente justificada.
 
@@ -17,7 +27,7 @@ Paciente: ${patient.name}, ${patient.age} anos, ${patient.specialty}
 Queixa: ${patient.chief_complaint}
 Condições: ${conditions}
 Exame físico resumido: ${physicalExamSummary || '(não realizado)'}
-Pensamento clínico: ${clinicalReasoning || '(não registrado)'}
+Pensamento clínico: ${clinicalReasoning || '(não registrado)'}${memorySection}
 
 Exame solicitado: ${examName}
 Justificativa do aluno: ${justification}
@@ -25,7 +35,7 @@ Justificativa do aluno: ${justification}
 Critérios de aprovação:
 - Exames diretamente relacionados à queixa ou hipótese diagnóstica: aprovar se a justificativa for razoável
 - Exames de rastreio/prevenção (ex: colonoscopia para rastreio colorretal, mamografia, PSA, densitometria): aprovar se o aluno mencionar rastreio ou prevenção como justificativa — mesmo sem relação com a queixa principal
-- Rejeitar apenas quando o exame não tem qualquer relação clínica ou preventiva com o caso E a justificativa for inadequada
+- Rejeitar apenas quando o exame não tem qualquer relação clínica ou preventiva com o caso E a justificativa for inadequada${followUpRule}
 
 Responda APENAS com JSON válido:
 {

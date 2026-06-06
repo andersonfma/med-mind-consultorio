@@ -57,3 +57,22 @@ describe('buildExamResultPrompt', () => {
     expect(prompt).toContain('Sem JSON')
   })
 })
+
+describe('buildExamValidationPrompt — retorno/monitoramento', () => {
+  it('injeta memória do caso e regra de monitoramento em retorno', () => {
+    const p = buildExamValidationPrompt(
+      mockPatient as Patient, 'Função renal', 'controle do diurético', '', '', 'SUMMARY_XYZ', true
+    )
+    expect(p).toContain('SUMMARY_XYZ')
+    expect(p.toUpperCase()).toContain('RETORNO')
+    expect(p.toLowerCase()).toContain('monitoramento')
+  })
+
+  it('não injeta regra de monitoramento quando não é retorno', () => {
+    const p = buildExamValidationPrompt(
+      mockPatient as Patient, 'Hemograma', 'investigar anemia', '', '', null, false
+    )
+    expect(p).not.toContain('SUMMARY_XYZ')
+    expect(p.toLowerCase()).not.toContain('monitoramento/controle/seguimento')
+  })
+})
