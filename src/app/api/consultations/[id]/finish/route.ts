@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
-import { buildFinishPrompt } from '@/lib/consultations/prompts'
+import { buildFinishPrompt, buildCaseSummaryPrompt, type ChatMessage } from '@/lib/consultations/prompts'
 
 export async function POST(
   request: NextRequest,
@@ -69,6 +69,40 @@ export async function POST(
 
   if (cUpdateError)
     return NextResponse.json({ error: 'Failed to finish consultation' }, { status: 500 })
+
+  // Generate cumulative case summary (non-blocking)
+  try {
+    const { data: examRows } = await supabase
+      .from('exam_requests')
+      .select('exam_name, result')
+      .eq('consultation_id', id)
+      .eq('user_id', user.id)
+      .eq('status', 'approved')
+
+    const priorSummary = (patient as Record<string, unknown>).case_summary as string | null ?? null
+    const chatHistory = (consultation.chat_history ?? []) as ChatMessage[]
+
+    const summaryCompletion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{
+        role: 'user',
+        content: buildCaseSummaryPrompt(
+          patient as never, priorSummary, chatHistory, clinicalReasoning, examRows ?? []
+        ),
+      }],
+    }, { timeout: 25_000 })
+
+    const newSummary = summaryCompletion.choices[0]?.message?.content?.trim()
+    if (newSummary) {
+      await supabase
+        .from('patients')
+        .update({ case_summary: newSummary })
+        .eq('id', patient.id as string)
+        .eq('user_id', user.id)
+    }
+  } catch {
+    // Non-blocking — finish já concluído mesmo se o resumo falhar
+  }
 
   // Evaluate if student's clinical_reasoning mentions the correct diagnosis (non-blocking)
   let diagnosisAchieved = false
