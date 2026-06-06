@@ -3,10 +3,11 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-const { mockCreate, mockRpc, mockGetUser } = vi.hoisted(() => ({
+const { mockCreate, mockRpc, mockGetUser, mockFrom } = vi.hoisted(() => ({
   mockCreate: vi.fn(),
   mockRpc: vi.fn(),
   mockGetUser: vi.fn(),
+  mockFrom: vi.fn(),
 }))
 
 vi.mock('@/lib/openai/client', () => ({
@@ -17,6 +18,7 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn().mockResolvedValue({
     auth: { getUser: mockGetUser },
     rpc: mockRpc,
+    from: mockFrom,
   }),
 }))
 
@@ -41,6 +43,7 @@ const validOpenAIResponse = {
         chief_complaint: 'Dor no peito há 2 dias',
         clinical_status: 'Paciente estável, consciente e orientado',
         conditions: ['HAS', 'DM'],
+        true_diagnosis: 'Síndrome Coronariana Aguda',
       }),
     },
   }],
@@ -53,6 +56,24 @@ describe('POST /api/patients', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetUser.mockResolvedValue({ data: { user: authenticatedUser }, error: null })
+    // Chainable mock: from('patients').select(...).eq(...) resolves with { data: [] }
+    // and from('patients').update(...).eq(...).eq(...) resolves with { error: null }
+    const eqChain: Record<string, unknown> = {}
+    eqChain.eq = vi.fn().mockReturnValue({ ...eqChain, error: null, data: [] })
+    Object.assign(eqChain, {
+      then: (resolve: (v: unknown) => void) => resolve({ data: [], error: null }),
+    })
+    // Make eq().eq() also work
+    const eqFn = vi.fn().mockImplementation(() => ({
+      eq: eqFn,
+      error: null,
+      data: [],
+      then: (resolve: (v: unknown) => void) => resolve({ data: [], error: null }),
+    }))
+    mockFrom.mockImplementation(() => ({
+      select: vi.fn().mockReturnValue({ eq: eqFn }),
+      update: vi.fn().mockReturnValue({ eq: eqFn }),
+    }))
   })
 
   it('retorna 400 se specialty for inválida', async () => {
