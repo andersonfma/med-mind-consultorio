@@ -320,6 +320,8 @@ export function NewPatientForm() {
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit() {
+    // Guard defensivo — button disabled já previne, mas protege contra chamadas programáticas
+    if (!specialty || !difficulty) return
     setLoading(true)
     setFormError(null)
 
@@ -367,48 +369,46 @@ export function NewPatientForm() {
 
 ### `/patients/[id]`
 
-Server component. Em Next.js 15+, `params` é uma Promise — sempre aguardar:
-```ts
-// Imports obrigatórios no topo de patients/[id]/page.tsx:
+**Bloco completo de `patients/[id]/page.tsx`** — arquivo inteiro compilável:
+```tsx
+// NOTA: DASHBOARD_ROUTE não é importado aqui — redirect de unauth vai para LOGIN_ROUTE
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { LOGIN_ROUTE, DASHBOARD_ROUTE, STUB_CONSULTATION_ROUTE } from '@/lib/routes'
+import { LOGIN_ROUTE, STUB_CONSULTATION_ROUTE } from '@/lib/routes'
 import { BondBar } from '@/components/ui/BondBar'
 
-// Assinatura obrigatória do componente (Next.js 15+ — params é Promise):
-// export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+// params tipado como Promise (Next.js 15+)
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect(LOGIN_ROUTE)  // fallback; nunca redirecionar para DASHBOARD (loop)
 
-const supabase = await createClient()
-const { data: { user } } = await supabase.auth.getUser()
-if (!user) redirect(LOGIN_ROUTE)  // fallback; nunca redirecionar para DASHBOARD (loop)
+  const { id } = await params
 
-const { id } = await params
+  const { data: patient, error } = await supabase
+    .from('patients')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', user.id)  // RLS filtra, mas .eq explícito é defesa adicional
+    .single()
 
-const { data: patient, error } = await supabase
-  .from('patients')
-  .select('*')
-  .eq('id', id)
-  .eq('user_id', user.id)  // RLS já filtra, mas o .eq explícito protege contra erros futuros
-  .single()
+  if (error || !patient) notFound()
 
-if (error || !patient) notFound()  // Next.js renderiza 404
-
-// JSX da página — render obrigatório:
-return (
-  <div>
-    {/* Tags de condições — patient.conditions é string[] */}
-    <div>{patient.conditions.map(c => <span key={c}>#{c}</span>)}</div>
-    {/* Estado clínico atual */}
-    <p>{patient.clinical_status}</p>
-    {/* Vínculo */}
-    <BondBar level={patient.bond_level} />
-    {/* Botão de atendimento — SP1 usa placeholder */}
-    <Link href={STUB_CONSULTATION_ROUTE}>Iniciar atendimento</Link>
-    {/* Consultas anteriores — hardcode vazio em SP1 */}
-    <p>Nenhuma consulta realizada ainda</p>
-  </div>
-)
+  return (
+    <div>
+      {/* Tags de condições — omitidas se array vazio */}
+      {patient.conditions.length > 0 && (
+        <div>{patient.conditions.map(c => <span key={c}>#{c}</span>)}</div>
+      )}
+      <p>{patient.clinical_status}</p>
+      <BondBar level={patient.bond_level} />
+      <Link href={STUB_CONSULTATION_ROUTE}>Iniciar atendimento</Link>
+      {/* Consultas anteriores — sem query em SP1 (tabela consultations não existe) */}
+      <p>Nenhuma consulta realizada ainda</p>
+    </div>
+  )
+}
 ```
 
 Campos renderizados a partir de `patient`:
@@ -510,7 +510,7 @@ conexão de banco não fica aberta durante o I/O externo.
 // Todos os imports no topo do arquivo (nunca dentro de funções):
 import { NextResponse, type NextRequest } from 'next/server'
 import type { ChatCompletion } from 'openai'                      // 'openai' exporta diretamente
-import { APITimeoutError } from 'openai'
+import { APITimeoutError } from 'openai'  // VALOR, não 'import type' — instanceof exige runtime class
 import { createClient } from '@/lib/supabase/server'
 import openai from '@/lib/openai/client'
 import { buildPatientPrompt } from '@/lib/patients/prompt'
@@ -585,6 +585,8 @@ export async function POST(request: NextRequest) {
   if (rpcError) {
     if (rpcError.code === 'US001')
       return NextResponse.json({ error: 'No slots available' }, { status: 403 })
+    // US002 (profile not found) e qualquer outro erro → 500
+    // Distinguir em logs se necessário: console.error(rpcError.code, rpcError.message)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 
@@ -867,13 +869,13 @@ PostgreSQL normaliza `IN ('A','B')` para `= ANY (ARRAY['A'::text, 'B'::text])`.
 src/
 ├── app/
 │   ├── (dashboard)/
-│   │   ├── error.tsx                     ← OBRIGATÓRIO: 'use client' + default export (ver spec abaixo)
+│   │   ├── error.tsx                     ← OBRIGATÓRIO: 'use client' + default export
 │   │   ├── dashboard/
-│   │   │   └── page.tsx                  ← reformulado (2 colunas, sem duplo getUser)
+│   │   │   └── page.tsx                  ← reformulado (2 colunas)
 │   │   ├── patients/
 │   │   │   ├── new/
-│   │   │   │   ├── page.tsx              ← Server Component (guard server-side)
-│   │   │   │   └── NewPatientForm.tsx    ← Client Component ('use client') com fetch
+│   │   │   │   ├── page.tsx              ← Server Component (guard)
+│   │   │   │   └── NewPatientForm.tsx    ← Client Component ('use client')
 │   │   │   └── [id]/
 │   │   │       └── page.tsx              ← detalhe do paciente
 │   │   └── consultations/
@@ -882,10 +884,27 @@ src/
 │   └── api/
 │       └── patients/
 │           └── route.ts                  ← POST /api/patients
+├── components/
+│   ├── charts/
+│   │   └── PlaceholderChart.tsx          ← componente único reutilizado 3x
+│   └── ui/
+│       └── BondBar.tsx                   ← 5 barras de vínculo
+├── lib/
+│   ├── routes.ts                         ← LOGIN_ROUTE, DASHBOARD_ROUTE, STUB_CONSULTATION_ROUTE, patientDetailRoute(id)
+│   └── patients/
+│       ├── specialties.ts                ← SPECIALTIES, DIFFICULTIES, Specialty, Difficulty
+│       ├── specialties.test.ts           ← cross-valida SPECIALTIES e DIFFICULTIES vs CHECK constraints
+│       ├── prompt.ts                     ← buildPatientPrompt()
+│       ├── prompt.test.ts
+│       ├── slots.ts                      ← hasAvailableSlot()
+│       └── slots.test.ts
+└── types/
+    └── domain.ts                         ← adicionar tipo Patient
+```
 
 ### `(dashboard)/error.tsx` — implementação obrigatória
 
-Next.js Error Boundaries requerem `'use client'` e `export default`:
+Next.js Error Boundaries requerem `'use client'` e `export default` — sem eles o build falha:
 
 ```tsx
 'use client'
@@ -906,25 +925,6 @@ export default function DashboardError({
     </div>
   )
 }
-```
-
-Sem `'use client'`, o Next.js rejeita o arquivo. Sem `export default`, o error boundary silenciosamente não funciona.
-├── components/
-│   ├── charts/
-│   │   └── PlaceholderChart.tsx          ← componente único reutilizado 3x
-│   └── ui/
-│       └── BondBar.tsx                   ← 5 barras de vínculo
-├── lib/
-│   ├── routes.ts                         ← LOGIN_ROUTE, DASHBOARD_ROUTE, STUB_CONSULTATION_ROUTE
-│   └── patients/
-│       ├── specialties.ts                ← constante SPECIALTIES + tipo Specialty
-│       ├── specialties.test.ts           ← cross-valida TS vs CHECK constraint do banco
-│       ├── prompt.ts                     ← buildPatientPrompt()
-│       ├── prompt.test.ts
-│       ├── slots.ts                      ← hasAvailableSlot()
-│       └── slots.test.ts
-└── types/
-    └── domain.ts                         ← adicionar tipo Patient
 ```
 
 **Ordem de implementação obrigatória:**
