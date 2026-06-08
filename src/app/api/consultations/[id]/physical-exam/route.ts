@@ -35,6 +35,7 @@ export async function POST(
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       response_format: { type: 'json_object' },
+      temperature: 0.5,
       messages: [{
         role: 'user',
         content: buildPhysicalExamPrompt(patient, chatHistory),

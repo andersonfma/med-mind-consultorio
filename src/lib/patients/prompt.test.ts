@@ -51,4 +51,15 @@ describe('buildPatientPrompt', () => {
     // a regra deve explicitar que o diagnóstico pode ser de outra especialidade
     expect(content.toLowerCase()).toMatch(/outra especialidade|outra área/)
   })
+
+  it('em hard, injeta exemplos de diagnósticos DIFÍCEIS da especialidade e proíbe triviais', () => {
+    const content = buildPatientPrompt('Cardiologia', 'hard').messages[0].content as string
+    expect(content.toLowerCase()).toMatch(/cardiomiopatia|amiloidose|pericardite|hipertensão arterial pulmonar|endocardite/)
+    expect(content.toLowerCase()).toContain('reconhecimento imediato')
+  })
+
+  it('NÃO injeta o bloco de exemplos hard em casos easy', () => {
+    const content = buildPatientPrompt('Cardiologia', 'easy').messages[0].content as string
+    expect(content.toLowerCase()).not.toContain('reconhecimento imediato')
+  })
 })

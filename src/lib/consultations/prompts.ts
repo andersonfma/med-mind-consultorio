@@ -153,6 +153,8 @@ ${conversationSummary || '(sem conversa ainda)'}
 
 REGRA FUNDAMENTAL: O exame físico contém APENAS achados OBJETIVOS que o médico OBSERVA ou PALPA/AUSCULTA/PERCUTE. NUNCA inclua sintomas RELATADOS pelo paciente (disúria, dor relatada, urgência miccional, náusea, tontura — isso é ANAMNESE, não exame físico). Descreva apenas o que é objetivamente examinável.
 
+LINGUAGEM: Use terminologia médica CORRETA e padrão em português. NÃO invente, abrevie de forma não-padrão nem trunque palavras. Termos de ausculta cardíaca devem ser corretos (ex: "sopro sistólico 3/6 em foco mitral", "bulhas rítmicas e normofonéticas", "presença de B3"). Revise a ortografia antes de responder.
+
 Regras:
 - Gere achados REALISTAS e COMPATÍVEIS com o quadro clínico e o diagnóstico verdadeiro
 - Nível easy: achados claros e esperados para o diagnóstico
