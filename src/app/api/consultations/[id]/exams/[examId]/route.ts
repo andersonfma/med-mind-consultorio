@@ -60,6 +60,8 @@ export async function PUT(
   const physicalExamSummary = physicalExam.sinais_vitais
     ? `Sinais vitais: ${physicalExam.sinais_vitais}`
     : ''
+  const caseSummary = (patient as Record<string, unknown>).case_summary as string | null ?? null
+  const isFollowUp = !!(caseSummary && caseSummary.trim())
 
   let approved: boolean
   let aiFeedback: string
@@ -71,7 +73,7 @@ export async function PUT(
         role: 'user',
         content: buildExamValidationPrompt(
           patient, exam.exam_name, justification.trim(),
-          clinicalReasoning, physicalExamSummary
+          clinicalReasoning, physicalExamSummary, caseSummary, isFollowUp
         ),
       }],
     }, { timeout: 25_000 })
