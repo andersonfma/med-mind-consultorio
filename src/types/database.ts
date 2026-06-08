@@ -42,6 +42,7 @@ export type Database = {
       consultations: {
         Row: {
           anamnesis: Json
+          ab4_score: Json | null
           chat_history: Json
           clinical_reasoning: string
           created_at: string
@@ -56,6 +57,7 @@ export type Database = {
         }
         Insert: {
           anamnesis?: Json
+          ab4_score?: Json | null
           chat_history?: Json
           clinical_reasoning?: string
           created_at?: string
@@ -70,6 +72,7 @@ export type Database = {
         }
         Update: {
           anamnesis?: Json
+          ab4_score?: Json | null
           chat_history?: Json
           clinical_reasoning?: string
           created_at?: string
