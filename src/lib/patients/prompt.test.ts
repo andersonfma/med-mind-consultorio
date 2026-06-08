@@ -30,4 +30,25 @@ describe('buildPatientPrompt', () => {
     const content = params.messages[0].content as string
     expect(content.toUpperCase()).toContain('JSON')
   })
+
+  it('injeta a regra de especialidade e o domínio da especialidade escolhida', () => {
+    const content = buildPatientPrompt('Pneumologia', 'hard').messages[0].content as string
+    expect(content).toContain('REGRA DE ESPECIALIDADE')
+    expect(content.toLowerCase()).toContain('manifestação principal')
+    // domínio pulmonar deve aparecer para Pneumologia
+    expect(content.toLowerCase()).toMatch(/dispneia|tosse|pleur/)
+  })
+
+  it('o domínio injetado varia conforme a especialidade', () => {
+    const neuro = buildPatientPrompt('Neurologia', 'hard').messages[0].content as string
+    expect(neuro.toLowerCase()).toMatch(/cefaleia|neurológic|déficit/)
+    const gastro = buildPatientPrompt('Gastroenterologia', 'easy').messages[0].content as string
+    expect(gastro.toLowerCase()).toMatch(/abdominal|digestiv|diarreia/)
+  })
+
+  it('permite diagnóstico de outra área desde que a apresentação seja do domínio', () => {
+    const content = buildPatientPrompt('Pneumologia', 'hard').messages[0].content as string
+    // a regra deve explicitar que o diagnóstico pode ser de outra especialidade
+    expect(content.toLowerCase()).toMatch(/outra especialidade|outra área/)
+  })
 })
