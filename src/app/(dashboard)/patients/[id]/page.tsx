@@ -17,7 +17,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     supabase.from('patients').select('*').eq('id', id).eq('user_id', user.id).single(),
     supabase
       .from('consultations')
-      .select('id, status, finished_at, diagnosis')
+      .select('id, status, finished_at, clinical_reasoning')
       .eq('patient_id', id)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
@@ -134,10 +134,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           <ul className="space-y-2">
             {finished.map(c => (
               <li key={c.id} className="border border-gray-200 rounded-lg p-3">
-                <p className="text-sm font-medium text-gray-800">
-                  {c.diagnosis ?? 'Diagnóstico não registrado'}
-                </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Pensamento clínico</p>
+                {c.clinical_reasoning?.trim() ? (
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-4">
+                    {c.clinical_reasoning.trim()}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">Não registrado nesta consulta</p>
+                )}
+                <p className="text-xs text-gray-400 mt-1">
                   {c.finished_at
                     ? new Date(c.finished_at).toLocaleDateString('pt-BR')
                     : '—'}
