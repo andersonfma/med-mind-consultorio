@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { parseAb4Response } from './ab4'
+import { parseAb4Response, emptyReasoningResult } from './ab4'
+
+describe('emptyReasoningResult', () => {
+  it('zera os 4 eixos e o overall, com recomendação explicativa', () => {
+    const r = emptyReasoningResult()
+    expect(r.a1).toBe(0)
+    expect(r.a2).toBe(0)
+    expect(r.a3).toBe(0)
+    expect(r.a4).toBe(0)
+    expect(r.overall).toBe(0)
+    expect(r.recommendation.toLowerCase()).toContain('pensamento clínico')
+  })
+})
 
 describe('parseAb4Response', () => {
   it('parseia notas válidas e calcula a média geral', () => {

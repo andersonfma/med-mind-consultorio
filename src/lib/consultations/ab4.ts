@@ -11,6 +11,18 @@ export interface Ab4Result {
 
 const AXES: Ab4Axis[] = ['a1', 'a2', 'a3', 'a4']
 
+/** Recomendação fixa quando o aluno não registra nenhum pensamento clínico. */
+export const EMPTY_REASONING_RECOMMENDATION =
+  'Você não registrou nenhum pensamento clínico nesta consulta. O Score AB4 avalia o seu raciocínio, que precisa estar registrado no campo Pensamento Clínico — sem ele, não há o que avaliar e a pontuação é zero. Da próxima vez, registre suas hipóteses, como você as priorizou e a justificativa da sua conclusão.'
+
+/**
+ * Score zerado para quando não há pensamento clínico registrado.
+ * AB4 mede o PROCESSO de raciocínio; sem raciocínio registrado, não há base para nota.
+ */
+export function emptyReasoningResult(): Ab4Result {
+  return { a1: 0, a2: 0, a3: 0, a4: 0, overall: 0, recommendation: EMPTY_REASONING_RECOMMENDATION }
+}
+
 /**
  * Valida e normaliza a saída crua do juiz AB4.
  * Retorna null em qualquer invalidez (JSON quebrado, eixo faltando/não-numérico,

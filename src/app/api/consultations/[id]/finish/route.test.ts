@@ -110,4 +110,25 @@ describe('POST /api/consultations/[id]/finish', () => {
     const body = await res.json() as { patient_id: string; diagnosis_achieved: boolean; ab4: null }
     expect(body.ab4).toBeNull()
   })
+
+  it('zera o ab4 (overall 0) quando o pensamento clínico está vazio e NÃO chama o juiz AB4', async () => {
+    const emptyConsultation = { ...mockConsultation, clinical_reasoning: '   ' }
+    const updateChain = { eq: vi.fn().mockReturnThis(), error: null }
+    mockFrom.mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: emptyConsultation, error: null }),
+      update: vi.fn().mockReturnValue(updateChain),
+    }))
+
+    const res = await POST(...makeRequest({}))
+    expect(res.status).toBe(200)
+    const body = await res.json() as { ab4: { overall: number; a1: number; a4: number } | null }
+    expect(body.ab4).not.toBeNull()
+    expect(body.ab4?.overall).toBe(0)
+    expect(body.ab4?.a1).toBe(0)
+    expect(body.ab4?.a4).toBe(0)
+    // só clinical_status + case_summary são chamados; o juiz AB4 NÃO é chamado
+    expect(mockCreate).toHaveBeenCalledTimes(2)
+  })
 })

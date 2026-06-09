@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
 import { buildFinishPrompt, buildCaseSummaryPrompt, type ChatMessage } from '@/lib/consultations/prompts'
 import { buildAb4ScorePrompt, type Ab4ExamInput } from '@/lib/consultations/ab4-prompts'
-import { parseAb4Response, type Ab4Result } from '@/lib/consultations/ab4'
+import { parseAb4Response, emptyReasoningResult, type Ab4Result } from '@/lib/consultations/ab4'
 
 export async function POST(
   request: NextRequest,
@@ -147,51 +147,57 @@ export async function POST(
   // AB4 score — best-effort (nunca quebra o finish)
   let ab4: (Ab4Result & { generated_at: string }) | null = null
   try {
-    const { data: examRows } = await supabase
-      .from('exam_requests')
-      .select('exam_name, justification, result, status')
-      .eq('consultation_id', id)
-      .eq('user_id', user.id)
+    if (!clinicalReasoning.trim()) {
+      // Sem pensamento clínico registrado → não há raciocínio a avaliar; score zerado.
+      ab4 = { ...emptyReasoningResult(), generated_at: new Date().toISOString() }
+    } else {
+      const { data: examRows } = await supabase
+        .from('exam_requests')
+        .select('exam_name, justification, result, status')
+        .eq('consultation_id', id)
+        .eq('user_id', user.id)
 
-    const chatHistory = (consultation.chat_history ?? []) as ChatMessage[]
-    const physicalExam = (consultation.physical_exam ?? {}) as Record<string, unknown>
-    const peLabels: Record<string, string> = {
-      antropometria: 'Antropometria',
-      inspecao_geral: 'Inspeção geral',
-      sinais_vitais: 'Sinais vitais',
-      aparelho_respiratorio: 'Aparelho respiratório',
-      aparelho_cardiovascular: 'Aparelho cardiovascular',
-      abdome: 'Abdome',
-      membros_inferiores: 'Membros inferiores',
+      const chatHistory = (consultation.chat_history ?? []) as ChatMessage[]
+      const physicalExam = (consultation.physical_exam ?? {}) as Record<string, unknown>
+      const peLabels: Record<string, string> = {
+        antropometria: 'Antropometria',
+        inspecao_geral: 'Inspeção geral',
+        sinais_vitais: 'Sinais vitais',
+        aparelho_respiratorio: 'Aparelho respiratório',
+        aparelho_cardiovascular: 'Aparelho cardiovascular',
+        abdome: 'Abdome',
+        membros_inferiores: 'Membros inferiores',
+      }
+      const physicalExamSummary = Object.entries(peLabels)
+        .map(([k, label]) => {
+          const v = physicalExam[k]
+          return typeof v === 'string' && v.trim() ? `${label}: ${v.trim()}` : ''
+        })
+        .filter(Boolean)
+        .join('\n')
+
+      const ab4Completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        response_format: { type: 'json_object' },
+        temperature: 0.3,
+        messages: [{
+          role: 'user',
+          content: buildAb4ScorePrompt(
+            patient as never,
+            chatHistory,
+            (examRows ?? []) as Ab4ExamInput[],
+            physicalExamSummary,
+            clinicalReasoning,
+          ),
+        }],
+      }, { timeout: 25_000 })
+
+      const raw = ab4Completion.choices[0]?.message?.content
+      const parsed = raw ? parseAb4Response(raw) : null
+      if (parsed) ab4 = { ...parsed, generated_at: new Date().toISOString() }
     }
-    const physicalExamSummary = Object.entries(peLabels)
-      .map(([k, label]) => {
-        const v = physicalExam[k]
-        return typeof v === 'string' && v.trim() ? `${label}: ${v.trim()}` : ''
-      })
-      .filter(Boolean)
-      .join('\n')
 
-    const ab4Completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      response_format: { type: 'json_object' },
-      temperature: 0.3,
-      messages: [{
-        role: 'user',
-        content: buildAb4ScorePrompt(
-          patient as never,
-          chatHistory,
-          (examRows ?? []) as Ab4ExamInput[],
-          physicalExamSummary,
-          clinicalReasoning,
-        ),
-      }],
-    }, { timeout: 25_000 })
-
-    const raw = ab4Completion.choices[0]?.message?.content
-    const parsed = raw ? parseAb4Response(raw) : null
-    if (parsed) {
-      ab4 = { ...parsed, generated_at: new Date().toISOString() }
+    if (ab4) {
       await supabase
         .from('consultations')
         .update({ ab4_score: ab4 as unknown as import('@/types/database').Json })
