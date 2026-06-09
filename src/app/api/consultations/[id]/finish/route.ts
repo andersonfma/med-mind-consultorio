@@ -154,10 +154,23 @@ export async function POST(
       .eq('user_id', user.id)
 
     const chatHistory = (consultation.chat_history ?? []) as ChatMessage[]
-    const physicalExam = (consultation.physical_exam ?? {}) as Record<string, string>
-    const physicalExamSummary = physicalExam.sinais_vitais
-      ? `Sinais vitais: ${physicalExam.sinais_vitais}`
-      : ''
+    const physicalExam = (consultation.physical_exam ?? {}) as Record<string, unknown>
+    const peLabels: Record<string, string> = {
+      antropometria: 'Antropometria',
+      inspecao_geral: 'Inspeção geral',
+      sinais_vitais: 'Sinais vitais',
+      aparelho_respiratorio: 'Aparelho respiratório',
+      aparelho_cardiovascular: 'Aparelho cardiovascular',
+      abdome: 'Abdome',
+      membros_inferiores: 'Membros inferiores',
+    }
+    const physicalExamSummary = Object.entries(peLabels)
+      .map(([k, label]) => {
+        const v = physicalExam[k]
+        return typeof v === 'string' && v.trim() ? `${label}: ${v.trim()}` : ''
+      })
+      .filter(Boolean)
+      .join('\n')
 
     const ab4Completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
