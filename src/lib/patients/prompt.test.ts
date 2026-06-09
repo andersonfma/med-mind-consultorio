@@ -62,4 +62,13 @@ describe('buildPatientPrompt', () => {
     const content = buildPatientPrompt('Cardiologia', 'easy').messages[0].content as string
     expect(content.toLowerCase()).not.toContain('reconhecimento imediato')
   })
+
+  it('proíbe true_diagnosis vago, com hedge ou alternativas (regressão lúpus/TB)', () => {
+    const content = buildPatientPrompt('Clínica Médica', 'hard').messages[0].content as string
+    // proíbe hedge/alternativas explicitamente
+    expect(content.toLowerCase()).toContain('possivelmente')
+    expect(content.toLowerCase()).toMatch(/doença (única|fechada)/)
+    // usa o caso real malformado como exemplo proibido
+    expect(content.toLowerCase()).toContain('infecção pulmonar')
+  })
 })
