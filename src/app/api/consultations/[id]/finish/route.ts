@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
 import { buildFinishPrompt, buildCaseSummaryPrompt, type ChatMessage } from '@/lib/consultations/prompts'
+import { buildAb4ScorePrompt, type Ab4ExamInput } from '@/lib/consultations/ab4-prompts'
+import { parseAb4Response, type Ab4Result } from '@/lib/consultations/ab4'
 
 export async function POST(
   request: NextRequest,
@@ -142,5 +144,50 @@ export async function POST(
     // Non-blocking
   }
 
-  return NextResponse.json({ patient_id: patient.id, diagnosis_achieved: diagnosisAchieved }, { status: 200 })
+  // AB4 score — best-effort (nunca quebra o finish)
+  let ab4: (Ab4Result & { generated_at: string }) | null = null
+  try {
+    const { data: examRows } = await supabase
+      .from('exam_requests')
+      .select('exam_name, justification, result, status')
+      .eq('consultation_id', id)
+      .eq('user_id', user.id)
+
+    const chatHistory = (consultation.chat_history ?? []) as ChatMessage[]
+    const physicalExam = (consultation.physical_exam ?? {}) as Record<string, string>
+    const physicalExamSummary = physicalExam.sinais_vitais
+      ? `Sinais vitais: ${physicalExam.sinais_vitais}`
+      : ''
+
+    const ab4Completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+      messages: [{
+        role: 'user',
+        content: buildAb4ScorePrompt(
+          patient as never,
+          chatHistory,
+          (examRows ?? []) as Ab4ExamInput[],
+          physicalExamSummary,
+          clinicalReasoning,
+        ),
+      }],
+    }, { timeout: 25_000 })
+
+    const raw = ab4Completion.choices[0]?.message?.content
+    const parsed = raw ? parseAb4Response(raw) : null
+    if (parsed) {
+      ab4 = { ...parsed, generated_at: new Date().toISOString() }
+      await supabase
+        .from('consultations')
+        .update({ ab4_score: ab4 as unknown as import('@/types/database').Json })
+        .eq('id', id)
+        .eq('user_id', user.id)
+    }
+  } catch {
+    // Best-effort — finish conclui mesmo se o AB4 falhar
+  }
+
+  return NextResponse.json({ patient_id: patient.id, diagnosis_achieved: diagnosisAchieved, ab4 }, { status: 200 })
 }

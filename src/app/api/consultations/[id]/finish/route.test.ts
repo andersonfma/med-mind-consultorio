@@ -81,4 +81,33 @@ describe('POST /api/consultations/[id]/finish', () => {
     const res = await POST(...makeRequest({ diagnosis: 'IAM' }))
     expect(res.status).toBe(500)
   })
+
+  it('retorna ab4 calculado quando AB4 call retorna JSON válido', async () => {
+    const ab4Json = '{"a1":7,"a2":8,"a3":5,"a4":8,"recommendation":"foco no A3"}'
+    // Call 1: clinical_status (finish prompt), Call 2: case summary, Call 3: AB4
+    mockCreate
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Paciente melhorou.' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Resumo do caso.' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: ab4Json } }] })
+
+    const res = await POST(...makeRequest({}))
+    expect(res.status).toBe(200)
+    const body = await res.json() as { patient_id: string; diagnosis_achieved: boolean; ab4: { overall: number; recommendation: string } | null }
+    expect(body.ab4).not.toBeNull()
+    expect(body.ab4?.overall).toBe(7)
+    expect(body.ab4?.recommendation).toBe('foco no A3')
+  })
+
+  it('retorna ab4=null e status 200 quando AB4 call lança erro', async () => {
+    // Call 1: clinical_status (finish prompt), Call 2: case summary, Call 3: AB4 throws
+    mockCreate
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Paciente melhorou.' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Resumo do caso.' } }] })
+      .mockRejectedValueOnce(new Error('AB4 timeout'))
+
+    const res = await POST(...makeRequest({}))
+    expect(res.status).toBe(200)
+    const body = await res.json() as { patient_id: string; diagnosis_achieved: boolean; ab4: null }
+    expect(body.ab4).toBeNull()
+  })
 })
