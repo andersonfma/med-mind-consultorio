@@ -111,6 +111,29 @@ describe('POST /api/consultations/[id]/finish', () => {
     expect(body.ab4).toBeNull()
   })
 
+  it('usa o clinical_reasoning enviado no corpo quando o DB ainda está vazio (corrige a corrida do autosave)', async () => {
+    // DB ainda não persistiu o texto (autosave de 30s não disparou), mas o cliente o envia no corpo
+    const dbEmpty = { ...mockConsultation, clinical_reasoning: '' }
+    const updateChain = { eq: vi.fn().mockReturnThis(), error: null }
+    mockFrom.mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: dbEmpty, error: null }),
+      update: vi.fn().mockReturnValue(updateChain),
+    }))
+    const ab4Json = '{"a1":6,"a2":6,"a3":6,"a4":6,"recommendation":"ok"}'
+    mockCreate
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Paciente melhorou.' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Resumo.' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: ab4Json } }] })
+
+    const res = await POST(...makeRequest({ clinical_reasoning: 'Raciocínio completo escrito pelo aluno' }))
+    expect(res.status).toBe(200)
+    const body = await res.json() as { ab4: { overall: number } | null }
+    expect(body.ab4).not.toBeNull()
+    expect(body.ab4?.overall).toBe(6) // juiz AB4 foi chamado, NÃO zerado
+  })
+
   it('zera o ab4 (overall 0) quando o pensamento clínico está vazio e NÃO chama o juiz AB4', async () => {
     const emptyConsultation = { ...mockConsultation, clinical_reasoning: '   ' }
     const updateChain = { eq: vi.fn().mockReturnThis(), error: null }

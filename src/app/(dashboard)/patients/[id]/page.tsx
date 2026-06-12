@@ -133,20 +133,28 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         ) : (
           <ul className="space-y-2">
             {finished.map(c => (
-              <li key={c.id} className="border border-gray-200 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Pensamento clínico</p>
-                {c.clinical_reasoning?.trim() ? (
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-4">
-                    {c.clinical_reasoning.trim()}
+              <li key={c.id}>
+                <Link
+                  href={consultationRoute(c.id)}
+                  className="block border border-gray-200 rounded-lg p-3 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Pensamento clínico</p>
+                    <span className="text-xs text-blue-500">Abrir →</span>
+                  </div>
+                  {c.clinical_reasoning?.trim() ? (
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-4">
+                      {c.clinical_reasoning.trim()}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">Não registrado nesta consulta</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    {c.finished_at
+                      ? new Date(c.finished_at).toLocaleDateString('pt-BR')
+                      : '—'}
                   </p>
-                ) : (
-                  <p className="text-sm text-gray-400 italic">Não registrado nesta consulta</p>
-                )}
-                <p className="text-xs text-gray-400 mt-1">
-                  {c.finished_at
-                    ? new Date(c.finished_at).toLocaleDateString('pt-BR')
-                    : '—'}
-                </p>
+                </Link>
               </li>
             ))}
           </ul>

@@ -23,6 +23,7 @@ export function ConsultationClient({ consultation, patient, previousExamResults 
     (consultation.chat_history as ChatMessage[]) ?? []
   )
   const [showFinishModal, setShowFinishModal] = useState(false)
+  const [clinicalReasoning, setClinicalReasoning] = useState(consultation.clinical_reasoning ?? '')
 
   const initialAnamnesis: Anamnesis = {
     hda:      ((consultation.anamnesis as Record<string, string>)?.hda)      ?? '',
@@ -110,7 +111,8 @@ export function ConsultationClient({ consultation, patient, previousExamResults 
           <div className="flex-1 px-3 pb-3">
             <ClinicalReasoningField
               consultationId={consultation.id}
-              initialValue={consultation.clinical_reasoning ?? ''}
+              value={clinicalReasoning}
+              onChange={setClinicalReasoning}
             />
           </div>
         </div>
@@ -119,6 +121,7 @@ export function ConsultationClient({ consultation, patient, previousExamResults 
       {showFinishModal && (
         <FinishModal
           consultationId={consultation.id}
+          clinicalReasoning={clinicalReasoning}
           onClose={() => setShowFinishModal(false)}
         />
       )}

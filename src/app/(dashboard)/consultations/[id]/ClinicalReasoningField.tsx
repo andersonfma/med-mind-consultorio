@@ -3,13 +3,13 @@ import { useState, useEffect, useRef } from 'react'
 
 type Props = {
   consultationId: string
-  initialValue: string
+  value: string
+  onChange: (value: string) => void
 }
 
-export function ClinicalReasoningField({ consultationId, initialValue }: Props) {
-  const [value, setValue] = useState(initialValue)
+export function ClinicalReasoningField({ consultationId, value, onChange }: Props) {
   const [saved, setSaved] = useState(true)
-  const lastSavedRef = useRef(initialValue)
+  const lastSavedRef = useRef(value)
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -37,7 +37,7 @@ export function ClinicalReasoningField({ consultationId, initialValue }: Props) 
       </div>
       <textarea
         value={value}
-        onChange={e => { setValue(e.target.value); setSaved(false) }}
+        onChange={e => { onChange(e.target.value); setSaved(false) }}
         placeholder="Registre seu raciocínio diagnóstico..."
         className="flex-1 border border-gray-200 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-300"
       />

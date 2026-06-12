@@ -12,6 +12,7 @@ type FinishResult = { patient_id: string; diagnosis_achieved: boolean; ab4: Ab4 
 
 type Props = {
   consultationId: string
+  clinicalReasoning: string
   onClose: () => void
 }
 
@@ -22,7 +23,7 @@ const AXES: { key: 'a1' | 'a2' | 'a3' | 'a4'; label: string; sub: string }[] = [
   { key: 'a4', label: 'A4 Analítico', sub: 'Demonstração' },
 ]
 
-export function FinishModal({ consultationId, onClose }: Props) {
+export function FinishModal({ consultationId, clinicalReasoning, onClose }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +37,7 @@ export function FinishModal({ consultationId, onClose }: Props) {
       const res = await fetch(`/api/consultations/${consultationId}/finish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ clinical_reasoning: clinicalReasoning }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Erro ao finalizar'); return }

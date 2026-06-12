@@ -1,7 +1,8 @@
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { LOGIN_ROUTE, patientDetailRoute } from '@/lib/routes'
+import { LOGIN_ROUTE } from '@/lib/routes'
 import { ConsultationClient } from './ConsultationClient'
+import { ConsultationReadOnly } from './ConsultationReadOnly'
 import type { Patient } from '@/types/domain'
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
@@ -20,11 +21,23 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   if (error || !consultation) notFound()
 
-  if (consultation.status === 'finished') {
-    redirect(patientDetailRoute(consultation.patient_id))
-  }
-
   const patient = (consultation as Record<string, unknown>).patients as Patient
+
+  // Consulta finalizada → modo leitura (somente visualização do registro)
+  if (consultation.status === 'finished') {
+    const { data: finishedExams } = await supabase
+      .from('exam_requests')
+      .select('exam_name, justification, result, status')
+      .eq('consultation_id', consultation.id)
+      .eq('user_id', user.id)
+    return (
+      <ConsultationReadOnly
+        consultation={consultation}
+        patient={patient}
+        exams={finishedExams ?? []}
+      />
+    )
+  }
 
   // Fetch approved exam results from the last finished consultation for this patient
   let previousExamResults: Array<{ exam_name: string; result: string | null }> = []

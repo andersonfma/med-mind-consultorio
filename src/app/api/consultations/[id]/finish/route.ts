@@ -15,6 +15,16 @@ export async function POST(
 
   const { id } = await params
 
+  // O cliente envia o texto atual do pensamento clínico no corpo, para evitar a
+  // corrida com o autosave de 30s (texto recém-digitado pode não ter sido persistido).
+  let bodyReasoning: string | null = null
+  try {
+    const body = await request.json() as Record<string, unknown>
+    if (typeof body?.clinical_reasoning === 'string') bodyReasoning = body.clinical_reasoning
+  } catch {
+    // corpo ausente/ inválido — usa o valor já persistido no banco
+  }
+
   const { data: consultation, error: cError } = await supabase
     .from('consultations')
     .select('*, patients(*)')
@@ -27,7 +37,8 @@ export async function POST(
     return NextResponse.json({ error: 'Consultation not found' }, { status: 404 })
 
   const patient = (consultation as Record<string, unknown>).patients as Record<string, unknown>
-  const clinicalReasoning = consultation.clinical_reasoning ?? ''
+  // Fonte da verdade: o texto enviado pelo cliente (mais recente). Cai para o banco se ausente.
+  const clinicalReasoning = bodyReasoning ?? consultation.clinical_reasoning ?? ''
 
   // Generate new clinical_status anchored to true_diagnosis (not student hypothesis)
   let newClinicalStatus: string
@@ -65,7 +76,7 @@ export async function POST(
 
   const { error: cUpdateError } = await supabase
     .from('consultations')
-    .update({ status: 'finished', finished_at: now })
+    .update({ status: 'finished', finished_at: now, clinical_reasoning: clinicalReasoning })
     .eq('id', id)
     .eq('user_id', user.id)
 
