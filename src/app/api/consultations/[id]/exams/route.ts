@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
 import { buildExamValidationPrompt, buildExamResultPrompt } from '@/lib/exams/exam-prompts'
+import { cleanExamResult } from '@/lib/exams/clean'
 import type { Patient } from '@/types/domain'
 
 export async function POST(
@@ -99,12 +100,14 @@ export async function POST(
       const trueDiagnosis = (patient as Record<string, unknown>).true_diagnosis as string | null ?? null
       const resultCompletion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
+        temperature: 0.3,
         messages: [{
           role: 'user',
           content: buildExamResultPrompt(patient, exam_name.trim(), trueDiagnosis),
         }],
       }, { timeout: 25_000 })
-      result = resultCompletion.choices[0]?.message?.content?.trim() ?? null
+      const raw = resultCompletion.choices[0]?.message?.content?.trim()
+      result = raw ? cleanExamResult(raw) : null
     } catch {
       // non-blocking — exam still approved without result
     }

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { patientDetailRoute } from '@/lib/routes'
+import { cleanExamResult } from '@/lib/exams/clean'
 import type { Patient, Consultation } from '@/types/domain'
 import type { ChatMessage } from '@/lib/consultations/prompts'
 
@@ -191,7 +192,7 @@ export function ConsultationReadOnly({ consultation, patient, exams }: Props) {
                       <span className="text-[10px] uppercase tracking-wide text-gray-400">{e.status}</span>
                     </div>
                     {e.justification?.trim() && <p className="text-xs text-gray-500 mt-0.5">Justificativa: {e.justification.trim()}</p>}
-                    {e.result?.trim() && <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{e.result.trim()}</p>}
+                    {e.result?.trim() && <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{cleanExamResult(e.result)}</p>}
                   </div>
                 ))}
           </div>

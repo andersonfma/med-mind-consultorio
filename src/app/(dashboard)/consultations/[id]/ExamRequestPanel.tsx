@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { COMMON_EXAMS } from '@/lib/exams/exam-list'
+import { cleanExamResult } from '@/lib/exams/clean'
 import type { ExamRequest } from '@/lib/exams/types'
 
 type Props = {
@@ -79,19 +80,6 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
     }
   }
 
-  function cleanText(text: string): string {
-    // Remove interpretive lines (impression/conclusion/comments) that should not be shown
-    const interpretiveStart = /^\s*(impress[ãa]o|conclus[ãa]o|coment[áa]rio|observa[çc][ãa]o|nota|interpreta[çc][ãa]o|considera[çc][õo]es|sugere-se|compat[íi]vel com|achados sugestivos)/i
-    const lines = text.split('\n').filter(line => !interpretiveStart.test(line))
-    return lines.join('\n')
-      .replace(/\*\*/g, '').replace(/\*/g, '')
-      .replace(/^#{1,6}\s*/gm, '')
-      .replace(/\|/g, ' ')
-      .replace(/^[-=]{2,}$/gm, '')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim()
-  }
-
   return (
     <div className="p-3 space-y-3">
       {/* Previous exam results */}
@@ -105,7 +93,7 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
               <p className="text-xs font-semibold text-gray-700 mb-1">{exam.exam_name}</p>
               {exam.result ? (
                 <pre className="text-xs text-gray-600 font-sans whitespace-pre-wrap leading-relaxed">
-                  {cleanText(exam.result)}
+                  {cleanExamResult(exam.result)}
                 </pre>
               ) : (
                 <p className="text-xs text-gray-400 italic">Laudo não disponível</p>

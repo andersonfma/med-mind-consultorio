@@ -21,7 +21,6 @@ export function PhysicalExamPanel({ consultationId, initialExam }: Props) {
   const [exam, setExam] = useState<PhysicalExam>(initialExam)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [generated, setGenerated] = useState(false)
 
   async function generateExam() {
     setLoading(true)
@@ -33,7 +32,6 @@ export function PhysicalExamPanel({ consultationId, initialExam }: Props) {
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Erro ao gerar exame'); return }
       setExam(data as PhysicalExam)
-      setGenerated(true)
     } catch {
       setError('Erro de conexão.')
     } finally {
@@ -41,9 +39,10 @@ export function PhysicalExamPanel({ consultationId, initialExam }: Props) {
     }
   }
 
-  const hasContent = Object.values(BASE_LABELS).some(
-    (_, i) => exam[Object.keys(BASE_LABELS)[i] as keyof typeof BASE_LABELS]
-  )
+  // O exame físico é gerado UMA vez por consulta — sem regerar (achados não devem mudar a cada clique)
+  const hasContent =
+    (Object.keys(BASE_LABELS) as (keyof typeof BASE_LABELS)[]).some(k => exam[k]) ||
+    Object.keys(exam.sistemas_adicionais).length > 0
 
   return (
     <div className="p-4 space-y-3">
@@ -70,13 +69,15 @@ export function PhysicalExamPanel({ consultationId, initialExam }: Props) {
 
       {error && <p className="text-red-500 text-xs">{error}</p>}
 
-      <button
-        onClick={generateExam}
-        disabled={loading}
-        className="w-full text-sm border border-gray-300 rounded-md py-1.5 hover:bg-gray-50 text-gray-600"
-      >
-        {loading ? 'Gerando...' : generated ? '↺ Regerar exame físico' : '⊕ Gerar exame físico'}
-      </button>
+      {!hasContent && (
+        <button
+          onClick={generateExam}
+          disabled={loading}
+          className="w-full text-sm border border-gray-300 rounded-md py-1.5 hover:bg-gray-50 text-gray-600"
+        >
+          {loading ? 'Gerando...' : '⊕ Gerar exame físico'}
+        </button>
+      )}
     </div>
   )
 }
