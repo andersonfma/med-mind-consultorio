@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
+import { MODELS } from '@/lib/openai/models'
 import { buildExamValidationPrompt, buildExamResultPrompt } from '@/lib/exams/exam-prompts'
 import { cleanExamResult } from '@/lib/exams/clean'
 import type { Patient } from '@/types/domain'
@@ -73,7 +74,7 @@ export async function POST(
   let aiFeedback: string
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.utility,
       response_format: { type: 'json_object' },
       messages: [{
         role: 'user',
@@ -99,7 +100,7 @@ export async function POST(
     try {
       const trueDiagnosis = (patient as Record<string, unknown>).true_diagnosis as string | null ?? null
       const resultCompletion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: MODELS.utility,
         temperature: 0.3,
         messages: [{
           role: 'user',

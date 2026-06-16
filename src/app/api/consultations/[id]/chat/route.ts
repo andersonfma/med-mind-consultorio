@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { APIConnectionTimeoutError } from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
+import { MODELS } from '@/lib/openai/models'
 import { buildPatientSystemPrompt } from '@/lib/consultations/prompts'
 import type { ChatMessage } from '@/lib/consultations/prompts'
 
@@ -85,7 +86,7 @@ export async function POST(
   let patientReply: string
   try {
     const completion = await openai.chat.completions.create(
-      { model: 'gpt-4o-mini', messages },
+      { model: MODELS.chat, messages },
       { timeout: 25_000 }
     )
     if (!completion.choices.length)

@@ -63,9 +63,14 @@ describe('POST /api/patients', () => {
     Object.assign(eqChain, {
       then: (resolve: (v: unknown) => void) => resolve({ data: [], error: null }),
     })
-    // Make eq().eq() also work
+    // Make eq().eq() and eq().order() also work (order resolve com lista vazia de pacientes)
     const eqFn = vi.fn().mockImplementation(() => ({
       eq: eqFn,
+      order: vi.fn().mockReturnValue({
+        data: [],
+        error: null,
+        then: (resolve: (v: unknown) => void) => resolve({ data: [], error: null }),
+      }),
       error: null,
       data: [],
       then: (resolve: (v: unknown) => void) => resolve({ data: [], error: null }),

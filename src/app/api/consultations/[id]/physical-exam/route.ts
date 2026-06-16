@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
+import { MODELS } from '@/lib/openai/models'
 import { buildPhysicalExamPrompt } from '@/lib/consultations/prompts'
 import { parsePhysicalExamResponse } from '@/lib/consultations/parse'
 import type { ChatMessage } from '@/lib/consultations/prompts'
@@ -33,7 +34,7 @@ export async function POST(
   let rawContent: string
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.utility,
       response_format: { type: 'json_object' },
       temperature: 0.5,
       messages: [{

@@ -4,6 +4,7 @@ import { APIConnectionTimeoutError } from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
 import { buildPatientPrompt } from '@/lib/patients/prompt'
+import { pickPersonality } from '@/lib/patients/personalities'
 import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
 import type { Specialty, Difficulty } from '@/lib/patients/specialties'
 
@@ -30,12 +31,16 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Fetch existing complaints to enforce variety
+  // Fetch existing patients to enforce variety de queixa E alternância de personalidade
   const { data: existingPatients } = await supabase
     .from('patients')
-    .select('chief_complaint')
+    .select('chief_complaint, personality, created_at')
     .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
   const existingComplaints = existingPatients?.map(p => p.chief_complaint) ?? []
+  // Personalidade do paciente criado mais recentemente (para a regra de alternância)
+  const lastPersonality = existingPatients?.[0]?.personality ?? null
+  const personality = pickPersonality(lastPersonality)
 
   let completion: ChatCompletion
   try {
@@ -106,11 +111,14 @@ export async function POST(request: NextRequest) {
   // Fix 4: guard null data from RPC
   if (!data) return NextResponse.json({ error: 'Internal error' }, { status: 500 })
 
-  // Save true_diagnosis generated at creation time (non-blocking)
-  if (trueDiagnosis && (data as Record<string, unknown>).id) {
+  // Save true_diagnosis + personality definidos na criação (non-blocking)
+  if ((data as Record<string, unknown>).id) {
     await supabase
       .from('patients')
-      .update({ true_diagnosis: trueDiagnosis })
+      .update({
+        ...(trueDiagnosis ? { true_diagnosis: trueDiagnosis } : {}),
+        personality,
+      })
       .eq('id', (data as Record<string, unknown>).id as string)
       .eq('user_id', user.id)
   }

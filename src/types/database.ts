@@ -170,6 +170,7 @@ export type Database = {
           specialty: string
           true_diagnosis: string | null
           case_summary: string | null
+          personality: string | null
           user_id: string
         }
         Insert: {
@@ -189,6 +190,7 @@ export type Database = {
           specialty: string
           true_diagnosis?: string | null
           case_summary?: string | null
+          personality?: string | null
           user_id: string
         }
         Update: {
@@ -208,6 +210,7 @@ export type Database = {
           specialty?: string
           true_diagnosis?: string | null
           case_summary?: string | null
+          personality?: string | null
           user_id?: string
         }
         Relationships: []

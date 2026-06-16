@@ -1,6 +1,7 @@
 import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions'
 import type { Specialty, Difficulty } from './specialties'
 import { SPECIALTY_DOMAIN, SPECIALTY_HARD_EXAMPLES } from './specialties'
+import { MODELS } from '@/lib/openai/models'
 
 export function buildPatientPrompt(
   specialty: Specialty,
@@ -16,7 +17,7 @@ export function buildPatientPrompt(
     : ''
 
   return {
-    model: 'gpt-4o-mini' as const,
+    model: MODELS.generation,
     response_format: { type: 'json_object' as const },
     messages: [{
       role: 'user' as const,

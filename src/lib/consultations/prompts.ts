@@ -1,4 +1,5 @@
 import type { Patient } from '@/types/domain'
+import { personalitySection } from '@/lib/patients/personalities'
 
 export type ChatMessage = {
   role: 'student' | 'patient'
@@ -10,6 +11,8 @@ export function buildPatientSystemPrompt(patient: Patient, pendingResults?: stri
   const conditions = Array.isArray(patient.conditions) && patient.conditions.length > 0
     ? (patient.conditions as string[]).join(', ')
     : 'nenhuma'
+
+  const personalityBlock = personalitySection((patient as Record<string, unknown>).personality as string | null)
 
   const resultsSection = pendingResults && pendingResults.length > 0
     ? `\nIMPORTANTE: Você recebeu os resultados dos exames pedidos na consulta anterior. Na sua PRIMEIRA resposta desta consulta, avise espontaneamente que recebeu os resultados (ex: "Doutor, recebi os resultados dos exames que o senhor pediu"). Depois, forneça os valores quando o médico solicitar:\n${pendingResults.map(r => `- ${r}`).join('\n')}`
@@ -28,7 +31,7 @@ Especialidade: ${patient.specialty}
 Queixa principal: ${patient.chief_complaint}
 Estado de saúde atual (use como guia para como você se sente, expresse em primeira pessoa de forma natural — NÃO repita este texto literalmente): ${patient.clinical_status}
 Condições preexistentes: ${conditions}
-Dificuldade: ${patient.difficulty}${resultsSection}${memorySection}
+Dificuldade: ${patient.difficulty}${personalityBlock}${resultsSection}${memorySection}
 
 ${isFirstConsultation ? `Comportamento (PRIMEIRA CONSULTA):
 - Você está vendo este médico pela PRIMEIRA VEZ. Ao ser cumprimentado, apresente sua queixa principal espontaneamente como um paciente novo: "Doutor, estou com..."
@@ -40,14 +43,14 @@ ${isFirstConsultation ? `Comportamento (PRIMEIRA CONSULTA):
 - Se igual ou pior: diga isso claramente
 - NÃO repita a queixa original com o mesmo período de tempo — relate as MUDANÇAS desde a última consulta
 - NUNCA responda com "como posso ajudar?" ou "em que posso ser útil?" — você é o paciente`}
-- Responda APENAS o que foi perguntado; não ofereça informações extras que não foram solicitadas
+- Não antecipe a INFORMAÇÃO CLÍNICA relevante (sintomas, antecedentes, hábitos) sem ser perguntado — ela só aparece quando o médico investiga. (Se sua personalidade for tagarela, suas divagações são sobre assuntos IRRELEVANTES ao caso, nunca sobre a pista clínica.)
 
-Regras por dificuldade:
+A dificuldade controla a PRECISÃO da informação; a personalidade controla o ESTILO. As duas se somam:
 - easy: fale de forma clara e objetiva
 - medium: seja moderadamente vago, forneça informações aos poucos
 - hard: seja impreciso, confunda datas, minimize sintomas
 
-Responda de forma concisa (1-3 frases).`
+Responda de forma concisa (1-3 frases), no estilo da sua personalidade — o tagarela pode estender um pouco mais com divagações irrelevantes.`
 }
 
 export function buildCaseSummaryPrompt(

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
+import { MODELS } from '@/lib/openai/models'
 import { buildFinishPrompt, buildCaseSummaryPrompt, type ChatMessage } from '@/lib/consultations/prompts'
 import { buildAb4ScorePrompt, type Ab4ExamInput } from '@/lib/consultations/ab4-prompts'
 import { parseAb4Response, emptyReasoningResult, type Ab4Result } from '@/lib/consultations/ab4'
@@ -44,7 +45,7 @@ export async function POST(
   let newClinicalStatus: string
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.utility,
       messages: [{
         role: 'user',
         content: buildFinishPrompt(patient as never, clinicalReasoning),
@@ -96,7 +97,7 @@ export async function POST(
     const chatHistory = (consultation.chat_history ?? []) as ChatMessage[]
 
     const summaryCompletion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.utility,
       messages: [{
         role: 'user',
         content: buildCaseSummaryPrompt(
@@ -129,7 +130,7 @@ export async function POST(
     if (currentPatient?.diagnosis_status === 'none' && clinicalReasoning.trim()) {
       const { buildTrueDiagnosisAndEvalPrompt } = await import('@/lib/patients/diagnosis-prompts')
       const evalCompletion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: MODELS.utility,
         response_format: { type: 'json_object' },
         messages: [{ role: 'user', content: buildTrueDiagnosisAndEvalPrompt(patient as never, clinicalReasoning) }],
       }, { timeout: 25_000 })
@@ -188,7 +189,7 @@ export async function POST(
         .join('\n')
 
       const ab4Completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: MODELS.utility,
         response_format: { type: 'json_object' },
         temperature: 0.3,
         messages: [{

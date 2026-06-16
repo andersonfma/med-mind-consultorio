@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { buildPatientPrompt } from './prompt'
+import { MODELS } from '@/lib/openai/models'
 
 describe('buildPatientPrompt', () => {
-  it('usa gpt-4o-mini', () => {
+  it('usa o modelo de geração configurado', () => {
     const params = buildPatientPrompt('Cardiologia', 'easy')
-    expect(params.model).toBe('gpt-4o-mini')
+    expect(params.model).toBe(MODELS.generation)
   })
 
   it('usa response_format json_object', () => {

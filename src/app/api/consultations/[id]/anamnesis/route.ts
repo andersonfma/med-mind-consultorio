@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
+import { MODELS } from '@/lib/openai/models'
 import { buildAnamnesisPrompt } from '@/lib/consultations/prompts'
 import { parseAnamnesisResponse } from '@/lib/consultations/parse'
 import type { ChatMessage } from '@/lib/consultations/prompts'
@@ -34,7 +35,7 @@ export async function POST(
   let rawContent: string
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.utility,
       response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: buildAnamnesisPrompt(chatHistory) }],
     }, { timeout: 25_000 })

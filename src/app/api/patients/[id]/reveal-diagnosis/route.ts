@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
+import { MODELS } from '@/lib/openai/models'
 import {
   buildTrueDiagnosisOnlyPrompt,
   buildClinicalSummaryPrompt,
@@ -107,7 +108,7 @@ export async function POST(
         : buildTrueDiagnosisOnlyPrompt(patient as unknown as Patient)
 
       const diagCompletion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: MODELS.utility,
         response_format: { type: 'json_object' },
         messages: [{ role: 'user', content: promptText }],
       }, { timeout: 25_000 })
@@ -122,7 +123,7 @@ export async function POST(
   let clinicalSummary = ''
   try {
     const summaryCompletion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.utility,
       messages: [{
         role: 'user',
         content: buildClinicalSummaryPrompt(patient as unknown as Patient, trueDiagnosis),
