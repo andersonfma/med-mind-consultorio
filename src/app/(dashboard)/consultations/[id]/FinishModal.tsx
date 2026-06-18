@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation'
 import { patientDetailRoute } from '@/lib/routes'
 
 type Ab4 = {
-  a1: number; a2: number; a3: number; a4: number
-  overall: number; recommendation: string
+  a1: number; a2: number; a3: number | null; a4: number | null
+  overall: number; recommendation: string; stage?: 1 | 2
 } | null
 
 type FinishResult = { patient_id: string; diagnosis_achieved: boolean; ab4: Ab4 }
@@ -49,9 +49,10 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
     }
   }
 
-  // menor nota entre os eixos, para destaque
+  // menor nota entre os eixos avaliados (ignora eixos pendentes/null), para destaque
   const minScore = result?.ab4
-    ? Math.min(result.ab4.a1, result.ab4.a2, result.ab4.a3, result.ab4.a4)
+    ? Math.min(...[result.ab4.a1, result.ab4.a2, result.ab4.a3, result.ab4.a4]
+        .filter((n): n is number => typeof n === 'number'))
     : null
 
   return (
@@ -82,28 +83,38 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
 
             {result.ab4 ? (
               <>
-                <div className="flex items-baseline justify-between mb-3">
+                <div className="flex items-baseline justify-between mb-1">
                   <span className="text-sm font-semibold text-gray-700">Score AB4 — raciocínio clínico</span>
                   <span className="text-2xl font-bold text-gray-900">{result.ab4.overall.toFixed(1)}<span className="text-sm text-gray-400">/10</span></span>
                 </div>
+                {result.ab4.stage === 1 && (
+                  <p className="text-xs text-gray-400 mb-3">
+                    Primeira consulta: avaliamos só a abertura do raciocínio (A1 e A2). A3 e A4 serão avaliados na próxima consulta, com os resultados dos exames.
+                  </p>
+                )}
 
                 <div className="space-y-2 mb-4">
                   {AXES.map(ax => {
                     const score = result.ab4![ax.key]
-                    const weak = score === minScore
+                    const pending = score === null
+                    const weak = !pending && score === minScore
                     return (
                       <div key={ax.key} className="flex items-center gap-2">
                         <div className="w-28 shrink-0">
-                          <span className="text-xs font-medium text-gray-700">{ax.label}</span>
+                          <span className={`text-xs font-medium ${pending ? 'text-gray-300' : 'text-gray-700'}`}>{ax.label}</span>
                           <span className="block text-[10px] text-gray-400">{ax.sub}</span>
                         </div>
                         <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${weak ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                            style={{ width: `${score * 10}%` }}
-                          />
+                          {!pending && (
+                            <div
+                              className={`h-full rounded-full ${weak ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                              style={{ width: `${score * 10}%` }}
+                            />
+                          )}
                         </div>
-                        <span className={`w-5 text-right text-sm font-semibold ${weak ? 'text-amber-600' : 'text-gray-700'}`}>{score}</span>
+                        {pending
+                          ? <span className="text-[10px] text-gray-400 shrink-0">próxima consulta</span>
+                          : <span className={`w-5 text-right text-sm font-semibold ${weak ? 'text-amber-600' : 'text-gray-700'}`}>{score}</span>}
                       </div>
                     )
                   })}

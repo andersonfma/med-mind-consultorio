@@ -44,6 +44,8 @@ const mockConsultation = {
     id: 'p-1',
     name: 'João', age: 45, gender: 'M', specialty: 'Cardiologia',
     chief_complaint: 'Dor', clinical_status: 'Estável', conditions: [], difficulty: 'easy',
+    // case_summary presente → NÃO é a primeira consulta → AB4 etapa 2 (completa)
+    case_summary: 'Resumo de consulta anterior',
   },
 }
 
@@ -132,6 +134,36 @@ describe('POST /api/consultations/[id]/finish', () => {
     const body = await res.json() as { ab4: { overall: number } | null }
     expect(body.ab4).not.toBeNull()
     expect(body.ab4?.overall).toBe(6) // juiz AB4 foi chamado, NÃO zerado
+  })
+
+  it('etapa 1 (primeira consulta, sem case_summary): AB4 só A1/A2, A3/A4 null', async () => {
+    const firstConsult = {
+      ...mockConsultation,
+      patients: { ...mockConsultation.patients, case_summary: null },
+    }
+    const updateChain = { eq: vi.fn().mockReturnThis(), error: null }
+    mockFrom.mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: firstConsult, error: null }),
+      update: vi.fn().mockReturnValue(updateChain),
+    }))
+    // clinical_status, case summary, AB4 (juiz de etapa 1 devolve só a1/a2)
+    mockCreate
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Paciente melhorou.' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Resumo.' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: '{"a1":6,"a2":8,"recommendation":"amplie hipoteses"}' } }] })
+
+    const res = await POST(...makeRequest({}))
+    expect(res.status).toBe(200)
+    const body = await res.json() as { ab4: { a1: number; a2: number; a3: number | null; a4: number | null; overall: number; stage: number } | null }
+    expect(body.ab4).not.toBeNull()
+    expect(body.ab4?.a1).toBe(6)
+    expect(body.ab4?.a2).toBe(8)
+    expect(body.ab4?.a3).toBeNull()
+    expect(body.ab4?.a4).toBeNull()
+    expect(body.ab4?.overall).toBe(7)
+    expect(body.ab4?.stage).toBe(1)
   })
 
   it('zera o ab4 (overall 0) quando o pensamento clínico está vazio e NÃO chama o juiz AB4', async () => {

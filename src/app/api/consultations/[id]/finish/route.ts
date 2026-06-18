@@ -41,6 +41,12 @@ export async function POST(
   // Fonte da verdade: o texto enviado pelo cliente (mais recente). Cai para o banco se ausente.
   const clinicalReasoning = bodyReasoning ?? consultation.clinical_reasoning ?? ''
 
+  // Etapa da consulta: o case_summary só existe APÓS uma consulta finalizada anterior.
+  // Sem ele → primeira consulta (etapa 1: AB4 só A1/A2, sem conclusão de diagnóstico).
+  const priorCaseSummary = (patient as Record<string, unknown>).case_summary as string | null ?? null
+  const isFirstConsultation = !(priorCaseSummary && priorCaseSummary.trim())
+  const ab4Stage: 1 | 2 = isFirstConsultation ? 1 : 2
+
   // Generate new clinical_status anchored to true_diagnosis (not student hypothesis)
   let newClinicalStatus: string
   try {
@@ -93,7 +99,6 @@ export async function POST(
       .eq('user_id', user.id)
       .eq('status', 'approved')
 
-    const priorSummary = (patient as Record<string, unknown>).case_summary as string | null ?? null
     const chatHistory = (consultation.chat_history ?? []) as ChatMessage[]
 
     const summaryCompletion = await openai.chat.completions.create({
@@ -101,7 +106,7 @@ export async function POST(
       messages: [{
         role: 'user',
         content: buildCaseSummaryPrompt(
-          patient as never, priorSummary, chatHistory, clinicalReasoning, examRows ?? []
+          patient as never, priorCaseSummary, chatHistory, clinicalReasoning, examRows ?? []
         ),
       }],
     }, { timeout: 25_000 })
@@ -118,7 +123,9 @@ export async function POST(
     // Non-blocking — finish já concluído mesmo se o resumo falhar
   }
 
-  // Evaluate if student's clinical_reasoning mentions the correct diagnosis (non-blocking)
+  // Evaluate if student's clinical_reasoning mentions the correct diagnosis (non-blocking).
+  // SÓ a partir da 2ª consulta: na 1ª não se conclui o caso (sem resultados de exame ainda),
+  // então o diagnóstico não é marcado como "alcançado" — segue a via de "revelar diagnóstico".
   let diagnosisAchieved = false
   try {
     const currentPatient = (await supabase
@@ -127,7 +134,7 @@ export async function POST(
       .eq('id', patient.id as string)
       .single()).data
 
-    if (currentPatient?.diagnosis_status === 'none' && clinicalReasoning.trim()) {
+    if (!isFirstConsultation && currentPatient?.diagnosis_status === 'none' && clinicalReasoning.trim()) {
       const { buildTrueDiagnosisAndEvalPrompt } = await import('@/lib/patients/diagnosis-prompts')
       const evalCompletion = await openai.chat.completions.create({
         model: MODELS.utility,
@@ -161,7 +168,7 @@ export async function POST(
   try {
     if (!clinicalReasoning.trim()) {
       // Sem pensamento clínico registrado → não há raciocínio a avaliar; score zerado.
-      ab4 = { ...emptyReasoningResult(), generated_at: new Date().toISOString() }
+      ab4 = { ...emptyReasoningResult(ab4Stage), generated_at: new Date().toISOString() }
     } else {
       const { data: examRows } = await supabase
         .from('exam_requests')
@@ -200,12 +207,13 @@ export async function POST(
             (examRows ?? []) as Ab4ExamInput[],
             physicalExamSummary,
             clinicalReasoning,
+            ab4Stage,
           ),
         }],
       }, { timeout: 25_000 })
 
       const raw = ab4Completion.choices[0]?.message?.content
-      const parsed = raw ? parseAb4Response(raw) : null
+      const parsed = raw ? parseAb4Response(raw, ab4Stage) : null
       if (parsed) ab4 = { ...parsed, generated_at: new Date().toISOString() }
     }
 

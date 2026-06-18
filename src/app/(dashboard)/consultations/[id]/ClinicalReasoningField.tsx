@@ -11,9 +11,15 @@ export function ClinicalReasoningField({ consultationId, value, onChange }: Prop
   const [saved, setSaved] = useState(true)
   const lastSavedRef = useRef(value)
 
+  // Autosave com DEBOUNCE: salva ~1,2s depois que o aluno para de digitar e marca "Salvo".
+  // (Antes era um intervalo de 30s que reiniciava a cada tecla — o indicador ficava preso em "Não salvo".)
   useEffect(() => {
-    const interval = setInterval(async () => {
-      if (value === lastSavedRef.current) return
+    if (value === lastSavedRef.current) {
+      setSaved(true)
+      return
+    }
+    setSaved(false)
+    const timeout = setTimeout(async () => {
       try {
         const res = await fetch(`/api/consultations/${consultationId}`, {
           method: 'PATCH',
@@ -24,10 +30,10 @@ export function ClinicalReasoningField({ consultationId, value, onChange }: Prop
         lastSavedRef.current = value
         setSaved(true)
       } catch {
-        // Silently fail — will retry in 30s
+        // Falha silenciosa — nova tentativa na próxima alteração; o finish também persiste o texto.
       }
-    }, 30_000)
-    return () => clearInterval(interval)
+    }, 1200)
+    return () => clearTimeout(timeout)
   }, [consultationId, value])
 
   return (
