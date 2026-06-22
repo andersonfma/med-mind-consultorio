@@ -56,11 +56,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       </div>
 
       <div className="mb-6">
-        <p className="text-sm font-medium text-gray-700 mb-1">Queixa principal</p>
-        <p className="text-gray-600">{patient.chief_complaint}</p>
-      </div>
-
-      <div className="mb-6">
         <p className="text-sm font-medium text-gray-700 mb-1">Vínculo</p>
         <BondBar level={patient.bond_level} />
       </div>

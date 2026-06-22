@@ -53,14 +53,15 @@ REGRA DE ESPECIALIDADE (CRÍTICO — a QUEIXA define a especialidade, não o dia
 
 REGRA DE COERÊNCIA queixa↔diagnóstico (CRÍTICO):
 - O chief_complaint DEVE ser o SINTOMA DE APRESENTAÇÃO TÍPICO do true_diagnosis — o motivo real e mais provável pelo qual ESSE paciente procuraria atendimento HOJE. Ex: Edema agudo de pulmão → "falta de ar súbita e intensa que piora quando deito"; Tromboembolismo pulmonar → "falta de ar repentina e dor no peito ao respirar fundo". NUNCA escolha uma queixa periférica/secundária que não levaria o médico a suspeitar do diagnóstico.
-- AUTOVERIFICAÇÃO antes de responder: "Um médico, ouvindo este chief_complaint, consideraria o true_diagnosis entre as principais hipóteses?" Se a resposta for NÃO, reescreva a queixa para refletir a apresentação típica do diagnóstico.
+- UM ÚNICO SINTOMA (CRÍTICO): o chief_complaint é APENAS o sintoma principal que motivou a vinda — NÃO uma síndrome nem uma lista. PROIBIDO empilhar sintomas associados (febre + sudorese noturna + emagrecimento + caroços) na queixa. Esses achados associados pertencem ao quadro clínico e serão DESCOBERTOS pelo aluno na anamnese — não podem estar na queixa. Ex PROIBIDO: "febre há um mês, suor noturno e caroços no pescoço"; CERTO: "uns caroços no pescoço que não somem" OU "uma febre que não passa". Escolha o sintoma mais proeminente e pare nele.
+- AUTOVERIFICAÇÃO antes de responder: "Um médico, ouvindo este chief_complaint, consideraria o true_diagnosis entre as principais hipóteses? É UM único sintoma (não uma lista de vários)?" Se a resposta a qualquer uma for NÃO, reescreva a queixa.
 
 Responda APENAS com JSON válido, sem texto adicional:
 {
   "name": "nome fictício brasileiro",
   "age": número inteiro entre 18 e 80,
   "gender": "M" ou "F",
-  "chief_complaint": "queixa principal em 1 frase, na voz do paciente, = apresentação típica do diagnóstico",
+  "chief_complaint": "UM único sintoma principal em 1 frase curta, na voz do paciente (sem listar sintomas associados)",
   "clinical_status": "estado clínico inicial em 1 frase curta, na voz do sistema",
   "conditions": ["comorbidades preexistentes relevantes ao caso"],
   "true_diagnosis": "UMA doença real, nome canônico fechado (ex: Colite Microscópica, IAM sem supra, DPOC em exacerbação)"
