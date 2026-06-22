@@ -55,19 +55,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         </p>
       </div>
 
-      {patient.conditions.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {patient.conditions.map((c: string) => (
-            <span key={c} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-              #{c}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div className="mb-4">
-        <p className="text-sm font-medium text-gray-700 mb-1">Estado clínico</p>
-        <p className="text-gray-600">{patient.clinical_status}</p>
+      <div className="mb-6">
+        <p className="text-sm font-medium text-gray-700 mb-1">Queixa principal</p>
+        <p className="text-gray-600">{patient.chief_complaint}</p>
       </div>
 
       <div className="mb-6">
