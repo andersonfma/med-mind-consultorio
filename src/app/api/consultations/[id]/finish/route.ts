@@ -166,9 +166,29 @@ export async function POST(
   // AB4 score — best-effort (nunca quebra o finish)
   let ab4: (Ab4Result & { generated_at: string }) | null = null
   try {
+    // Etapa 2: herda A1/A2 da PRIMEIRA consulta (poética/retórica foram avaliadas lá;
+    // não se reavalia a abertura do raciocínio numa consulta de retorno).
+    let carried: { a1: number; a2: number } | null = null
+    if (ab4Stage === 2) {
+      const { data: priorRows } = await supabase
+        .from('consultations')
+        .select('ab4_score')
+        .eq('patient_id', patient.id as string)
+        .eq('user_id', user.id)
+        .eq('status', 'finished')
+        .neq('id', id)
+        .not('ab4_score', 'is', null)
+        .order('finished_at', { ascending: true })
+        .limit(1)
+      const priorScore = priorRows?.[0]?.ab4_score as { a1?: unknown; a2?: unknown } | null | undefined
+      if (priorScore && typeof priorScore.a1 === 'number' && typeof priorScore.a2 === 'number') {
+        carried = { a1: priorScore.a1, a2: priorScore.a2 }
+      }
+    }
+
     if (!clinicalReasoning.trim()) {
       // Sem pensamento clínico registrado → não há raciocínio a avaliar; score zerado.
-      ab4 = { ...emptyReasoningResult(ab4Stage), generated_at: new Date().toISOString() }
+      ab4 = { ...emptyReasoningResult(ab4Stage, carried), generated_at: new Date().toISOString() }
     } else {
       const { data: examRows } = await supabase
         .from('exam_requests')
@@ -208,12 +228,13 @@ export async function POST(
             physicalExamSummary,
             clinicalReasoning,
             ab4Stage,
+            carried,
           ),
         }],
       }, { timeout: 25_000 })
 
       const raw = ab4Completion.choices[0]?.message?.content
-      const parsed = raw ? parseAb4Response(raw, ab4Stage) : null
+      const parsed = raw ? parseAb4Response(raw, ab4Stage, carried) : null
       if (parsed) ab4 = { ...parsed, generated_at: new Date().toISOString() }
     }
 

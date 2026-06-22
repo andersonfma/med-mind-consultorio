@@ -1,6 +1,6 @@
 import type { Patient } from '@/types/domain'
 import type { ChatMessage } from './prompts'
-import type { Ab4Stage } from './ab4'
+import type { Ab4Stage, CarriedA1A2 } from './ab4'
 
 export interface Ab4ExamInput {
   exam_name: string
@@ -16,6 +16,7 @@ export function buildAb4ScorePrompt(
   physicalExamSummary: string,
   clinicalReasoning: string,
   stage: Ab4Stage = 2,
+  carried?: CarriedA1A2 | null,
 ): string {
   const conversation = chatHistory.length > 0
     ? chatHistory.map(m => `${m.role === 'student' ? 'Médico' : 'Paciente'}: ${m.content}`).join('\n')
@@ -79,13 +80,36 @@ Responda APENAS com JSON válido, sem texto adicional:
 }`
   }
 
+  const a3a4 = `- A3 (Confrontação Dialética) — justificar cada exame e interpretar o RESULTADO frente à hipótese. Nota alta: para cada exame, o aluno explica por que o pediu e interpreta o resultado ligando-o à hipótese (este achado confirma / este enfraquece). Nota baixa: pede exames sem justificar, ou recebe resultados e não os interpreta / não conecta à hipótese. NÃO exija que o aluno cite exames que refutariam a hipótese — avalie a justificativa e a interpretação dos resultados que ele de fato fez.
+- A4 (Demonstração Analítica) — justificação integrada com incerteza proporcional. Nota alta: o pensamento clínico conecta história + exame + exames + mecanismo e justifica, sem excesso de certeza. Nota baixa: nomeia sem justificar, ou superestima a certeza.`
+
+  // Etapa 2 COM notas herdadas: A1/A2 já foram avaliados na 1ª consulta — avalie SÓ A3/A4.
+  if (carried) {
+    return `${header}
+ETAPA DA AVALIAÇÃO: CONSULTA DE RETORNO. A abertura do raciocínio (A1 Poética e A2 Retórica) JÁ FOI avaliada na primeira consulta e NÃO deve ser reavaliada aqui — o aluno não precisa repetir o levantamento de hipóteses nesta consulta. Avalie SOMENTE A3 e A4, que é o trabalho desta consulta: confrontar as hipóteses com os resultados dos exames e concluir.
+
+EIXOS A AVALIAR (somente 2, nota inteira de 0 a 10 cada):
+${a3a4}
+
+${calibration}
+
+RECOMENDAÇÃO: um único texto formativo curto (2 a 4 frases), em português, dirigido ao aluno ("você..."), focando o eixo de MENOR nota entre A3 e A4 — nomeie a falha específica (interpretação dos exames frente à hipótese / conclusão justificada com incerteza proporcional). NÃO comente A1/A2. Tom de coaching.
+
+Responda APENAS com JSON válido, sem texto adicional:
+{
+  "a3": número inteiro 0-10,
+  "a4": número inteiro 0-10,
+  "recommendation": "texto da recomendação"
+}`
+  }
+
+  // Etapa 2 SEM notas herdadas (fallback): avalia os 4 eixos.
   return `${header}
 ETAPA DA AVALIAÇÃO: CONSULTA DE RETORNO. Avalie os 4 eixos (já há resultados de exames a interpretar).
 
 EIXOS A AVALIAR (nota inteira de 0 a 10 cada):
 ${a1a2}
-- A3 (Confrontação Dialética) — justificar cada exame e interpretar o RESULTADO frente à hipótese. Nota alta: para cada exame, o aluno explica por que o pediu e interpreta o resultado ligando-o à hipótese (este achado confirma / este enfraquece). Nota baixa: pede exames sem justificar, ou recebe resultados e não os interpreta / não conecta à hipótese. NÃO exija que o aluno cite exames que refutariam a hipótese — avalie a justificativa e a interpretação dos resultados que ele de fato fez.
-- A4 (Demonstração Analítica) — justificação integrada com incerteza proporcional. Nota alta: o pensamento clínico conecta história + exame + exames + mecanismo e justifica, sem excesso de certeza. Nota baixa: nomeia sem justificar, ou superestima a certeza.
+${a3a4}
 
 ${calibration}
 

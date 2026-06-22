@@ -49,6 +49,24 @@ const mockConsultation = {
   },
 }
 
+// Mock encadeável do supabase. `consultation` é o que .single() devolve; `priorAb4` é o que
+// a query de notas herdadas (.order().limit()) devolve (A1/A2 da 1ª consulta).
+function makeFrom(opts: { consultation?: unknown; priorAb4?: unknown[] } = {}) {
+  return () => {
+    const updateChain = { eq: vi.fn().mockReturnThis(), error: null }
+    const chain: Record<string, unknown> = {}
+    chain.select = vi.fn(() => chain)
+    chain.eq = vi.fn(() => chain)
+    chain.neq = vi.fn(() => chain)
+    chain.not = vi.fn(() => chain)
+    chain.order = vi.fn(() => chain)
+    chain.limit = vi.fn(() => Promise.resolve({ data: opts.priorAb4 ?? [], error: null }))
+    chain.single = vi.fn().mockResolvedValue({ data: opts.consultation ?? mockConsultation, error: null })
+    chain.update = vi.fn(() => updateChain)
+    return chain
+  }
+}
+
 describe('POST /api/consultations/[id]/finish', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -56,14 +74,7 @@ describe('POST /api/consultations/[id]/finish', () => {
     mockCreate.mockResolvedValue({
       choices: [{ message: { content: 'Paciente melhorou após consulta.' } }],
     })
-
-    const updateChain = { eq: vi.fn().mockReturnThis(), error: null }
-    mockFrom.mockImplementation(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: mockConsultation, error: null }),
-      update: vi.fn().mockReturnValue(updateChain),
-    }))
+    mockFrom.mockImplementation(makeFrom())
   })
 
   it('retorna 401 se não autenticado', async () => {
@@ -116,13 +127,7 @@ describe('POST /api/consultations/[id]/finish', () => {
   it('usa o clinical_reasoning enviado no corpo quando o DB ainda está vazio (corrige a corrida do autosave)', async () => {
     // DB ainda não persistiu o texto (autosave de 30s não disparou), mas o cliente o envia no corpo
     const dbEmpty = { ...mockConsultation, clinical_reasoning: '' }
-    const updateChain = { eq: vi.fn().mockReturnThis(), error: null }
-    mockFrom.mockImplementation(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: dbEmpty, error: null }),
-      update: vi.fn().mockReturnValue(updateChain),
-    }))
+    mockFrom.mockImplementation(makeFrom({ consultation: dbEmpty }))
     const ab4Json = '{"a1":6,"a2":6,"a3":6,"a4":6,"recommendation":"ok"}'
     mockCreate
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Paciente melhorou.' } }] })
@@ -141,13 +146,7 @@ describe('POST /api/consultations/[id]/finish', () => {
       ...mockConsultation,
       patients: { ...mockConsultation.patients, case_summary: null },
     }
-    const updateChain = { eq: vi.fn().mockReturnThis(), error: null }
-    mockFrom.mockImplementation(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: firstConsult, error: null }),
-      update: vi.fn().mockReturnValue(updateChain),
-    }))
+    mockFrom.mockImplementation(makeFrom({ consultation: firstConsult }))
     // clinical_status, case summary, AB4 (juiz de etapa 1 devolve só a1/a2)
     mockCreate
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Paciente melhorou.' } }] })
@@ -168,13 +167,7 @@ describe('POST /api/consultations/[id]/finish', () => {
 
   it('zera o ab4 (overall 0) quando o pensamento clínico está vazio e NÃO chama o juiz AB4', async () => {
     const emptyConsultation = { ...mockConsultation, clinical_reasoning: '   ' }
-    const updateChain = { eq: vi.fn().mockReturnThis(), error: null }
-    mockFrom.mockImplementation(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: emptyConsultation, error: null }),
-      update: vi.fn().mockReturnValue(updateChain),
-    }))
+    mockFrom.mockImplementation(makeFrom({ consultation: emptyConsultation }))
 
     const res = await POST(...makeRequest({}))
     expect(res.status).toBe(200)
@@ -185,5 +178,24 @@ describe('POST /api/consultations/[id]/finish', () => {
     expect(body.ab4?.a4).toBe(0)
     // só clinical_status + case_summary são chamados; o juiz AB4 NÃO é chamado
     expect(mockCreate).toHaveBeenCalledTimes(2)
+  })
+
+  it('etapa 2 (retorno): herda A1/A2 da 1ª consulta e avalia só A3/A4', async () => {
+    // a 1ª consulta deixou A1=7, A2=8 gravados no ab4_score; o juiz desta consulta só dá A3/A4
+    mockFrom.mockImplementation(makeFrom({ priorAb4: [{ ab4_score: { a1: 7, a2: 8 } }] }))
+    mockCreate
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Paciente melhorou.' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Resumo.' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: '{"a3":5,"a4":9,"recommendation":"interprete melhor os exames"}' } }] })
+
+    const res = await POST(...makeRequest({}))
+    expect(res.status).toBe(200)
+    const body = await res.json() as { ab4: { a1: number; a2: number; a3: number; a4: number; overall: number; stage: number } | null }
+    expect(body.ab4?.a1).toBe(7) // herdado da 1ª consulta
+    expect(body.ab4?.a2).toBe(8) // herdado da 1ª consulta
+    expect(body.ab4?.a3).toBe(5)
+    expect(body.ab4?.a4).toBe(9)
+    expect(body.ab4?.overall).toBe(7.3) // (7+8+5+9)/4 = 7.25 -> 7.3
+    expect(body.ab4?.stage).toBe(2)
   })
 })
