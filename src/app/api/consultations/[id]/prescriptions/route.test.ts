@@ -44,7 +44,7 @@ function makeFrom(opts: { consultation?: unknown; inserted?: unknown } = {}) {
     chain.eq = vi.fn(() => chain)
     chain.order = vi.fn(() => Promise.resolve({ data: [], error: null }))
     chain.single = vi.fn().mockResolvedValue({ data: opts.consultation ?? consultation, error: null })
-    chain.insert = vi.fn(() => ({ select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: opts.inserted ?? { id: 'rx-1' }, error: null }) })) }))
+    chain.insert = vi.fn((payload: Record<string, unknown>) => ({ select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: opts.inserted ?? { id: 'rx-1', ...payload }, error: null }) })) }))
     return chain
   }
 }
@@ -68,9 +68,22 @@ describe('POST /api/consultations/[id]/prescriptions', () => {
     expect(res.status).toBe(400)
   })
 
-  it('201 com adequacy calculada pela IA', async () => {
+  it('400 sem posology', async () => {
+    const res = await POST(...makeRequest({ drug_name: 'Losartana' }))
+    expect(res.status).toBe(400)
+  })
+
+  it('400 com justification longa demais', async () => {
+    const res = await POST(...makeRequest({ drug_name: 'Losartana', posology: '50 mg', justification: 'x'.repeat(2001) }))
+    expect(res.status).toBe(400)
+  })
+
+  it('201 com adequacy e source vindos do corpo/IA', async () => {
     const res = await POST(...makeRequest({ drug_name: 'Losartana', posology: '50 mg VO 1x/dia', source: 'catalog' }))
     expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.adequacy).toBe('adequada')
+    expect(body.source).toBe('catalog')
   })
 
   it('salva com adequacy null quando a IA falha (best-effort)', async () => {

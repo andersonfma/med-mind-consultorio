@@ -27,6 +27,8 @@ export async function POST(
     return NextResponse.json({ error: 'drug_name too long' }, { status: 400 })
   if (posology.trim().length > 1000)
     return NextResponse.json({ error: 'posology too long' }, { status: 400 })
+  if (typeof justification === 'string' && justification.trim().length > 2000)
+    return NextResponse.json({ error: 'justification too long' }, { status: 400 })
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
