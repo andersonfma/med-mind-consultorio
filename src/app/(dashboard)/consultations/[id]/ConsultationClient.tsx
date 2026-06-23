@@ -25,6 +25,15 @@ export function ConsultationClient({ consultation, patient, previousExamResults 
   const [showFinishModal, setShowFinishModal] = useState(false)
   const [clinicalReasoning, setClinicalReasoning] = useState(consultation.clinical_reasoning ?? '')
 
+  // Diagnóstico já fechado → consulta de acompanhamento: o arco AB4 terminou.
+  // O campo de pensamento clínico fica colapsado; o aluno pode reabri-lo se houver
+  // dado novo no seguimento (vira só nota, não recalcula o AB4).
+  const diagnosisClosed =
+    patient.diagnosis_status === 'achieved' || patient.diagnosis_status === 'revealed'
+  const [reasoningOpen, setReasoningOpen] = useState(
+    !diagnosisClosed || !!consultation.clinical_reasoning?.trim()
+  )
+
   const initialAnamnesis: Anamnesis = {
     hda:      ((consultation.anamnesis as Record<string, string>)?.hda)      ?? '',
     hpp:      ((consultation.anamnesis as Record<string, string>)?.hpp)      ?? '',
@@ -108,13 +117,35 @@ export function ConsultationClient({ consultation, patient, previousExamResults 
           <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide shrink-0">
             Pensamento Clínico
           </p>
-          <div className="flex-1 px-3 pb-3">
-            <ClinicalReasoningField
-              consultationId={consultation.id}
-              value={clinicalReasoning}
-              onChange={setClinicalReasoning}
-            />
-          </div>
+          {diagnosisClosed && !reasoningOpen ? (
+            <div className="px-3 pb-3">
+              <div className="rounded-md border border-gray-200 bg-gray-50 p-3 space-y-2">
+                <p className="text-sm text-gray-500">
+                  Diagnóstico já fechado — esta é uma consulta de acompanhamento. O raciocínio
+                  diagnóstico (AB4) já foi avaliado no arco anterior.
+                </p>
+                <button
+                  onClick={() => setReasoningOpen(true)}
+                  className="text-sm font-medium text-blue-600 hover:underline"
+                >
+                  + Registrar novo raciocínio
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 px-3 pb-3">
+              <ClinicalReasoningField
+                consultationId={consultation.id}
+                value={clinicalReasoning}
+                onChange={setClinicalReasoning}
+              />
+              {diagnosisClosed && (
+                <p className="mt-1 text-xs text-gray-400">
+                  Nota de acompanhamento — não recalcula o AB4.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

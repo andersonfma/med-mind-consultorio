@@ -180,6 +180,26 @@ describe('POST /api/consultations/[id]/finish', () => {
     expect(mockCreate).toHaveBeenCalledTimes(2)
   })
 
+  it('seguimento (diagnóstico já fechado): NÃO roda AB4 e NÃO chama o juiz', async () => {
+    // Diagnóstico alcançado numa consulta anterior → esta é de acompanhamento.
+    // O pensamento clínico vira só nota; o arco AB4 já foi avaliado e fica intacto.
+    const followUp = {
+      ...mockConsultation,
+      patients: { ...mockConsultation.patients, diagnosis_status: 'achieved' },
+    }
+    mockFrom.mockImplementation(makeFrom({ consultation: followUp }))
+    // só clinical_status + case_summary são chamados; o juiz AB4 NÃO é chamado
+    mockCreate
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Paciente estável.' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'Resumo.' } }] })
+
+    const res = await POST(...makeRequest({ clinical_reasoning: 'Ajustei a dose do anti-hipertensivo' }))
+    expect(res.status).toBe(200)
+    const body = await res.json() as { ab4: unknown }
+    expect(body.ab4).toBeNull()
+    expect(mockCreate).toHaveBeenCalledTimes(2)
+  })
+
   it('etapa 2 (retorno): herda A1/A2 da 1ª consulta e avalia só A3/A4', async () => {
     // a 1ª consulta deixou A1=7, A2=8 gravados no ab4_score; o juiz desta consulta só dá A3/A4
     mockFrom.mockImplementation(makeFrom({ priorAb4: [{ ab4_score: { a1: 7, a2: 8 } }] }))

@@ -47,6 +47,14 @@ export async function POST(
   const isFirstConsultation = !(priorCaseSummary && priorCaseSummary.trim())
   const ab4Stage: 1 | 2 = isFirstConsultation ? 1 : 2
 
+  // Diagnóstico já fechado (alcançado ou revelado) numa consulta ANTERIOR → esta é uma
+  // consulta de SEGUIMENTO: o arco diagnóstico (AB4) já terminou e foi avaliado. Não
+  // reavaliamos o AB4; se o aluno registrar pensamento clínico, fica só como nota de
+  // acompanhamento. Baseado no status NO INÍCIO da consulta — a consulta em que o
+  // diagnóstico é fechado (status 'none' ao carregar) ainda recebe AB4 normalmente.
+  const diagnosisStatus = (patient as Record<string, unknown>).diagnosis_status as string | null
+  const isFollowUp = diagnosisStatus === 'achieved' || diagnosisStatus === 'revealed'
+
   // Generate new clinical_status anchored to true_diagnosis (not student hypothesis)
   let newClinicalStatus: string
   try {
@@ -163,9 +171,10 @@ export async function POST(
     // Non-blocking
   }
 
-  // AB4 score — best-effort (nunca quebra o finish)
+  // AB4 score — best-effort (nunca quebra o finish).
+  // Em consulta de seguimento (diagnóstico já fechado), o arco AB4 acabou: não pontuamos.
   let ab4: (Ab4Result & { generated_at: string }) | null = null
-  try {
+  if (!isFollowUp) try {
     // Etapa 2: herda A1/A2 da PRIMEIRA consulta (poética/retórica foram avaliadas lá;
     // não se reavalia a abertura do raciocínio numa consulta de retorno).
     let carried: { a1: number; a2: number } | null = null
