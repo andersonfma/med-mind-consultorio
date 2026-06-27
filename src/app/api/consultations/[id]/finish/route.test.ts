@@ -218,4 +218,13 @@ describe('POST /api/consultations/[id]/finish', () => {
     expect(body.ab4?.overall).toBe(7.3) // (7+8+5+9)/4 = 7.25 -> 7.3
     expect(body.ab4?.stage).toBe(2)
   })
+
+  it('coleta de prescrições ativas é best-effort e NÃO quebra o encerramento', async () => {
+    // A query de prescrições ativas é tolerante a falha; o finish deve concluir normalmente
+    // e o AB4 permanecer intacto mesmo quando o passo de tratamento não rende contexto.
+    const res = await POST(...makeRequest({ clinical_reasoning: 'iniciei losartana' }))
+    expect(res.status).toBe(200)
+    const body = await res.json() as { patient_id: string }
+    expect(body.patient_id).toBe('p-1')
+  })
 })

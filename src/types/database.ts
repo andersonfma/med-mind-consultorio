@@ -152,6 +152,66 @@ export type Database = {
           },
         ]
       }
+      prescriptions: {
+        Row: {
+          id: string
+          consultation_id: string
+          patient_id: string
+          user_id: string
+          drug_name: string
+          posology: string
+          source: string
+          justification: string | null
+          adequacy: string | null
+          ai_feedback: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          consultation_id: string
+          patient_id: string
+          user_id: string
+          drug_name: string
+          posology: string
+          source?: string
+          justification?: string | null
+          adequacy?: string | null
+          ai_feedback?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          consultation_id?: string
+          patient_id?: string
+          user_id?: string
+          drug_name?: string
+          posology?: string
+          source?: string
+          justification?: string | null
+          adequacy?: string | null
+          ai_feedback?: string | null
+          status?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescriptions_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescriptions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           age: number

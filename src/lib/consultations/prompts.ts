@@ -1,5 +1,6 @@
 import type { Patient } from '@/types/domain'
 import { personalitySection } from '@/lib/patients/personalities'
+import type { Adherence } from '@/lib/prescriptions/types'
 
 export type ChatMessage = {
   role: 'student' | 'patient'
@@ -7,7 +8,14 @@ export type ChatMessage = {
   timestamp: string
 }
 
-export function buildPatientSystemPrompt(patient: Patient, pendingResults?: string[], isFirstConsultation = true, caseSummary?: string | null): string {
+/** Contexto de tratamento para o passo de efeito no encerramento: prescrições
+ *  ativas do aluno cruzadas com a adesão estimada do paciente. */
+export interface TreatmentContext {
+  prescriptions: { drug_name: string; posology: string; adequacy: string | null }[]
+  adherence: Adherence
+}
+
+export function buildPatientSystemPrompt(patient: Patient, pendingResults?: string[], isFirstConsultation = true, caseSummary?: string | null, activeMedications?: string[]): string {
   const conditions = Array.isArray(patient.conditions) && patient.conditions.length > 0
     ? (patient.conditions as string[]).join(', ')
     : 'nenhuma'
@@ -22,6 +30,10 @@ export function buildPatientSystemPrompt(patient: Patient, pendingResults?: stri
     ? `\nMEMÓRIA DO CASO (o que você lembra das consultas anteriores — use para responder de forma coerente e variada, na 1ª pessoa, sem recitar literalmente; você LEMBRA das medicações que toma e dos exames que já fez):\n${caseSummary}`
     : ''
 
+  const medsSection = activeMedications && activeMedications.length > 0
+    ? `\nMEDICAÇÕES EM USO (você está tomando — relate adesão e resposta na 1ª pessoa quando perguntado; se sua personalidade/adesão for baixa, pode admitir que esqueceu doses): ${activeMedications.join(', ')}`
+    : ''
+
   return `Você é um paciente simulado para treinamento médico. Responda APENAS como o paciente, na primeira pessoa. Nunca quebre o personagem ou mencione que é uma simulação.
 
 Nome: ${patient.name}
@@ -31,7 +43,7 @@ Especialidade: ${patient.specialty}
 Queixa principal (seu motivo de vir, em termos leigos — é o PONTO DE PARTIDA da consulta, NÃO um resumo a despejar): ${patient.chief_complaint}
 Quadro clínico interno (CONTEXTO PRIVADO — guia de como você se sente; NUNCA despeje de uma vez nem recite literalmente; revele cada parte SÓ quando o médico perguntar especificamente sobre ela): ${patient.clinical_status}
 Condições preexistentes: ${conditions}
-Dificuldade: ${patient.difficulty}${personalityBlock}${resultsSection}${memorySection}
+Dificuldade: ${patient.difficulty}${personalityBlock}${resultsSection}${memorySection}${medsSection}
 
 ${isFirstConsultation ? `Comportamento (PRIMEIRA CONSULTA):
 - Você está vendo este médico pela PRIMEIRA VEZ. Ao ser cumprimentado, diga em UMA frase curta e em termos leigos APENAS o sintoma que mais te incomoda (o motivo de ter vindo). Ex: "Doutor, estou com uma febre que não passa."
@@ -60,7 +72,8 @@ export function buildCaseSummaryPrompt(
   priorSummary: string | null,
   chatHistory: ChatMessage[],
   clinicalReasoning: string,
-  examResults: { exam_name: string; result: string | null }[]
+  examResults: { exam_name: string; result: string | null }[],
+  treatment?: TreatmentContext
 ): string {
   const conversation = chatHistory
     .map(m => `${m.role === 'student' ? 'Médico' : 'Paciente'}: ${m.content}`)
@@ -69,6 +82,10 @@ export function buildCaseSummaryPrompt(
   const exams = examResults.length > 0
     ? examResults.map(e => e.result ? `${e.exam_name}: ${e.result}` : `${e.exam_name} (sem resultado)`).join('\n')
     : '(nenhum exame aprovado nesta consulta)'
+
+  const prescriptionsBlock = treatment && treatment.prescriptions.length > 0
+    ? treatment.prescriptions.map(p => `- ${p.drug_name}: ${p.posology}`).join('\n')
+    : null
 
   return `Você é um sistema de prontuário médico. Atualize o resumo cumulativo do caso deste paciente após mais uma consulta.
 
@@ -87,11 +104,15 @@ ${clinicalReasoning || '(não registrado)'}
 CONSULTA ATUAL — exames realizados:
 ${exams}
 
+CONSULTA ATUAL — prescrições do aluno:
+${prescriptionsBlock ?? '(nenhuma prescrição registrada)'}
+Adesão estimada do paciente: ${treatment ? treatment.adherence : '(não avaliada)'}
+
 Gere o NOVO resumo cumulativo, INCORPORANDO o resumo anterior e ADICIONANDO o que houve nesta consulta. Use EXATAMENTE estas quatro seções, em texto simples:
 
-Medicações em uso: <medicações/condutas que o aluno prescreveu até agora, extraídas do pensamento clínico e da conversa; se nenhuma, escreva "nenhuma">
+Medicações em uso: <use as prescrições do aluno listadas acima como fonte primária; complemente com condutas do pensamento clínico/conversa; se não houver, escreva "nenhuma">
 Exames já realizados: <exames feitos e seus achados-chave ao longo das consultas>
-Evolução: <linha do tempo curta, uma linha por consulta>
+Evolução: <linha do tempo curta, uma linha por consulta; considere a adesão estimada (uma adesão baixa explica melhora parcial ou recaída mesmo com prescrição adequada)>
 Plano/pendências: <o que ficou combinado / o que monitorar na próxima consulta>
 
 REGRAS:
@@ -186,12 +207,22 @@ O campo sistemas_adicionais deve conter apenas ACHADOS OBJETIVOS de sistemas adi
 
 export function buildFinishPrompt(
   patient: Patient,
-  clinicalReasoning: string
+  clinicalReasoning: string,
+  treatment?: TreatmentContext
 ): string {
   const trueDiag = (patient as Record<string, unknown>).true_diagnosis as string | null
   const diagContext = trueDiag
     ? `Diagnóstico verdadeiro do caso: ${trueDiag}`
     : `Especialidade: ${patient.specialty} — infira a evolução clínica provável`
+
+  const treatmentSection = treatment && treatment.prescriptions.length > 0
+    ? `\nPRESCRIÇÕES ATIVAS (do aluno):\n${treatment.prescriptions
+        .map(p => `- ${p.drug_name} — ${p.posology} [adequação: ${p.adequacy ?? 'não avaliada'}]`)
+        .join('\n')}\nAdesão estimada do paciente: ${treatment.adherence}\n\nREGRA DO EFEITO DO TRATAMENTO (priorize sobre a heurística do pensamento clínico):
+- Prescrição adequada + adesão alta → melhora clara dos sintomas.
+- Prescrição adequada + adesão média/baixa → melhora apenas parcial ou recaída por má adesão.
+- Prescrição inadequada, ausente ou não avaliada → sem melhora, persistência ou leve piora (pode haver efeito adverso se claramente inadequada).`
+    : ''
 
   return `Você é um sistema de simulação médica. Uma consulta foi realizada.
 
@@ -199,14 +230,13 @@ Paciente: ${patient.name}, ${patient.age} anos
 Queixa original: ${patient.chief_complaint}
 Estado clínico anterior: ${patient.clinical_status}
 ${diagContext}
-Pensamento clínico registrado pelo aluno: ${clinicalReasoning || '(não registrado)'}
+Pensamento clínico registrado pelo aluno: ${clinicalReasoning || '(não registrado)'}${treatmentSection}
 
 Gere uma frase curta descrevendo o novo estado clínico do paciente após esta consulta.
 REGRAS:
 - Base a evolução no diagnóstico VERDADEIRO do caso, não no que o aluno escreveu
 - NUNCA mencione o nome da doença/diagnóstico explicitamente — descreva apenas os sintomas e evolução
-- Se o pensamento clínico indica tratamento razoável para o caso → melhora parcial
-- Se o tratamento parece inadequado ou ausente → sem melhora ou piora leve
+- Se NÃO houver prescrições ativas: tratamento razoável no pensamento clínico → melhora parcial; inadequado/ausente → sem melhora ou piora leve
 - Use linguagem de sistema médico (3ª pessoa, concisa)
 
 Responda APENAS com a frase do estado clínico (sem JSON, sem explicação).`

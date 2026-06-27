@@ -92,6 +92,46 @@ describe('buildCaseSummaryPrompt', () => {
   })
 })
 
+describe('buildFinishPrompt — efeito do tratamento', () => {
+  it('injeta prescrições ativas, adesão e a regra de efeito quando há tratamento', () => {
+    const p = buildFinishPrompt(mockPatient as Patient, 'iniciei furosemida', {
+      prescriptions: [{ drug_name: 'Furosemida', posology: '40 mg VO 1x/dia', adequacy: 'adequada' }],
+      adherence: 'alta',
+    })
+    expect(p).toContain('PRESCRIÇÕES ATIVAS')
+    expect(p).toContain('Furosemida')
+    expect(p).toContain('alta')
+    expect(p).toContain('adequada')
+  })
+
+  it('sem tratamento, mantém comportamento antigo (sem seção de prescrição)', () => {
+    const p = buildFinishPrompt(mockPatient as Patient, 'observação')
+    expect(p).not.toContain('PRESCRIÇÕES ATIVAS')
+  })
+
+  it('ignora a seção quando a lista de prescrições está vazia', () => {
+    const p = buildFinishPrompt(mockPatient as Patient, 'x', { prescriptions: [], adherence: 'média' })
+    expect(p).not.toContain('PRESCRIÇÕES ATIVAS')
+  })
+})
+
+describe('buildCaseSummaryPrompt — efeito do tratamento', () => {
+  it('lista as prescrições estruturadas e a adesão estimada', () => {
+    const p = buildCaseSummaryPrompt(mockPatient as Patient, null, [], 'rx', [], {
+      prescriptions: [{ drug_name: 'Losartana', posology: '50 mg', adequacy: 'adequada' }],
+      adherence: 'baixa',
+    })
+    expect(p).toContain('Losartana')
+    expect(p).toContain('baixa')
+  })
+
+  it('sem tratamento, indica adesão não avaliada e nenhuma prescrição', () => {
+    const p = buildCaseSummaryPrompt(mockPatient as Patient, null, [], '', [])
+    expect(p).toContain('(nenhuma prescrição registrada)')
+    expect(p).toContain('(não avaliada)')
+  })
+})
+
 describe('buildPatientSystemPrompt — memória do caso', () => {
   it('NÃO injeta memória na primeira consulta, mesmo com summary', () => {
     const p = buildPatientSystemPrompt(mockPatient as Patient, undefined, true, 'MEMORIA_XYZ')
@@ -107,5 +147,19 @@ describe('buildPatientSystemPrompt — memória do caso', () => {
   it('não injeta bloco de memória em retorno sem summary', () => {
     const p = buildPatientSystemPrompt(mockPatient as Patient, undefined, false, null)
     expect(p).not.toContain('MEMÓRIA DO CASO')
+  })
+})
+
+describe('buildPatientSystemPrompt — medicações em uso', () => {
+  it('injeta as medicações ativas quando há prescrições', () => {
+    const p = buildPatientSystemPrompt(mockPatient as Patient, undefined, false, null, ['Losartana', 'AAS'])
+    expect(p).toContain('MEDICAÇÕES EM USO')
+    expect(p).toContain('Losartana')
+    expect(p).toContain('AAS')
+  })
+
+  it('não injeta o bloco quando não há medicações', () => {
+    const p = buildPatientSystemPrompt(mockPatient as Patient, undefined, false, null, [])
+    expect(p).not.toContain('MEDICAÇÕES EM USO')
   })
 })

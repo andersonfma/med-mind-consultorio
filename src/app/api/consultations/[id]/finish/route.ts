@@ -2,9 +2,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
-import { buildFinishPrompt, buildCaseSummaryPrompt, type ChatMessage } from '@/lib/consultations/prompts'
+import { buildFinishPrompt, buildCaseSummaryPrompt, type ChatMessage, type TreatmentContext } from '@/lib/consultations/prompts'
 import { buildAb4ScorePrompt, type Ab4ExamInput } from '@/lib/consultations/ab4-prompts'
 import { parseAb4Response, emptyReasoningResult, type Ab4Result } from '@/lib/consultations/ab4'
+import { estimateAdherence } from '@/lib/prescriptions/adherence'
 
 export async function POST(
   request: NextRequest,
@@ -55,6 +56,35 @@ export async function POST(
   const diagnosisStatus = (patient as Record<string, unknown>).diagnosis_status as string | null
   const isFollowUp = diagnosisStatus === 'achieved' || diagnosisStatus === 'revealed'
 
+  // Contexto de tratamento (best-effort): prescrições ATIVAS do paciente cruzadas com a
+  // adesão estimada (vínculo × personalidade). Alimenta a evolução clínica e o resumo.
+  // Escopo por PACIENTE (não por consulta) é intencional: o tratamento é longitudinal —
+  // medicações ativas persistem entre consultas até serem suspensas (mesmo critério da
+  // rota do chat). Se a coleta falhar, o encerramento segue sem efeito de tratamento.
+  let treatment: TreatmentContext | undefined
+  try {
+    const { data: rxRows } = await supabase
+      .from('prescriptions')
+      .select('drug_name, posology, adequacy')
+      .eq('patient_id', patient.id as string)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+    if (rxRows && rxRows.length > 0) {
+      const bond = (patient as Record<string, unknown>).bond_level as number ?? 3
+      const personality = (patient as Record<string, unknown>).personality as string | null
+      treatment = {
+        prescriptions: rxRows.map(r => ({
+          drug_name: r.drug_name as string,
+          posology: r.posology as string,
+          adequacy: (r.adequacy as string | null) ?? null,
+        })),
+        adherence: estimateAdherence(bond, personality),
+      }
+    }
+  } catch {
+    // best-effort — segue sem efeito de tratamento
+  }
+
   // Generate new clinical_status anchored to true_diagnosis (not student hypothesis)
   let newClinicalStatus: string
   try {
@@ -62,7 +92,7 @@ export async function POST(
       model: MODELS.utility,
       messages: [{
         role: 'user',
-        content: buildFinishPrompt(patient as never, clinicalReasoning),
+        content: buildFinishPrompt(patient as never, clinicalReasoning, treatment),
       }],
     }, { timeout: 25_000 })
 
@@ -114,7 +144,7 @@ export async function POST(
       messages: [{
         role: 'user',
         content: buildCaseSummaryPrompt(
-          patient as never, priorCaseSummary, chatHistory, clinicalReasoning, examRows ?? []
+          patient as never, priorCaseSummary, chatHistory, clinicalReasoning, examRows ?? [], treatment
         ),
       }],
     }, { timeout: 25_000 })

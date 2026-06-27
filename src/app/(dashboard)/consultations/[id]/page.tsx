@@ -30,11 +30,18 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       .select('exam_name, justification, result, status')
       .eq('consultation_id', consultation.id)
       .eq('user_id', user.id)
+    const { data: finishedRx } = await supabase
+      .from('prescriptions')
+      .select('id, drug_name, posology, adequacy, ai_feedback, status')
+      .eq('consultation_id', consultation.id)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
     return (
       <ConsultationReadOnly
         consultation={consultation}
         patient={patient}
         exams={finishedExams ?? []}
+        prescriptions={finishedRx ?? []}
       />
     )
   }
@@ -61,11 +68,20 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     previousExamResults = exams ?? []
   }
 
+  const { data: activeRx } = await supabase
+    .from('prescriptions')
+    .select('drug_name, posology')
+    .eq('patient_id', patient.id)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+  const activeMedications = (activeRx ?? []).map(r => ({ drug_name: r.drug_name, posology: r.posology }))
+
   return (
     <ConsultationClient
       consultation={consultation}
       patient={patient}
       previousExamResults={previousExamResults}
+      activeMedications={activeMedications}
     />
   )
 }

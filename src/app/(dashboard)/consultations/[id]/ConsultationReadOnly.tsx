@@ -11,6 +11,15 @@ type ExamRow = {
   status: string
 }
 
+type PrescriptionRow = {
+  id: string
+  drug_name: string
+  posology: string
+  adequacy: string | null
+  ai_feedback: string | null
+  status: string
+}
+
 type Ab4 = {
   a1: number; a2: number; a3: number | null; a4: number | null
   overall: number; recommendation: string; stage?: 1 | 2
@@ -20,6 +29,13 @@ type Props = {
   consultation: Consultation
   patient: Patient
   exams: ExamRow[]
+  prescriptions: PrescriptionRow[]
+}
+
+const ADEQUACY_LABEL: Record<string, { text: string; cls: string }> = {
+  adequada: { text: 'adequada', cls: 'text-emerald-600' },
+  parcial: { text: 'parcial', cls: 'text-amber-600' },
+  inadequada: { text: 'inadequada', cls: 'text-red-600' },
 }
 
 const ANAMNESIS_LABELS: Record<string, string> = {
@@ -56,7 +72,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-export function ConsultationReadOnly({ consultation, patient, exams }: Props) {
+export function ConsultationReadOnly({ consultation, patient, exams, prescriptions }: Props) {
   const chat = (consultation.chat_history ?? []) as ChatMessage[]
   const anamnesis = (consultation.anamnesis ?? {}) as Record<string, string>
   const physicalExam = (consultation.physical_exam ?? {}) as Record<string, unknown>
@@ -205,6 +221,30 @@ export function ConsultationReadOnly({ consultation, patient, exams }: Props) {
                     {e.result?.trim() && <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{cleanExamResult(e.result)}</p>}
                   </div>
                 ))}
+          </div>
+        </Section>
+
+        {/* Prescrições */}
+        <Section title="Prescrições">
+          <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+            {prescriptions.length === 0
+              ? <p className="text-sm text-gray-400 italic">Nenhuma prescrição registrada.</p>
+              : prescriptions.map(rx => {
+                  const adq = rx.adequacy ? ADEQUACY_LABEL[rx.adequacy] : null
+                  return (
+                    <div key={rx.id} className="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-800">
+                          {rx.drug_name}
+                          {rx.status === 'suspended' && <span className="text-gray-400 font-normal"> (suspenso)</span>}
+                        </p>
+                        {adq && <span className={`text-[10px] uppercase tracking-wide font-semibold ${adq.cls}`}>{adq.text}</span>}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">{rx.posology}</p>
+                      {rx.ai_feedback?.trim() && <p className="text-xs text-gray-400 mt-1">{rx.ai_feedback.trim()}</p>}
+                    </div>
+                  )
+                })}
           </div>
         </Section>
       </div>
