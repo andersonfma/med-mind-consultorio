@@ -61,11 +61,20 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     previousExamResults = exams ?? []
   }
 
+  const { data: activeRx } = await supabase
+    .from('prescriptions')
+    .select('drug_name, posology')
+    .eq('patient_id', patient.id)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+  const activeMedications = (activeRx ?? []).map(r => ({ drug_name: r.drug_name, posology: r.posology }))
+
   return (
     <ConsultationClient
       consultation={consultation}
       patient={patient}
       previousExamResults={previousExamResults}
+      activeMedications={activeMedications}
     />
   )
 }

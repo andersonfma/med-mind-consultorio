@@ -7,7 +7,9 @@ import { ClinicalReasoningField } from './ClinicalReasoningField'
 import { FinishModal } from './FinishModal'
 import { PhysicalExamPanel } from './PhysicalExamPanel'
 import { ExamRequestPanel } from './ExamRequestPanel'
+import { PrescriptionPanel } from './PrescriptionPanel'
 import type { ChatMessage } from '@/lib/consultations/prompts'
+import type { Specialty } from '@/lib/patients/specialties'
 import type { Anamnesis, PhysicalExam } from '@/lib/consultations/parse'
 import type { Patient, Consultation } from '@/types/domain'
 import { patientDetailRoute } from '@/lib/routes'
@@ -16,9 +18,10 @@ type Props = {
   consultation: Consultation
   patient: Patient
   previousExamResults: Array<{ exam_name: string; result: string | null }>
+  activeMedications?: Array<{ drug_name: string; posology: string }>
 }
 
-export function ConsultationClient({ consultation, patient, previousExamResults }: Props) {
+export function ConsultationClient({ consultation, patient, previousExamResults, activeMedications = [] }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(
     (consultation.chat_history as ChatMessage[]) ?? []
   )
@@ -103,11 +106,19 @@ export function ConsultationClient({ consultation, patient, previousExamResults 
             <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Exame Físico</p>
             <PhysicalExamPanel consultationId={consultation.id} initialExam={initialPhysicalExam} />
           </div>
-          <div>
+          <div className="border-b">
             <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Exames</p>
             <ExamRequestPanel
               consultationId={consultation.id}
               previousExamResults={previousExamResults}
+            />
+          </div>
+          <div className="border-t">
+            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Prescrições</p>
+            <PrescriptionPanel
+              consultationId={consultation.id}
+              specialty={patient.specialty as Specialty}
+              activeMedications={activeMedications}
             />
           </div>
         </div>
