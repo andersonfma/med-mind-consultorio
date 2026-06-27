@@ -30,11 +30,18 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       .select('exam_name, justification, result, status')
       .eq('consultation_id', consultation.id)
       .eq('user_id', user.id)
+    const { data: finishedRx } = await supabase
+      .from('prescriptions')
+      .select('id, drug_name, posology, adequacy, ai_feedback, status')
+      .eq('consultation_id', consultation.id)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
     return (
       <ConsultationReadOnly
         consultation={consultation}
         patient={patient}
         exams={finishedExams ?? []}
+        prescriptions={finishedRx ?? []}
       />
     )
   }
