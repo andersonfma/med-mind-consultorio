@@ -30,7 +30,7 @@ export function PrescriptionPanel({ consultationId, specialty, activeMedications
     fetch(`/api/consultations/${consultationId}/prescriptions`)
       .then(r => r.json())
       .then(d => setItems(Array.isArray(d) ? d : []))
-      .catch(() => {})
+      .catch(() => setError('Erro ao carregar prescrições.'))
   }, [consultationId])
 
   const suggestions = drug.length > 1 ? searchCatalog(specialty, drug) : []
@@ -79,6 +79,7 @@ export function PrescriptionPanel({ consultationId, specialty, activeMedications
             onChange={e => { setDrug(e.target.value); setShowSug(true); setSource('free') }}
             onBlur={() => setTimeout(() => setShowSug(false), 150)}
             placeholder="Medicamento..."
+            maxLength={300}
             className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm"
           />
           {showSug && suggestions.length > 0 && (

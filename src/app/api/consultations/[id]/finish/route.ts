@@ -58,7 +58,9 @@ export async function POST(
 
   // Contexto de tratamento (best-effort): prescrições ATIVAS do paciente cruzadas com a
   // adesão estimada (vínculo × personalidade). Alimenta a evolução clínica e o resumo.
-  // Se a coleta falhar, o encerramento segue sem efeito de tratamento.
+  // Escopo por PACIENTE (não por consulta) é intencional: o tratamento é longitudinal —
+  // medicações ativas persistem entre consultas até serem suspensas (mesmo critério da
+  // rota do chat). Se a coleta falhar, o encerramento segue sem efeito de tratamento.
   let treatment: TreatmentContext | undefined
   try {
     const { data: rxRows } = await supabase

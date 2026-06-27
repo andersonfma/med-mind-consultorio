@@ -11,12 +11,13 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { prescriptionId } = await params
+  const { id, prescriptionId } = await params
 
   const { data, error } = await supabase
     .from('prescriptions')
     .update({ status: 'suspended' })
     .eq('id', prescriptionId)
+    .eq('consultation_id', id)
     .eq('user_id', user.id)
     .select(SELECT)
     .single()
