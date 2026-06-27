@@ -149,3 +149,17 @@ describe('buildPatientSystemPrompt — memória do caso', () => {
     expect(p).not.toContain('MEMÓRIA DO CASO')
   })
 })
+
+describe('buildPatientSystemPrompt — medicações em uso', () => {
+  it('injeta as medicações ativas quando há prescrições', () => {
+    const p = buildPatientSystemPrompt(mockPatient as Patient, undefined, false, null, ['Losartana', 'AAS'])
+    expect(p).toContain('MEDICAÇÕES EM USO')
+    expect(p).toContain('Losartana')
+    expect(p).toContain('AAS')
+  })
+
+  it('não injeta o bloco quando não há medicações', () => {
+    const p = buildPatientSystemPrompt(mockPatient as Patient, undefined, false, null, [])
+    expect(p).not.toContain('MEDICAÇÕES EM USO')
+  })
+})

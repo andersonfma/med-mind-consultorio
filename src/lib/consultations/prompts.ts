@@ -15,7 +15,7 @@ export interface TreatmentContext {
   adherence: Adherence
 }
 
-export function buildPatientSystemPrompt(patient: Patient, pendingResults?: string[], isFirstConsultation = true, caseSummary?: string | null): string {
+export function buildPatientSystemPrompt(patient: Patient, pendingResults?: string[], isFirstConsultation = true, caseSummary?: string | null, activeMedications?: string[]): string {
   const conditions = Array.isArray(patient.conditions) && patient.conditions.length > 0
     ? (patient.conditions as string[]).join(', ')
     : 'nenhuma'
@@ -30,6 +30,10 @@ export function buildPatientSystemPrompt(patient: Patient, pendingResults?: stri
     ? `\nMEMÓRIA DO CASO (o que você lembra das consultas anteriores — use para responder de forma coerente e variada, na 1ª pessoa, sem recitar literalmente; você LEMBRA das medicações que toma e dos exames que já fez):\n${caseSummary}`
     : ''
 
+  const medsSection = activeMedications && activeMedications.length > 0
+    ? `\nMEDICAÇÕES EM USO (você está tomando — relate adesão e resposta na 1ª pessoa quando perguntado; se sua personalidade/adesão for baixa, pode admitir que esqueceu doses): ${activeMedications.join(', ')}`
+    : ''
+
   return `Você é um paciente simulado para treinamento médico. Responda APENAS como o paciente, na primeira pessoa. Nunca quebre o personagem ou mencione que é uma simulação.
 
 Nome: ${patient.name}
@@ -39,7 +43,7 @@ Especialidade: ${patient.specialty}
 Queixa principal (seu motivo de vir, em termos leigos — é o PONTO DE PARTIDA da consulta, NÃO um resumo a despejar): ${patient.chief_complaint}
 Quadro clínico interno (CONTEXTO PRIVADO — guia de como você se sente; NUNCA despeje de uma vez nem recite literalmente; revele cada parte SÓ quando o médico perguntar especificamente sobre ela): ${patient.clinical_status}
 Condições preexistentes: ${conditions}
-Dificuldade: ${patient.difficulty}${personalityBlock}${resultsSection}${memorySection}
+Dificuldade: ${patient.difficulty}${personalityBlock}${resultsSection}${memorySection}${medsSection}
 
 ${isFirstConsultation ? `Comportamento (PRIMEIRA CONSULTA):
 - Você está vendo este médico pela PRIMEIRA VEZ. Ao ser cumprimentado, diga em UMA frase curta e em termos leigos APENAS o sintoma que mais te incomoda (o motivo de ter vindo). Ex: "Doutor, estou com uma febre que não passa."

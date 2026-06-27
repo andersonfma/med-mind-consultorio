@@ -71,7 +71,18 @@ export async function POST(
 
   const isFirstConsultation = !lastConsultation
   const caseSummary = (patient as Record<string, unknown>).case_summary as string | null ?? null
-  const systemPrompt = buildPatientSystemPrompt(patient as never, pendingResults, isFirstConsultation, caseSummary)
+
+  // Medicações ativas do paciente (prescrições não suspensas) — o paciente sabe o que toma
+  // e relata adesão/resposta ao tratamento na 1ª pessoa.
+  const { data: activeRx } = await supabase
+    .from('prescriptions')
+    .select('drug_name')
+    .eq('patient_id', patientId)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+  const activeMedications = (activeRx ?? []).map((r: { drug_name: string }) => r.drug_name)
+
+  const systemPrompt = buildPatientSystemPrompt(patient as never, pendingResults, isFirstConsultation, caseSummary, activeMedications)
 
   // Map roles: student→user, patient→assistant (OpenAI only accepts standard roles)
   const messages = [
