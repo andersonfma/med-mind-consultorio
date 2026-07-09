@@ -41,6 +41,16 @@ describe('buildExamValidationPrompt', () => {
     expect(prompt).toContain('Suspeito de SCA')
     expect(prompt).toContain('FC 110 bpm')
   })
+
+  it('instrui a aprovar na dúvida e só reprovar sem nexo algum', () => {
+    const prompt = buildExamValidationPrompt(
+      mockPatient as Patient, 'Ecocardiograma', 'avaliar sopro e turgência jugular', '', ''
+    )
+    const lower = prompt.toLowerCase()
+    expect(lower).toContain('na dúvida')
+    expect(lower).toContain('aprov')
+    expect(lower).toContain('nenhum')
+  })
 })
 
 describe('buildExamResultPrompt', () => {
