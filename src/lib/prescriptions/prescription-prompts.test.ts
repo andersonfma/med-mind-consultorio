@@ -31,6 +31,7 @@ describe('buildPrescriptionEvalPrompt', () => {
     expect(lower).toContain('não')
     expect(lower).toContain('feedback')
     // deve conter uma proibição explícita de nomear/revelar o diagnóstico
-    expect(/n[ãa]o.*(nome|cit|revel).*(diagn[óo]stico)/s.test(lower)).toBe(true)
+    // ([\s\S] em vez do flag /s para compatibilidade com o target do tsconfig)
+    expect(/n[ãa]o[\s\S]*(nome|cit|revel)[\s\S]*(diagn[óo]stico)/.test(lower)).toBe(true)
   })
 })
