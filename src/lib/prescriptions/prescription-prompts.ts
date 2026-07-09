@@ -32,6 +32,8 @@ Classifique a adequação em UMA das três faixas:
 
 Considere a segurança (contraindicações óbvias para as condições do paciente). O foco é a ESCOLHA do fármaco para o caso, não a casa decimal da dose.
 
+REGRA CRÍTICA — NÃO REVELE O DIAGNÓSTICO: use o diagnóstico verdadeiro APENAS internamente, para decidir a adequação. É PROIBIDO nomear, citar ou insinuar o diagnóstico verdadeiro (ou a entidade/doença específica) no campo "feedback". O aluno ainda está descobrindo o caso — revelar o diagnóstico estraga a simulação. Redija o feedback em termos do QUADRO/QUEIXA e da SEGURANÇA (ex: "adequado para manejo de congestão/edema, mas falta indicação clara e monitorização"), NUNCA em termos da doença de base.
+
 Responda APENAS com JSON válido:
 {
   "adequacy": "adequada" | "parcial" | "inadequada",

@@ -24,4 +24,13 @@ describe('buildPrescriptionEvalPrompt', () => {
     expect(p).toContain('inadequada')
     expect(p.toLowerCase()).toContain('json')
   })
+
+  it('proíbe revelar/nomear o diagnóstico verdadeiro no feedback', () => {
+    const p = buildPrescriptionEvalPrompt(patient, 'Furosemida', '40 mg VO 1x/dia', 'congestão')
+    const lower = p.toLowerCase()
+    expect(lower).toContain('não')
+    expect(lower).toContain('feedback')
+    // deve conter uma proibição explícita de nomear/revelar o diagnóstico
+    expect(/n[ãa]o.*(nome|cit|revel).*(diagn[óo]stico)/s.test(lower)).toBe(true)
+  })
 })
