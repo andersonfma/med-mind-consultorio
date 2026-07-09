@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseAnamnesisResponse } from './parse'
+import { parseAnamnesisResponse, formatPhysicalExamSummary } from './parse'
 
 describe('parseAnamnesisResponse', () => {
   it('retorna os 5 campos quando todos presentes', () => {
@@ -42,5 +42,28 @@ describe('parseAnamnesisResponse', () => {
     const result = parseAnamnesisResponse(input)
     expect(result.hda).toBe('')
     expect(result.hpp).toBe('')
+  })
+})
+
+describe('formatPhysicalExamSummary', () => {
+  it('inclui todos os campos preenchidos com rótulos legíveis', () => {
+    const out = formatPhysicalExamSummary({
+      sinais_vitais: 'PA 120/80',
+      aparelho_cardiovascular: 'Sopro sistólico em foco aórtico; turgência jugular a 45°',
+      aparelho_respiratorio: '',
+      abdome: 'Flácido, indolor',
+      sistemas_adicionais: { pele: 'Equimoses em MMII' },
+    })
+    expect(out).toContain('Sinais vitais: PA 120/80')
+    expect(out).toContain('Aparelho cardiovascular: Sopro sistólico em foco aórtico; turgência jugular a 45°')
+    expect(out).toContain('Abdome: Flácido, indolor')
+    expect(out).toContain('pele: Equimoses em MMII')
+    expect(out).not.toContain('Aparelho respiratório:') // campo vazio é omitido
+  })
+
+  it('retorna string vazia quando nada está preenchido', () => {
+    expect(formatPhysicalExamSummary({})).toBe('')
+    expect(formatPhysicalExamSummary(null)).toBe('')
+    expect(formatPhysicalExamSummary(undefined)).toBe('')
   })
 })

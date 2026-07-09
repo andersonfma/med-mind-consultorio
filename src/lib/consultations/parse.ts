@@ -73,3 +73,31 @@ export function parsePhysicalExamResponse(raw: string): PhysicalExam {
     return { ...EMPTY_PHYSICAL_EXAM, sistemas_adicionais: {} }
   }
 }
+
+const PHYSICAL_EXAM_LABELS: Record<string, string> = {
+  antropometria: 'Antropometria',
+  inspecao_geral: 'Inspeção geral',
+  sinais_vitais: 'Sinais vitais',
+  aparelho_respiratorio: 'Aparelho respiratório',
+  aparelho_cardiovascular: 'Aparelho cardiovascular',
+  abdome: 'Abdome',
+  membros_inferiores: 'Membros inferiores',
+}
+
+export function formatPhysicalExamSummary(
+  exam: Record<string, unknown> | null | undefined
+): string {
+  if (!exam || typeof exam !== 'object') return ''
+  const lines: string[] = []
+  for (const [key, label] of Object.entries(PHYSICAL_EXAM_LABELS)) {
+    const v = exam[key]
+    if (typeof v === 'string' && v.trim()) lines.push(`${label}: ${v.trim()}`)
+  }
+  const sistemas = exam.sistemas_adicionais
+  if (sistemas && typeof sistemas === 'object' && !Array.isArray(sistemas)) {
+    for (const [k, v] of Object.entries(sistemas as Record<string, unknown>)) {
+      if (typeof v === 'string' && v.trim()) lines.push(`${k}: ${v.trim()}`)
+    }
+  }
+  return lines.join('\n')
+}
