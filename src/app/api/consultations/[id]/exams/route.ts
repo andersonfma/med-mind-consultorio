@@ -4,6 +4,7 @@ import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
 import { buildExamValidationPrompt, buildExamResultPrompt } from '@/lib/exams/exam-prompts'
 import { cleanExamResult } from '@/lib/exams/clean'
+import { formatPhysicalExamSummary } from '@/lib/consultations/parse'
 import type { Patient } from '@/types/domain'
 
 export async function POST(
@@ -63,10 +64,8 @@ export async function POST(
 
   const patient = (consultation as Record<string, unknown>).patients as Patient
   const clinicalReasoning = consultation.clinical_reasoning ?? ''
-  const physicalExam = consultation.physical_exam as Record<string, string> ?? {}
-  const physicalExamSummary = physicalExam.sinais_vitais
-    ? `Sinais vitais: ${physicalExam.sinais_vitais}`
-    : ''
+  const physicalExam = consultation.physical_exam as Record<string, unknown> ?? {}
+  const physicalExamSummary = formatPhysicalExamSummary(physicalExam)
   const caseSummary = (patient as Record<string, unknown>).case_summary as string | null ?? null
   const isFollowUp = !!(caseSummary && caseSummary.trim())
 
