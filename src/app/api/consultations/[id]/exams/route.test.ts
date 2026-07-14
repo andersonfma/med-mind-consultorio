@@ -30,7 +30,10 @@ const mockPatient = {
 }
 const mockConsultation = {
   clinical_reasoning: 'Suspeito de IAM',
-  physical_exam: { sinais_vitais: 'PA: 140/90 mmHg' },
+  physical_exam: {
+    sinais_vitais: 'PA: 140/90 mmHg',
+    aparelho_cardiovascular: 'Sopro sistólico 3+/6; turgência jugular presente',
+  },
   patients: mockPatient,
 }
 
@@ -105,6 +108,13 @@ describe('POST /api/consultations/[id]/exams', () => {
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json.status).toBe('approved')
+  })
+
+  it('passa o exame físico completo (além dos sinais vitais) ao juiz', async () => {
+    await POST(...makePost({ exam_name: 'Ecocardiograma', justification: 'Avaliar sopro e turgência jugular' }))
+    const validationPrompt = mockCreate.mock.calls[0][0].messages[0].content as string
+    expect(validationPrompt).toContain('turgência jugular')
+    expect(validationPrompt).toContain('Sopro sistólico')
   })
 
   it('retorna 409 se exame já existe na consulta', async () => {

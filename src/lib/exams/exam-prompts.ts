@@ -32,10 +32,11 @@ Pensamento clínico: ${clinicalReasoning || '(não registrado)'}${memorySection}
 Exame solicitado: ${examName}
 Justificativa do aluno: ${justification}
 
-Critérios de aprovação:
-- Exames diretamente relacionados à queixa ou hipótese diagnóstica: aprovar se a justificativa for razoável
-- Exames de rastreio/prevenção (ex: colonoscopia para rastreio colorretal, mamografia, PSA, densitometria): aprovar se o aluno mencionar rastreio ou prevenção como justificativa — mesmo sem relação com a queixa principal
-- Rejeitar apenas quando o exame não tem qualquer relação clínica ou preventiva com o caso E a justificativa for inadequada${followUpRule}
+Critérios de aprovação (SEJA PERMISSIVO — a barra é BAIXA):
+- Aprove sempre que houver QUALQUER nexo clínico plausível: relação com a queixa, com uma hipótese diagnóstica, com um achado do exame físico (ex: sopro/turgência → ecocardiograma), com as condições do paciente, ou com rastreio/prevenção.
+- Uma justificativa que cita um achado, um sintoma ou uma hipótese razoável JÁ é suficiente — não exija justificativa longa nem perfeita.
+- NA DÚVIDA, APROVE. O objetivo é treinar o raciocínio do aluno, não puni-lo por imprecisão.
+- Reprove APENAS quando o exame não tem NENHUM nexo clínico nem preventivo com o caso (ex: exame de uma área totalmente alheia à queixa, sem menção a rastreio). Só nesse caso, "approved": false.${followUpRule}
 
 Responda APENAS com JSON válido:
 {
