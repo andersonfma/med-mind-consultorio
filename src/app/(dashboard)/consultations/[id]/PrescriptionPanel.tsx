@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { searchCatalog } from '@/lib/prescriptions/catalog'
 import type { Specialty } from '@/lib/patients/specialties'
-import type { Prescription } from '@/lib/prescriptions/types'
+import type { Prescription, ConductKind } from '@/lib/prescriptions/types'
 
 type Props = {
   consultationId: string
@@ -22,6 +22,7 @@ export function PrescriptionPanel({ consultationId, specialty, activeMedications
   const [posology, setPosology] = useState('')
   const [justification, setJustification] = useState('')
   const [source, setSource] = useState<'catalog' | 'free'>('free')
+  const [kind, setKind] = useState<ConductKind>('medicamento')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showSug, setShowSug] = useState(false)
@@ -41,12 +42,12 @@ export function PrescriptionPanel({ consultationId, specialty, activeMedications
     try {
       const res = await fetch(`/api/consultations/${consultationId}/prescriptions`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ drug_name: drug.trim(), posology: posology.trim(), justification: justification.trim() || undefined, source }),
+        body: JSON.stringify({ drug_name: drug.trim(), posology: posology.trim(), justification: justification.trim() || undefined, source, kind }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Erro ao prescrever'); return }
       setItems(prev => [...prev, data as Prescription])
-      setDrug(''); setPosology(''); setJustification(''); setSource('free')
+      setDrug(''); setPosology(''); setJustification(''); setSource('free'); setKind('medicamento')
     } catch { setError('Erro de conexão.') } finally { setLoading(false) }
   }
 
@@ -73,16 +74,25 @@ export function PrescriptionPanel({ consultationId, specialty, activeMedications
       )}
 
       <div className="space-y-2">
+        <div className="flex gap-1">
+          {(['medicamento', 'procedimento', 'medida'] as ConductKind[]).map(k => (
+            <button key={k} type="button"
+              onClick={() => setKind(k)}
+              className={`text-xs px-2 py-1 rounded-md capitalize ${kind === k ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600'}`}>
+              {k}
+            </button>
+          ))}
+        </div>
         <div className="relative">
           <input
             type="text" value={drug}
             onChange={e => { setDrug(e.target.value); setShowSug(true); setSource('free') }}
             onBlur={() => setTimeout(() => setShowSug(false), 150)}
-            placeholder="Medicamento..."
+            placeholder={kind === 'medicamento' ? 'Medicamento...' : kind === 'procedimento' ? 'Procedimento...' : 'Medida...'}
             maxLength={300}
             className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm"
           />
-          {showSug && suggestions.length > 0 && (
+          {kind === 'medicamento' && showSug && suggestions.length > 0 && (
             <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
               {suggestions.map(s => (
                 <li key={s.name}
@@ -98,7 +108,7 @@ export function PrescriptionPanel({ consultationId, specialty, activeMedications
         <input
           type="text" value={posology}
           onChange={e => setPosology(e.target.value)}
-          placeholder="Posologia (dose, via, frequência, duração)..."
+          placeholder={kind === 'medicamento' ? 'Posologia (dose, via, frequência, duração)...' : 'Detalhamento...'}
           maxLength={1000}
           className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm"
         />
@@ -120,6 +130,7 @@ export function PrescriptionPanel({ consultationId, specialty, activeMedications
             <div key={rx.id} className={`rounded-md px-3 py-2 text-sm ${rx.status === 'suspended' ? 'bg-gray-100 opacity-60' : 'bg-gray-50'}`}>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-gray-800">
+                  {rx.kind !== 'medicamento' && <span className="text-gray-400 mr-1">[{rx.kind}]</span>}
                   {rx.drug_name}{rx.status === 'suspended' && ' (suspenso)'}
                 </span>
                 {rx.adequacy && (
