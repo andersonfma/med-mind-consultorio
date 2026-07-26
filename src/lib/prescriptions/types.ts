@@ -2,6 +2,7 @@ export type Adequacy = 'adequada' | 'parcial' | 'inadequada'
 export type PrescriptionSource = 'catalog' | 'free'
 export type PrescriptionStatus = 'active' | 'suspended'
 export type Adherence = 'alta' | 'média' | 'baixa'
+export type ConductKind = 'medicamento' | 'procedimento' | 'medida'
 
 /** Linha retornada ao cliente (sem user_id/patient_id). */
 export interface Prescription {
@@ -15,4 +16,5 @@ export interface Prescription {
   ai_feedback: string | null
   status: PrescriptionStatus
   created_at: string
+  kind: ConductKind
 }
