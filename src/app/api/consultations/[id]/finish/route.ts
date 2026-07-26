@@ -5,7 +5,8 @@ import { MODELS } from '@/lib/openai/models'
 import { buildFinishPrompt, buildCaseSummaryPrompt, type ChatMessage, type TreatmentContext } from '@/lib/consultations/prompts'
 import { buildAb4ScorePrompt, type Ab4ExamInput } from '@/lib/consultations/ab4-prompts'
 import { parseAb4Response, emptyReasoningResult, type Ab4Result } from '@/lib/consultations/ab4'
-import { estimateAdherence } from '@/lib/prescriptions/adherence'
+import { estimateAdherence, nextBondLevel } from '@/lib/prescriptions/adherence'
+import { buildConductEvalPrompt, parseConductAdequacy, type ConductItem } from '@/lib/prescriptions/conduct-eval'
 
 export async function POST(
   request: NextRequest,
@@ -65,20 +66,40 @@ export async function POST(
   try {
     const { data: rxRows } = await supabase
       .from('prescriptions')
-      .select('drug_name, posology, adequacy')
+      .select('drug_name, posology, adequacy, kind')
       .eq('patient_id', patient.id as string)
       .eq('user_id', user.id)
       .eq('status', 'active')
     if (rxRows && rxRows.length > 0) {
       const bond = (patient as Record<string, unknown>).bond_level as number ?? 3
       const personality = (patient as Record<string, unknown>).personality as string | null
+      const conduct: ConductItem[] = rxRows.map(r => ({
+        drug_name: r.drug_name as string,
+        posology: r.posology as string,
+        kind: (r.kind as ConductItem['kind']) ?? 'medicamento',
+      }))
+      // Juiz de conduta GLOBAL (best-effort). Falha → 'parcial' (nunca pune o acerto por erro técnico).
+      let conductAdequacy: import('@/lib/prescriptions/types').Adequacy = 'parcial'
+      try {
+        const evalC = await openai.chat.completions.create({
+          model: MODELS.utility,
+          response_format: { type: 'json_object' },
+          messages: [{ role: 'user', content: buildConductEvalPrompt(patient as never, conduct) }],
+        }, { timeout: 25_000 })
+        const parsed = parseConductAdequacy(evalC.choices[0]?.message?.content ?? '')
+        if (parsed) conductAdequacy = parsed
+      } catch {
+        // best-effort — mantém 'parcial'
+      }
       treatment = {
         prescriptions: rxRows.map(r => ({
           drug_name: r.drug_name as string,
           posology: r.posology as string,
           adequacy: (r.adequacy as string | null) ?? null,
+          kind: (r.kind as ConductItem['kind']) ?? 'medicamento',
         })),
         adherence: estimateAdherence(bond, personality),
+        conductAdequacy,
       }
     }
   } catch {
@@ -286,6 +307,23 @@ export async function POST(
     }
   } catch {
     // Best-effort — finish conclui mesmo se o AB4 falhar
+  }
+
+  // Evolução do vínculo (best-effort): +1 por consulta, modulado pela nota A2 (Retórico)
+  // desta consulta. Toma efeito na PRÓXIMA consulta (a adesão de hoje usou o vínculo antigo).
+  try {
+    const currentBond = (patient as Record<string, unknown>).bond_level as number ?? 1
+    const a2 = ab4 && typeof ab4.a2 === 'number' ? ab4.a2 : null
+    const newBond = nextBondLevel(currentBond, a2)
+    if (newBond !== currentBond) {
+      await supabase
+        .from('patients')
+        .update({ bond_level: newBond })
+        .eq('id', patient.id as string)
+        .eq('user_id', user.id)
+    }
+  } catch {
+    // best-effort — vínculo não evolui se algo falhar
   }
 
   return NextResponse.json({ patient_id: patient.id, diagnosis_achieved: diagnosisAchieved, ab4 }, { status: 200 })
