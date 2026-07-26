@@ -160,6 +160,7 @@ export type Database = {
           user_id: string
           drug_name: string
           posology: string
+          kind: string
           source: string
           justification: string | null
           adequacy: string | null
@@ -174,6 +175,7 @@ export type Database = {
           user_id: string
           drug_name: string
           posology: string
+          kind?: string
           source?: string
           justification?: string | null
           adequacy?: string | null
@@ -188,6 +190,7 @@ export type Database = {
           user_id?: string
           drug_name?: string
           posology?: string
+          kind?: string
           source?: string
           justification?: string | null
           adequacy?: string | null

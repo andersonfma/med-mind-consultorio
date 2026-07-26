@@ -34,4 +34,25 @@ describe('buildPrescriptionEvalPrompt', () => {
     // ([\s\S] em vez do flag /s para compatibilidade com o target do tsconfig)
     expect(/n[ãa]o[\s\S]*(nome|cit|revel)[\s\S]*(diagn[óo]stico)/.test(lower)).toBe(true)
   })
+
+  it('trata medicamento como prescrição de fármaco', () => {
+    const p = buildPrescriptionEvalPrompt(patient, 'terlipressina', '2mg 4/4h', null, null, 'medicamento')
+    expect(p).toMatch(/medicamento|fármaco/i)
+  })
+
+  it('trata procedimento sem falar em posologia/dose', () => {
+    const p = buildPrescriptionEvalPrompt(patient, 'ligadura elástica', 'sessão inicial', null, null, 'procedimento')
+    expect(p).toMatch(/procedimento/i)
+    expect(p).toContain('ligadura elástica')
+  })
+
+  it('mantém a proibição de revelar o diagnóstico (com kind)', () => {
+    const p = buildPrescriptionEvalPrompt(patient, 'terlipressina', '2mg', null, null, 'medicamento')
+    expect(p).toMatch(/NÃO REVELE O DIAGNÓSTICO/i)
+  })
+
+  it('default sem kind = medicamento (compat)', () => {
+    const p = buildPrescriptionEvalPrompt(patient, 'losartana', '50mg/dia', null, null)
+    expect(p).toMatch(/medicamento|fármaco/i)
+  })
 })

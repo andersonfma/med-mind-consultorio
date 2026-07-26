@@ -3,10 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
 import { buildPrescriptionEvalPrompt } from '@/lib/prescriptions/prescription-prompts'
-import type { Adequacy } from '@/lib/prescriptions/types'
+import type { Adequacy, ConductKind } from '@/lib/prescriptions/types'
 import type { Patient } from '@/types/domain'
 
-const SELECT = 'id, consultation_id, drug_name, posology, source, justification, adequacy, ai_feedback, status, created_at'
+const SELECT = 'id, consultation_id, drug_name, posology, kind, source, justification, adequacy, ai_feedback, status, created_at'
 
 export async function POST(
   request: NextRequest,
@@ -18,7 +18,7 @@ export async function POST(
   if (!body || typeof body !== 'object')
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
 
-  const { drug_name, posology, justification, source } = body as Record<string, unknown>
+  const { drug_name, posology, justification, source, kind } = body as Record<string, unknown>
   if (!drug_name || typeof drug_name !== 'string' || !drug_name.trim())
     return NextResponse.json({ error: 'drug_name required' }, { status: 400 })
   if (!posology || typeof posology !== 'string' || !posology.trim())
@@ -29,6 +29,9 @@ export async function POST(
     return NextResponse.json({ error: 'posology too long' }, { status: 400 })
   if (typeof justification === 'string' && justification.trim().length > 2000)
     return NextResponse.json({ error: 'justification too long' }, { status: 400 })
+
+  const conductKind: ConductKind =
+    kind === 'procedimento' || kind === 'medida' ? kind : 'medicamento'
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -60,7 +63,7 @@ export async function POST(
       response_format: { type: 'json_object' },
       messages: [{
         role: 'user',
-        content: buildPrescriptionEvalPrompt(patient, drug_name.trim(), posology.trim(), just, caseSummary),
+        content: buildPrescriptionEvalPrompt(patient, drug_name.trim(), posology.trim(), just, caseSummary, conductKind),
       }],
     }, { timeout: 25_000 })
     const raw = completion.choices[0]?.message?.content
@@ -82,6 +85,7 @@ export async function POST(
       user_id: user.id,
       drug_name: drug_name.trim(),
       posology: posology.trim(),
+      kind: conductKind,
       source: source === 'catalog' ? 'catalog' : 'free',
       justification: just,
       adequacy,
