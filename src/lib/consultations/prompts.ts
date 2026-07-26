@@ -1,6 +1,7 @@
 import type { Patient } from '@/types/domain'
 import { personalitySection } from '@/lib/patients/personalities'
 import type { Adherence } from '@/lib/prescriptions/types'
+import type { Adequacy, ConductKind } from '@/lib/prescriptions/types'
 
 export type ChatMessage = {
   role: 'student' | 'patient'
@@ -11,8 +12,10 @@ export type ChatMessage = {
 /** Contexto de tratamento para o passo de efeito no encerramento: prescrições
  *  ativas do aluno cruzadas com a adesão estimada do paciente. */
 export interface TreatmentContext {
-  prescriptions: { drug_name: string; posology: string; adequacy: string | null }[]
+  prescriptions: { drug_name: string; posology: string; adequacy: string | null; kind: ConductKind }[]
   adherence: Adherence
+  /** Nota GLOBAL do conjunto da conduta vs. diagnóstico (decide a evolução). */
+  conductAdequacy: Adequacy
 }
 
 export function buildPatientSystemPrompt(patient: Patient, pendingResults?: string[], isFirstConsultation = true, caseSummary?: string | null, activeMedications?: string[]): string {
@@ -84,7 +87,7 @@ export function buildCaseSummaryPrompt(
     : '(nenhum exame aprovado nesta consulta)'
 
   const prescriptionsBlock = treatment && treatment.prescriptions.length > 0
-    ? treatment.prescriptions.map(p => `- ${p.drug_name}: ${p.posology}`).join('\n')
+    ? treatment.prescriptions.map(p => `- [${p.kind}] ${p.drug_name}: ${p.posology}`).join('\n')
     : null
 
   return `Você é um sistema de prontuário médico. Atualize o resumo cumulativo do caso deste paciente após mais uma consulta.
@@ -104,15 +107,16 @@ ${clinicalReasoning || '(não registrado)'}
 CONSULTA ATUAL — exames realizados:
 ${exams}
 
-CONSULTA ATUAL — prescrições do aluno:
-${prescriptionsBlock ?? '(nenhuma prescrição registrada)'}
+CONSULTA ATUAL — conduta do aluno:
+${prescriptionsBlock ?? '(nenhuma conduta registrada)'}
+Adequação global da conduta: ${treatment ? treatment.conductAdequacy : '(não avaliada)'}
 Adesão estimada do paciente: ${treatment ? treatment.adherence : '(não avaliada)'}
 
 Gere o NOVO resumo cumulativo, INCORPORANDO o resumo anterior e ADICIONANDO o que houve nesta consulta. Use EXATAMENTE estas quatro seções, em texto simples:
 
-Medicações em uso: <use as prescrições do aluno listadas acima como fonte primária; complemente com condutas do pensamento clínico/conversa; se não houver, escreva "nenhuma">
+Medicações em uso: <use a conduta do aluno listada acima como fonte primária; complemente com condutas do pensamento clínico/conversa; se não houver, escreva "nenhuma">
 Exames já realizados: <exames feitos e seus achados-chave ao longo das consultas>
-Evolução: <linha do tempo curta, uma linha por consulta; considere a adesão estimada (uma adesão baixa explica melhora parcial ou recaída mesmo com prescrição adequada)>
+Evolução: <linha do tempo curta, uma linha por consulta; use a adequação GLOBAL da conduta e a adesão — conduta adequada nunca piora (no máximo melhora parcial se adesão baixa); conduta inadequada/ausente persiste ou piora>
 Plano/pendências: <o que ficou combinado / o que monitorar na próxima consulta>
 
 REGRAS:
@@ -215,13 +219,20 @@ export function buildFinishPrompt(
     ? `Diagnóstico verdadeiro do caso: ${trueDiag}`
     : `Especialidade: ${patient.specialty} — infira a evolução clínica provável`
 
+  const KIND_TAG: Record<ConductKind, string> = { medicamento: 'medicamento', procedimento: 'procedimento', medida: 'medida' }
   const treatmentSection = treatment && treatment.prescriptions.length > 0
-    ? `\nPRESCRIÇÕES ATIVAS (do aluno):\n${treatment.prescriptions
-        .map(p => `- ${p.drug_name} — ${p.posology} [adequação: ${p.adequacy ?? 'não avaliada'}]`)
-        .join('\n')}\nAdesão estimada do paciente: ${treatment.adherence}\n\nREGRA DO EFEITO DO TRATAMENTO (priorize sobre a heurística do pensamento clínico):
-- Prescrição adequada + adesão alta → melhora clara dos sintomas.
-- Prescrição adequada + adesão média/baixa → melhora apenas parcial ou recaída por má adesão.
-- Prescrição inadequada, ausente ou não avaliada → sem melhora, persistência ou leve piora (pode haver efeito adverso se claramente inadequada).`
+    ? `\nCONDUTA ATIVA (do aluno):\n${treatment.prescriptions
+        .map(p => `- [${KIND_TAG[p.kind]}] ${p.drug_name} — ${p.posology}`)
+        .join('\n')}
+Adequação GLOBAL do conjunto da conduta: ${treatment.conductAdequacy}
+Adesão estimada (só afeta medicamentos de uso contínuo; procedimento executado não depende de adesão): ${treatment.adherence}
+
+REGRA DO EFEITO DO TRATAMENTO (priorize sobre a heurística do pensamento clínico) — baseie-se na adequação GLOBAL do conjunto, não em itens isolados:
+- Conjunto "adequada" + adesão alta ou média → MELHORA CLARA dos sintomas.
+- Conjunto "adequada" + adesão baixa → MELHORA PARCIAL (a fala/estado pode trazer uma pista de má adesão a medicamentos).
+- Conjunto "parcial" → melhora parcial, com sintomas residuais.
+- Conjunto "inadequada" → persistência ou leve piora (efeito adverso possível se claramente danoso).
+REGRA DURA: conduta "adequada" NUNCA gera "sem melhora" nem piora — no máximo melhora parcial.`
     : ''
 
   return `Você é um sistema de simulação médica. Uma consulta foi realizada.

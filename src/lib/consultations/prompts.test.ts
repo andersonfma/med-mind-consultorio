@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildPatientSystemPrompt, buildAnamnesisPrompt, buildFinishPrompt, buildCaseSummaryPrompt } from './prompts'
+import { buildPatientSystemPrompt, buildAnamnesisPrompt, buildFinishPrompt, buildCaseSummaryPrompt, type TreatmentContext } from './prompts'
 import type { Patient } from '@/types/domain'
 
 const mockPatient: Partial<Patient> = {
@@ -93,41 +93,44 @@ describe('buildCaseSummaryPrompt', () => {
 })
 
 describe('buildFinishPrompt — efeito do tratamento', () => {
-  it('injeta prescrições ativas, adesão e a regra de efeito quando há tratamento', () => {
+  it('injeta conduta ativa, adesão e a adequação global quando há tratamento', () => {
     const p = buildFinishPrompt(mockPatient as Patient, 'iniciei furosemida', {
-      prescriptions: [{ drug_name: 'Furosemida', posology: '40 mg VO 1x/dia', adequacy: 'adequada' }],
+      prescriptions: [{ drug_name: 'Furosemida', posology: '40 mg VO 1x/dia', adequacy: 'adequada', kind: 'medicamento' }],
       adherence: 'alta',
+      conductAdequacy: 'adequada',
     })
-    expect(p).toContain('PRESCRIÇÕES ATIVAS')
+    expect(p).toContain('CONDUTA ATIVA')
     expect(p).toContain('Furosemida')
     expect(p).toContain('alta')
     expect(p).toContain('adequada')
   })
 
-  it('sem tratamento, mantém comportamento antigo (sem seção de prescrição)', () => {
+  it('sem tratamento, mantém comportamento antigo (sem seção de conduta)', () => {
     const p = buildFinishPrompt(mockPatient as Patient, 'observação')
-    expect(p).not.toContain('PRESCRIÇÕES ATIVAS')
+    expect(p).not.toContain('CONDUTA ATIVA')
   })
 
   it('ignora a seção quando a lista de prescrições está vazia', () => {
-    const p = buildFinishPrompt(mockPatient as Patient, 'x', { prescriptions: [], adherence: 'média' })
-    expect(p).not.toContain('PRESCRIÇÕES ATIVAS')
+    const p = buildFinishPrompt(mockPatient as Patient, 'x', { prescriptions: [], adherence: 'média', conductAdequacy: 'inadequada' })
+    expect(p).not.toContain('CONDUTA ATIVA')
   })
 })
 
 describe('buildCaseSummaryPrompt — efeito do tratamento', () => {
-  it('lista as prescrições estruturadas e a adesão estimada', () => {
+  it('lista a conduta estruturada (com kind) e a adesão estimada', () => {
     const p = buildCaseSummaryPrompt(mockPatient as Patient, null, [], 'rx', [], {
-      prescriptions: [{ drug_name: 'Losartana', posology: '50 mg', adequacy: 'adequada' }],
+      prescriptions: [{ drug_name: 'Losartana', posology: '50 mg', adequacy: 'adequada', kind: 'medicamento' }],
       adherence: 'baixa',
+      conductAdequacy: 'adequada',
     })
     expect(p).toContain('Losartana')
     expect(p).toContain('baixa')
+    expect(p).toContain('Adequação global da conduta: adequada')
   })
 
-  it('sem tratamento, indica adesão não avaliada e nenhuma prescrição', () => {
+  it('sem tratamento, indica adesão e adequação não avaliadas e nenhuma conduta', () => {
     const p = buildCaseSummaryPrompt(mockPatient as Patient, null, [], '', [])
-    expect(p).toContain('(nenhuma prescrição registrada)')
+    expect(p).toContain('(nenhuma conduta registrada)')
     expect(p).toContain('(não avaliada)')
   })
 })
@@ -147,6 +150,38 @@ describe('buildPatientSystemPrompt — memória do caso', () => {
   it('não injeta bloco de memória em retorno sem summary', () => {
     const p = buildPatientSystemPrompt(mockPatient as Patient, undefined, false, null)
     expect(p).not.toContain('MEMÓRIA DO CASO')
+  })
+})
+
+describe('buildFinishPrompt — matriz de evolução', () => {
+  const matrixPatient = {
+    name: 'Celina', age: 60, specialty: 'Clínica Médica',
+    chief_complaint: 'vômito com sangue', clinical_status: 'sangramento ativo',
+    true_diagnosis: 'Hemorragia varicosa',
+  } as unknown as Patient
+
+  function tx(conductAdequacy: TreatmentContext['conductAdequacy'], adherence: TreatmentContext['adherence']): TreatmentContext {
+    return {
+      prescriptions: [{ drug_name: 'terlipressina', posology: '2mg 4/4h', adequacy: 'parcial', kind: 'medicamento' }],
+      adherence,
+      conductAdequacy,
+    }
+  }
+
+  it('conduta adequada nunca gera piora (regra dura no prompt)', () => {
+    const p = buildFinishPrompt(matrixPatient, 'HDA por varizes', tx('adequada', 'baixa'))
+    expect(p).toMatch(/adequada.*(nunca|jamais).*(piora|sem melhora)/i)
+  })
+
+  it('usa a nota GLOBAL da conduta, não a adequação por item', () => {
+    const p = buildFinishPrompt(matrixPatient, 'raciocínio', tx('adequada', 'alta'))
+    expect(p).toMatch(/conjunto|global/i)
+    expect(p).toContain('adequada')
+  })
+
+  it('sem tratamento, mantém o ramo de heurística do pensamento clínico', () => {
+    const p = buildFinishPrompt(matrixPatient, 'raciocínio', undefined)
+    expect(p).toMatch(/pensamento clínico/i)
   })
 })
 
