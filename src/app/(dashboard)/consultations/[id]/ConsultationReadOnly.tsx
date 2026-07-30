@@ -15,6 +15,7 @@ type PrescriptionRow = {
   id: string
   drug_name: string
   posology: string
+  kind?: string
   adequacy: string | null
   ai_feedback: string | null
   status: string
@@ -225,7 +226,7 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
         </Section>
 
         {/* Prescrições */}
-        <Section title="Prescrições">
+        <Section title="Conduta">
           <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
             {prescriptions.length === 0
               ? <p className="text-sm text-gray-400 italic">Nenhuma prescrição registrada.</p>
@@ -235,6 +236,7 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
                     <div key={rx.id} className="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-gray-800">
+                          {rx.kind && rx.kind !== 'medicamento' && <span className="text-gray-400 font-normal">[{rx.kind}] </span>}
                           {rx.drug_name}
                           {rx.status === 'suspended' && <span className="text-gray-400 font-normal"> (suspenso)</span>}
                         </p>

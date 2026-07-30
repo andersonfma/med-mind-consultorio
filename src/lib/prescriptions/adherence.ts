@@ -24,3 +24,22 @@ export function estimateAdherence(bondLevel: number, personality: string | null)
   if (score >= 3) return 'média'
   return 'baixa'
 }
+
+/**
+ * Vínculo (bond_level 1–5) da PRÓXIMA consulta. Cresce com o tempo de relação
+ * (+1 por consulta finalizada) modulado pela competência relacional do aluno,
+ * medida pelo eixo A2 (Retórico) do AB4 desta consulta:
+ *   A2 >= 7 → +2 (boa escuta acelera o vínculo)
+ *   A2 <= 3 → +0 (relação fria não avança)
+ *   caso contrário, ou sem AB4 (a2 = null) → +1
+ * Sempre com clamp em [1, 5].
+ */
+export function nextBondLevel(current: number, a2: number | null): number {
+  const base = Math.max(1, Math.min(5, Math.round(current)))
+  let inc = 1
+  if (a2 !== null) {
+    if (a2 >= 7) inc = 2
+    else if (a2 <= 3) inc = 0
+  }
+  return Math.max(1, Math.min(5, base + inc))
+}

@@ -114,7 +114,7 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
             />
           </div>
           <div className="border-t">
-            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Prescrições</p>
+            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Conduta</p>
             <PrescriptionPanel
               consultationId={consultation.id}
               specialty={patient.specialty as Specialty}
