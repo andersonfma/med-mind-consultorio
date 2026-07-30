@@ -165,7 +165,7 @@ export async function POST(
       messages: [{
         role: 'user',
         content: buildCaseSummaryPrompt(
-          patient as never, priorCaseSummary, chatHistory, clinicalReasoning, examRows ?? [], treatment
+          patient as never, priorCaseSummary, chatHistory, clinicalReasoning, examRows ?? [], treatment, newClinicalStatus
         ),
       }],
     }, { timeout: 25_000 })
