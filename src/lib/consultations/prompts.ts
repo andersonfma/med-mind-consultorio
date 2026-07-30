@@ -76,7 +76,8 @@ export function buildCaseSummaryPrompt(
   chatHistory: ChatMessage[],
   clinicalReasoning: string,
   examResults: { exam_name: string; result: string | null }[],
-  treatment?: TreatmentContext
+  treatment?: TreatmentContext,
+  currentClinicalStatus?: string,
 ): string {
   const conversation = chatHistory
     .map(m => `${m.role === 'student' ? 'Médico' : 'Paciente'}: ${m.content}`)
@@ -112,11 +113,13 @@ ${prescriptionsBlock ?? '(nenhuma conduta registrada)'}
 Adequação global da conduta: ${treatment ? treatment.conductAdequacy : '(não avaliada)'}
 Adesão estimada do paciente: ${treatment ? treatment.adherence : '(não avaliada)'}
 
+ESTADO CLÍNICO ATUAL (FONTE DA VERDADE sobre como o paciente está AGORA, após esta consulta — a linha "consulta atual" da Evolução DEVE ser CONSISTENTE com isto e NÃO PODE contradizê-lo): ${currentClinicalStatus && currentClinicalStatus.trim() ? currentClinicalStatus : '(não informado — infira pela conduta e adesão)'}
+
 Gere o NOVO resumo cumulativo, INCORPORANDO o resumo anterior e ADICIONANDO o que houve nesta consulta. Use EXATAMENTE estas quatro seções, em texto simples:
 
 Medicações em uso: <use a conduta do aluno listada acima como fonte primária; complemente com condutas do pensamento clínico/conversa; se não houver, escreva "nenhuma">
 Exames já realizados: <exames feitos e seus achados-chave ao longo das consultas>
-Evolução: <linha do tempo curta, uma linha por consulta; use a adequação GLOBAL da conduta e a adesão — conduta adequada nunca piora (no máximo melhora parcial se adesão baixa); conduta inadequada/ausente persiste ou piora>
+Evolução: <linha do tempo curta, uma linha por consulta; a linha da CONSULTA ATUAL DEVE refletir o ESTADO CLÍNICO ATUAL acima (nunca o contradiga). Guia pela adequação GLOBAL da conduta + adesão: conduta "adequada" → melhora clara (adesão alta/média) ou melhora parcial (adesão baixa), NUNCA piora; conduta "parcial" → melhora parcial com sintomas residuais; conduta "inadequada"/ausente → persiste ou piora leve>
 Plano/pendências: <o que ficou combinado / o que monitorar na próxima consulta>
 
 REGRAS:

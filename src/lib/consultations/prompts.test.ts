@@ -133,6 +133,23 @@ describe('buildCaseSummaryPrompt — efeito do tratamento', () => {
     expect(p).toContain('(nenhuma conduta registrada)')
     expect(p).toContain('(não avaliada)')
   })
+
+  it('injeta o estado clínico atual como fonte da verdade e exige consistência da Evolução', () => {
+    const p = buildCaseSummaryPrompt(mockPatient as Patient, null, [], 'rx', [], {
+      prescriptions: [{ drug_name: 'terlipressina', posology: '2mg 4/4h', adequacy: 'parcial', kind: 'medicamento' }],
+      adherence: 'baixa',
+      conductAdequacy: 'parcial',
+    }, 'Paciente com melhora parcial dos episódios hemorrágicos')
+    expect(p).toContain('Paciente com melhora parcial dos episódios hemorrágicos')
+    // A Evolução da consulta atual não pode contradizer o estado clínico gravado.
+    expect(p).toMatch(/consistente|reflet|fonte da verdade|não pode contradizer/i)
+  })
+
+  it('a orientação de Evolução cobre explicitamente o caso de conduta parcial', () => {
+    const p = buildCaseSummaryPrompt(mockPatient as Patient, null, [], '', [])
+    // A matriz precisa ter uma regra PRÓPRIA para conduta "parcial" (não só adequada/inadequada).
+    expect(p).toMatch(/parcial["']?\s*(→|->|:)/i)
+  })
 })
 
 describe('buildPatientSystemPrompt — memória do caso', () => {
