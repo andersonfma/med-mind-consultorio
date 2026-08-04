@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
 
   const file = form.get('file')
   if (!(file instanceof Blob)) return NextResponse.json({ error: 'file required' }, { status: 400 })
+  if (file.type && !file.type.startsWith('audio/')) return NextResponse.json({ error: 'file must be audio' }, { status: 400 })
   if (file.size > MAX_BYTES) return NextResponse.json({ error: 'Áudio muito longo' }, { status: 413 })
 
   try {

@@ -50,37 +50,49 @@ export function useVoiceDictation(onTranscript: (text: string) => void) {
     }
     streamRef.current = stream
     chunksRef.current = []
-    const supported = typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(MIME)
-    const recorder = new MediaRecorder(stream, supported ? { mimeType: MIME } : undefined)
-    recorderRef.current = recorder
-    recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
-    recorder.onstop = async () => {
-      cleanup()
-      const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-      if (blob.size === 0) {
-        notIdleRef.current = false
-        if (isMountedRef.current) setState('idle')
-        return
+    try {
+      const supported = typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(MIME)
+      const recorder = new MediaRecorder(stream, supported ? { mimeType: MIME } : undefined)
+      recorderRef.current = recorder
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+      recorder.onstop = async () => {
+        cleanup()
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        if (blob.size === 0) {
+          notIdleRef.current = false
+          if (isMountedRef.current) setState('idle')
+          return
+        }
+        if (isMountedRef.current) setState('transcribing')
+        try {
+          const text = await transcribeBlob(blob)
+          notIdleRef.current = false
+          if (isMountedRef.current) {
+            if (text) onTranscript(text)
+            setState('idle')
+          }
+        } catch {
+          notIdleRef.current = false
+          if (isMountedRef.current) {
+            setError('Não consegui transcrever, tente de novo')
+            setState('idle')
+          }
+        }
       }
-      if (isMountedRef.current) setState('transcribing')
-      try {
-        const text = await transcribeBlob(blob)
-        notIdleRef.current = false
-        if (isMountedRef.current) {
-          if (text) onTranscript(text)
-          setState('idle')
-        }
-      } catch {
-        notIdleRef.current = false
-        if (isMountedRef.current) {
-          setError('Não consegui transcrever, tente de novo')
-          setState('idle')
-        }
+      recorder.start()
+      setState('recording')
+      timerRef.current = setTimeout(() => stop(), MAX_MS)
+    } catch {
+      // getUserMedia teve sucesso, mas o MediaRecorder falhou ao construir/iniciar
+      // (ex.: mimeType inválido no navegador). Libera o stream adquirido e o timer
+      // para não deixar o microfone aceso nem a gravação travada em "não idle".
+      cleanup()
+      notIdleRef.current = false
+      if (isMountedRef.current) {
+        setError('Não consegui iniciar a gravação')
+        setState('idle')
       }
     }
-    recorder.start()
-    setState('recording')
-    timerRef.current = setTimeout(() => stop(), MAX_MS)
   }, [cleanup, onTranscript, stop])
 
   useEffect(() => {

@@ -18,9 +18,9 @@ vi.mock('@/lib/supabase/server', () => ({
 import { NextRequest } from 'next/server'
 import { POST } from './route'
 
-function reqWithFile(bytes = 10, name = 'audio.webm') {
+function reqWithFile(bytes = 10, name = 'audio.webm', type = 'audio/webm') {
   const form = new FormData()
-  form.append('file', new File([new Uint8Array(bytes)], name, { type: 'audio/webm' }))
+  form.append('file', new File([new Uint8Array(bytes)], name, { type }))
   return new NextRequest('http://localhost/api/transcribe', { method: 'POST', body: form })
 }
 
@@ -52,6 +52,13 @@ describe('POST /api/transcribe', () => {
       method: 'POST', body: new FormData(),
     }))
     expect(res.status).toBe(400)
+  })
+
+  it('400 quando o content-type não é áudio', async () => {
+    const res = await POST(reqWithFile(10, 'nota.txt', 'text/plain'))
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'file must be audio' })
+    expect(mockCreate).not.toHaveBeenCalled()
   })
 
   it('413 quando o áudio excede 5 MB', async () => {
