@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import { MicButton } from './MicButton'
+import { appendTranscript } from '@/lib/audio/transcribe-client'
 
 type Props = {
   consultationId: string
@@ -10,6 +12,12 @@ type Props = {
 export function ClinicalReasoningField({ consultationId, value, onChange }: Props) {
   const [saved, setSaved] = useState(true)
   const lastSavedRef = useRef(value)
+  // O hook useVoiceDictation congela o closure onTranscript no início da
+  // gravação (recorder.onstop é montado dentro de start()). Este ref sempre
+  // aponta para o valor ATUAL do campo, para que o append use o texto digitado
+  // durante a gravação em vez do texto congelado no início dela.
+  const valueRef = useRef(value)
+  useEffect(() => { valueRef.current = value }, [value])
 
   // Autosave com DEBOUNCE: salva ~1,2s depois que o aluno para de digitar e marca "Salvo".
   // (Antes era um intervalo de 30s que reiniciava a cada tecla — o indicador ficava preso em "Não salvo".)
@@ -38,7 +46,8 @@ export function ClinicalReasoningField({ consultationId, value, onChange }: Prop
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex justify-end px-0 mb-1">
+      <div className="flex items-center justify-between px-0 mb-1">
+        <MicButton onTranscript={(t) => { onChange(appendTranscript(valueRef.current, t)); setSaved(false) }} />
         <span className="text-xs text-gray-400">{saved ? 'Salvo' : 'Não salvo'}</span>
       </div>
       <textarea

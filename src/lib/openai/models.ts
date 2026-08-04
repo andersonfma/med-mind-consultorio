@@ -31,6 +31,8 @@ export const MODELS = {
   generation: 'gpt-4.1',
   /** Chamadas utilitárias: validação de exame, laudo, resumo, anamnese, clinical_status, juiz AB4, avaliação de diagnóstico. */
   utility: 'gpt-4.1-mini',
+  /** Transcrição de voz (ditado). gpt-4o-transcribe: melhor que whisper-1 em PT médico. Fallback: 'whisper-1'. */
+  transcription: 'gpt-4o-transcribe',
 } as const
 
 export type ModelRole = keyof typeof MODELS
