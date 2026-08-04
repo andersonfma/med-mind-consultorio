@@ -87,4 +87,39 @@ describe('useVoiceDictation', () => {
     expect(result.current.error).toMatch(/transcrever/i)
     expect(onT).not.toHaveBeenCalled()
   })
+
+  it('start() chamado 2x seguidas → getUserMedia é chamado só 1x (guarda de reentrância) e não vaza o 1º stream', async () => {
+    const onT = vi.fn()
+    const { result } = renderHook(() => useVoiceDictation(onT))
+    await act(async () => {
+      const p1 = result.current.start()
+      const p2 = result.current.start()
+      await Promise.all([p1, p2])
+    })
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1)
+    expect(result.current.state).toBe('recording')
+    expect(MockMediaRecorder.instances.length).toBe(1)
+
+    await act(async () => { result.current.stop() })
+    await waitFor(() => expect(result.current.state).toBe('idle'))
+    expect(track.stop).toHaveBeenCalledTimes(1) // única stream liberada, nenhuma vazou
+  })
+
+  it('unmount durante transcribing → quando a transcrição resolve depois, onTranscript não é chamado', async () => {
+    let resolveTranscribe!: (v: string) => void
+    mockTranscribe.mockImplementation(() => new Promise<string>(resolve => { resolveTranscribe = resolve }))
+    const onT = vi.fn()
+    const { result, unmount } = renderHook(() => useVoiceDictation(onT))
+    await act(async () => { await result.current.start() })
+    await act(async () => { result.current.stop() })
+    await waitFor(() => expect(result.current.state).toBe('transcribing'))
+
+    unmount()
+
+    await act(async () => {
+      resolveTranscribe('texto tardio')
+      await new Promise(r => setTimeout(r, 0))
+    })
+    expect(onT).not.toHaveBeenCalled()
+  })
 })

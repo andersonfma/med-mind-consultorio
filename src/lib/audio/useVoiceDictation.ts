@@ -20,6 +20,8 @@ export function useVoiceDictation(onTranscript: (text: string) => void) {
   const chunksRef = useRef<Blob[]>([])
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const notIdleRef = useRef(false)
+  const isMountedRef = useRef(true)
 
   const cleanup = useCallback(() => {
     streamRef.current?.getTracks().forEach(t => t.stop())
@@ -32,13 +34,18 @@ export function useVoiceDictation(onTranscript: (text: string) => void) {
   }, [])
 
   const start = useCallback(async () => {
+    if (notIdleRef.current) return // já gravando/transcrevendo: evita reentrância e vazamento de mic
+    notIdleRef.current = true
     setError(null)
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     } catch {
-      setError('Permissão de microfone negada')
-      setState('idle')
+      notIdleRef.current = false
+      if (isMountedRef.current) {
+        setError('Permissão de microfone negada')
+        setState('idle')
+      }
       return
     }
     streamRef.current = stream
@@ -50,15 +57,25 @@ export function useVoiceDictation(onTranscript: (text: string) => void) {
     recorder.onstop = async () => {
       cleanup()
       const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-      if (blob.size === 0) { setState('idle'); return }
-      setState('transcribing')
+      if (blob.size === 0) {
+        notIdleRef.current = false
+        if (isMountedRef.current) setState('idle')
+        return
+      }
+      if (isMountedRef.current) setState('transcribing')
       try {
         const text = await transcribeBlob(blob)
-        if (text) onTranscript(text)
-        setState('idle')
+        notIdleRef.current = false
+        if (isMountedRef.current) {
+          if (text) onTranscript(text)
+          setState('idle')
+        }
       } catch {
-        setError('Não consegui transcrever, tente de novo')
-        setState('idle')
+        notIdleRef.current = false
+        if (isMountedRef.current) {
+          setError('Não consegui transcrever, tente de novo')
+          setState('idle')
+        }
       }
     }
     recorder.start()
@@ -66,7 +83,13 @@ export function useVoiceDictation(onTranscript: (text: string) => void) {
     timerRef.current = setTimeout(() => stop(), MAX_MS)
   }, [cleanup, onTranscript, stop])
 
-  useEffect(() => cleanup, [cleanup])
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      cleanup()
+    }
+  }, [cleanup])
 
   return { state, error, start, stop }
 }
