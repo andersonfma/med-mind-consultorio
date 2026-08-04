@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import { MicButton } from './MicButton'
+import { appendTranscript } from '@/lib/audio/transcribe-client'
 
 type Props = {
   consultationId: string
@@ -38,7 +40,8 @@ export function ClinicalReasoningField({ consultationId, value, onChange }: Prop
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex justify-end px-0 mb-1">
+      <div className="flex items-center justify-between px-0 mb-1">
+        <MicButton onTranscript={(t) => { onChange(appendTranscript(value, t)); setSaved(false) }} />
         <span className="text-xs text-gray-400">{saved ? 'Salvo' : 'Não salvo'}</span>
       </div>
       <textarea
