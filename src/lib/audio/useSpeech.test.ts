@@ -66,4 +66,16 @@ describe('useSpeech', () => {
     expect(result.current.error).toBeTruthy()
     expect(MockAudio.instances).toHaveLength(0)
   })
+
+  it('audio.play() rejeitado (ex.: autoplay bloqueado) → idle + error, sem travar em loading', async () => {
+    class RejectingAudio extends MockAudio {
+      play() { return Promise.reject(new Error('blocked')) }
+    }
+    vi.stubGlobal('Audio', RejectingAudio as unknown as typeof Audio)
+    const { result } = renderHook(() => useSpeech())
+    await act(async () => { await result.current.play('olá', 'onyx') })
+    expect(result.current.state).toBe('idle')
+    expect(result.current.error).toBeTruthy()
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock')
+  })
 })

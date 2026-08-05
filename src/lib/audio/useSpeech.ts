@@ -42,7 +42,13 @@ export function useSpeech() {
     const audio = new Audio(url)
     audioRef.current = audio
     audio.onended = () => { cleanupAudio(); if (mountedRef.current) setState('idle') }
-    await audio.play()
+    try {
+      await audio.play()
+    } catch {
+      cleanupAudio()
+      if (mountedRef.current) { setError('Não consegui reproduzir o áudio'); setState('idle') }
+      return
+    }
     if (mountedRef.current) setState('playing')
   }, [cleanupAudio])
 
