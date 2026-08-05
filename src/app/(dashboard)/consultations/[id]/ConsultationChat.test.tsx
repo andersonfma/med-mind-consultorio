@@ -32,7 +32,7 @@ describe('ConsultationChat — voz', () => {
     const msgs = [{ role: 'patient' as const, content: 'estou com dor', timestamp: 't' }]
     render(<ConsultationChat consultationId="c-1" initialMessages={msgs} onMessagesUpdate={() => {}} patientGender="M" />)
     fireEvent.click(screen.getByLabelText(/ouvir resposta/i))
-    expect(mockPlay).toHaveBeenCalledWith('estou com dor', 'onyx')
+    expect(mockPlay).toHaveBeenCalledWith('estou com dor', 'onyx', 1.25)
   })
 
   it('depois de tocar, a bolha vira ■ e clicar nela chama stop()', () => {
@@ -56,5 +56,19 @@ describe('ConsultationChat — voz', () => {
     render(<ConsultationChat consultationId="c-1" initialMessages={[]} onMessagesUpdate={() => {}} patientGender="F" />)
     const toggle = screen.getByLabelText(/ouvir o paciente/i) as HTMLInputElement
     expect(toggle.checked).toBe(false)
+  })
+
+  it('toca a bolha do paciente com a velocidade selecionada', () => {
+    const msgs = [{ role: 'patient' as const, content: 'estou com dor', timestamp: 't' }]
+    render(<ConsultationChat consultationId="c-1" initialMessages={msgs} onMessagesUpdate={() => {}} patientGender="M" />)
+    // troca a velocidade para 1.5×
+    fireEvent.change(screen.getByLabelText(/velocidade/i), { target: { value: '1.5' } })
+    fireEvent.click(screen.getByLabelText('ouvir resposta'))
+    expect(mockPlay).toHaveBeenCalledWith('estou com dor', 'onyx', 1.5)
+  })
+
+  it('velocidade padrão é 1.25×', () => {
+    render(<ConsultationChat consultationId="c-1" initialMessages={[]} onMessagesUpdate={() => {}} patientGender="F" />)
+    expect((screen.getByLabelText(/velocidade/i) as HTMLSelectElement).value).toBe('1.25')
   })
 })

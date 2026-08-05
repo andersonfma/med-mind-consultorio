@@ -26,7 +26,7 @@ export function useSpeech() {
     if (mountedRef.current) setState('idle')
   }, [cleanupAudio])
 
-  const play = useCallback(async (text: string, voice: string) => {
+  const play = useCallback(async (text: string, voice: string, rate = 1) => {
     const myToken = ++tokenRef.current
     cleanupAudio()                     // interrompe qualquer áudio já instalado
     setError(null)
@@ -46,6 +46,7 @@ export function useSpeech() {
     if (tokenRef.current !== myToken || !mountedRef.current) return   // superado por um play()/stop() mais novo
     const url = URL.createObjectURL(blob)
     const audio = new Audio(url)
+    audio.playbackRate = rate
     audio.onended = () => { cleanupAudio(); if (mountedRef.current) setState('idle') }
     try {
       await audio.play()
