@@ -7,6 +7,7 @@ class MockAudio {
   static instances: MockAudio[] = []
   onended: (() => void) | null = null
   paused = true
+  playbackRate = 1
   src: string
   constructor(src: string) { this.src = src; MockAudio.instances.push(this) }
   play() { this.paused = false; return Promise.resolve() }
@@ -148,5 +149,19 @@ describe('useSpeech', () => {
     expect(result.current.state).toBe('idle')
     expect(result.current.error).toBeTruthy()
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock')
+  })
+
+  it('aplica o playbackRate recebido no áudio', async () => {
+    const { result } = renderHook(() => useSpeech())
+    await act(async () => { await result.current.play('olá', 'onyx', 1.5) })
+    await waitFor(() => expect(result.current.state).toBe('playing'))
+    expect(MockAudio.instances[0].playbackRate).toBe(1.5)
+  })
+
+  it('sem rate, playbackRate fica 1 (default)', async () => {
+    const { result } = renderHook(() => useSpeech())
+    await act(async () => { await result.current.play('olá', 'onyx') })
+    await waitFor(() => expect(result.current.state).toBe('playing'))
+    expect(MockAudio.instances[0].playbackRate).toBe(1)
   })
 })
