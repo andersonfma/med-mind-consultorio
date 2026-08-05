@@ -8,10 +8,13 @@ vi.mock('./MicButton', () => ({
   ),
 }))
 
-// useSpeech stub: expõe play para asserção.
+// useSpeech stub: expõe play/stop para asserção. `state` fixo em 'playing' porque
+// o componente decide ▶/■ combinando seu próprio playingIdx com `state !== 'idle'`;
+// como playingIdx começa null, isso não afeta a renderização inicial (sempre 🔊),
+// e permite exercitar a transição 🔊→■→stop após o clique que seta playingIdx.
 const { mockPlay, mockStop } = vi.hoisted(() => ({ mockPlay: vi.fn(), mockStop: vi.fn() }))
 vi.mock('@/lib/audio/useSpeech', () => ({
-  useSpeech: () => ({ state: 'idle', error: null, play: mockPlay, stop: mockStop }),
+  useSpeech: () => ({ state: 'playing', error: null, play: mockPlay, stop: mockStop }),
 }))
 
 import { ConsultationChat } from './ConsultationChat'
@@ -30,6 +33,17 @@ describe('ConsultationChat — voz', () => {
     render(<ConsultationChat consultationId="c-1" initialMessages={msgs} onMessagesUpdate={() => {}} patientGender="M" />)
     fireEvent.click(screen.getByLabelText(/ouvir resposta/i))
     expect(mockPlay).toHaveBeenCalledWith('estou com dor', 'onyx')
+  })
+
+  it('depois de tocar, a bolha vira ■ e clicar nela chama stop()', () => {
+    const msgs = [{ role: 'patient' as const, content: 'estou com dor', timestamp: 't' }]
+    render(<ConsultationChat consultationId="c-1" initialMessages={msgs} onMessagesUpdate={() => {}} patientGender="M" />)
+    fireEvent.click(screen.getByLabelText(/ouvir resposta/i))
+    const stopBtn = screen.getByLabelText(/parar/i)
+    expect(stopBtn).toHaveTextContent('■')
+    fireEvent.click(stopBtn)
+    expect(mockStop).toHaveBeenCalledTimes(1)
+    expect(screen.getByLabelText(/ouvir resposta/i)).toBeInTheDocument()
   })
 
   it('auto-play desligado por padrão: não toca sozinho ao renderizar respostas', () => {

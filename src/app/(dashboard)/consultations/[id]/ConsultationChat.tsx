@@ -19,13 +19,18 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [autoSpeak, setAutoSpeak] = useState(false)
-  const { play } = useSpeech()
+  const { state, play, stop } = useSpeech()
+  const [playingIdx, setPlayingIdx] = useState<number | null>(null)
   const voice = voiceForGender(patientGender)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  useEffect(() => {
+    if (state === 'idle') setPlayingIdx(null)
+  }, [state])
 
   async function sendMessage() {
     const text = input.trim()
@@ -52,7 +57,7 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
       const updated = [...optimistic, patientMsg]
       setMessages(updated)
       onMessagesUpdate(updated)
-      if (autoSpeak) play(data.reply, voice)
+      if (autoSpeak) { play(data.reply, voice); setPlayingIdx(updated.length - 1) }
     } catch {
       setError('Erro de conexão. Tente novamente.')
     } finally {
@@ -82,12 +87,21 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
               </p>
               {msg.content}
               {msg.role === 'patient' && (
-                <button
-                  type="button"
-                  aria-label="ouvir resposta"
-                  onClick={() => play(msg.content, voice)}
-                  className="block mt-1 text-xs text-gray-400 hover:text-gray-600"
-                >🔊</button>
+                playingIdx === i && state !== 'idle' ? (
+                  <button
+                    type="button"
+                    aria-label="parar"
+                    onClick={() => { stop(); setPlayingIdx(null) }}
+                    className="block mt-1 text-xs text-gray-400 hover:text-gray-600"
+                  >■</button>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label="ouvir resposta"
+                    onClick={() => { play(msg.content, voice); setPlayingIdx(i) }}
+                    className="block mt-1 text-xs text-gray-400 hover:text-gray-600"
+                  >🔊</button>
+                )
               )}
             </div>
           </div>
