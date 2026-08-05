@@ -91,6 +91,7 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
               consultationId={consultation.id}
               initialMessages={messages}
               onMessagesUpdate={setMessages}
+              patientGender={patient.gender}
             />
           </div>
           {/* Anamnese — parte inferior */}

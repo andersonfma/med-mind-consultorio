@@ -33,6 +33,8 @@ export const MODELS = {
   utility: 'gpt-4.1-mini',
   /** Transcrição de voz (ditado). gpt-4o-transcribe: melhor que whisper-1 em PT médico. Fallback: 'whisper-1'. */
   transcription: 'gpt-4o-transcribe',
+  /** Síntese de voz (paciente falando). gpt-4o-mini-tts: boa qualidade. Fallback: 'tts-1'. */
+  tts: 'gpt-4o-mini-tts',
 } as const
 
 export type ModelRole = keyof typeof MODELS
