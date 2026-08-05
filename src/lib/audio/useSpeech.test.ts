@@ -67,6 +67,77 @@ describe('useSpeech', () => {
     expect(MockAudio.instances).toHaveLength(0)
   })
 
+  it('dois play() sobrepostos (2º inicia antes do fetch do 1º terminar): só um áudio toca, sem vazamento', async () => {
+    // Fetch controlável por chamada: o 1º play() fica "preso" aguardando a rede
+    // (~1-2s reais) enquanto um 2º play() é disparado (duplo clique / bolha A depois B).
+    let resolveFetchA!: (v: unknown) => void
+    let resolveFetchB!: (v: unknown) => void
+    const fetchAPromise = new Promise(res => { resolveFetchA = res })
+    const fetchBPromise = new Promise(res => { resolveFetchB = res })
+    const fetchMock = vi.fn()
+      .mockReturnValueOnce(fetchAPromise)
+      .mockReturnValueOnce(fetchBPromise)
+    vi.stubGlobal('fetch', fetchMock)
+    let urlCount = 0
+    const createObjectURL = vi.fn(() => `blob:mock-${++urlCount}`)
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
+
+    const { result } = renderHook(() => useSpeech())
+
+    // 1ª chamada começa e fica pendurada aguardando o fetch (audioRef/urlRef ainda vazios).
+    let playA!: Promise<void>
+    act(() => { playA = result.current.play('a', 'onyx') })
+
+    // 2ª chamada começa ANTES da 1ª terminar — cenário exato do finding 1.
+    let playB!: Promise<void>
+    act(() => { playB = result.current.play('b', 'onyx') })
+
+    // Os dois fetches resolvem (a ordem entre eles não deve importar: o guard usa
+    // um token monotônico, não a ordem de resolução das promises).
+    await act(async () => {
+      resolveFetchA({ ok: true, blob: async () => new Blob([new Uint8Array([1])], { type: 'audio/mpeg' }) })
+      resolveFetchB({ ok: true, blob: async () => new Blob([new Uint8Array([2])], { type: 'audio/mpeg' }) })
+      await playA
+      await playB
+    })
+
+    await waitFor(() => expect(result.current.state).toBe('playing'))
+
+    // Só UM áudio existe e está tocando: a chamada antiga ('a') percebeu que ficou
+    // obsoleta assim que o fetch voltou e nem chegou a criar Audio/URL — nada para vazar.
+    expect(MockAudio.instances).toHaveLength(1)
+    expect(MockAudio.instances[0].paused).toBe(false)
+    expect(createObjectURL).toHaveBeenCalledTimes(1)
+    expect(revokeObjectURL).not.toHaveBeenCalled()
+  })
+
+  it('stop() invalida um play() em andamento: ao voltar do audio.play(), não reativa "playing"', async () => {
+    // Audio.play() controlável: fica pendente até o teste liberar, simulando a janela
+    // entre "áudio instalado" e "audio.play() resolvida" em que um stop() pode chegar.
+    let resolvePlay!: () => void
+    class PendingAudio extends MockAudio {
+      play() { this.paused = false; return new Promise<void>(res => { resolvePlay = res }) }
+    }
+    vi.stubGlobal('Audio', PendingAudio as unknown as typeof Audio)
+
+    const { result } = renderHook(() => useSpeech())
+
+    let playPromise!: Promise<void>
+    act(() => { playPromise = result.current.play('a', 'onyx') })
+    await waitFor(() => expect(MockAudio.instances).toHaveLength(1))
+
+    // stop() chega enquanto play() ainda aguarda audio.play() resolver.
+    act(() => { result.current.stop() })
+    expect(result.current.state).toBe('idle')
+
+    await act(async () => { resolvePlay(); await playPromise })
+
+    // Não deve voltar a "playing" nem deixar o áudio antigo tocando.
+    expect(result.current.state).toBe('idle')
+    expect(MockAudio.instances[0].paused).toBe(true)
+  })
+
   it('audio.play() rejeitado (ex.: autoplay bloqueado) → idle + error, sem travar em loading', async () => {
     class RejectingAudio extends MockAudio {
       play() { return Promise.reject(new Error('blocked')) }
