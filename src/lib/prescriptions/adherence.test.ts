@@ -59,3 +59,33 @@ describe('nextBondLevel', () => {
     expect(nextBondLevel(0, 2)).toBe(1) // current clamp=1, +0
   })
 })
+
+describe('nextBondLevel — vínculo v2 (A2 + comunicação)', () => {
+  it('comunicação boa (>=7): A2 alto → +2, A2 não-alto → +1', () => {
+    expect(nextBondLevel(1, 8, 8)).toBe(3)   // +2
+    expect(nextBondLevel(1, 4, 8)).toBe(2)   // +1
+    expect(nextBondLevel(1, null, 9)).toBe(2) // a2 null = não-alto → +1
+  })
+
+  it('comunicação ok (4–6): A2 alto → +1, senão 0', () => {
+    expect(nextBondLevel(2, 8, 5)).toBe(3)   // +1
+    expect(nextBondLevel(2, 3, 5)).toBe(2)   // 0
+  })
+
+  it('comunicação ruim (<=3): reduz o vínculo (−1) IGNORANDO o A2', () => {
+    expect(nextBondLevel(3, 10, 2)).toBe(2)  // −1 mesmo com A2 alto
+    expect(nextBondLevel(3, null, 0)).toBe(2)
+  })
+
+  it('clamp no piso 1 e no teto 5', () => {
+    expect(nextBondLevel(1, 0, 1)).toBe(1)   // 1 + (−1) = 0 → clamp 1
+    expect(nextBondLevel(5, 9, 9)).toBe(5)   // 5 + 2 → clamp 5
+  })
+
+  it('communication null → comportamento antigo (só A2)', () => {
+    expect(nextBondLevel(1, 8, null)).toBe(3)  // +2
+    expect(nextBondLevel(2, 2, null)).toBe(2)  // +0
+    expect(nextBondLevel(1, 5, null)).toBe(2)  // +1
+    expect(nextBondLevel(1, null, null)).toBe(2) // +1
+  })
+})
