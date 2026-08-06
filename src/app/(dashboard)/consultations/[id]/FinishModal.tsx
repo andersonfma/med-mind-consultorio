@@ -8,7 +8,9 @@ type Ab4 = {
   overall: number; recommendation: string; stage?: 1 | 2
 } | null
 
-type FinishResult = { patient_id: string; diagnosis_achieved: boolean; ab4: Ab4 }
+type Communication = { c1: number; c2: number; c3: number; overall: number; recommendation: string } | null
+
+type FinishResult = { patient_id: string; diagnosis_achieved: boolean; ab4: Ab4; communication: Communication }
 
 type Props = {
   consultationId: string
@@ -21,6 +23,12 @@ const AXES: { key: 'a1' | 'a2' | 'a3' | 'a4'; label: string; sub: string }[] = [
   { key: 'a2', label: 'A2 Retórico', sub: 'Plausibilidade' },
   { key: 'a3', label: 'A3 Dialético', sub: 'Confrontação' },
   { key: 'a4', label: 'A4 Analítico', sub: 'Demonstração' },
+]
+
+const COMM_AXES: { key: 'c1' | 'c2' | 'c3'; label: string; sub: string }[] = [
+  { key: 'c1', label: 'C1 Clareza', sub: 'Linguagem' },
+  { key: 'c2', label: 'C2 Empatia', sub: 'Acolhimento' },
+  { key: 'c3', label: 'C3 Condução', sub: 'Entrevista' },
 ]
 
 export function FinishModal({ consultationId, clinicalReasoning, onClose }: Props) {
@@ -53,6 +61,10 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
   const minScore = result?.ab4
     ? Math.min(...[result.ab4.a1, result.ab4.a2, result.ab4.a3, result.ab4.a4]
         .filter((n): n is number => typeof n === 'number'))
+    : null
+
+  const minComm = result?.communication
+    ? Math.min(result.communication.c1, result.communication.c2, result.communication.c3)
     : null
 
   return (
@@ -127,6 +139,37 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
               </>
             ) : (
               <p className="text-sm text-gray-500 mb-5">Avaliação AB4 indisponível desta vez.</p>
+            )}
+
+            {result.communication && (
+              <>
+                <div className="flex items-baseline justify-between mb-1">
+                  <span className="text-sm font-semibold text-gray-700">Score de Comunicação</span>
+                  <span className="text-2xl font-bold text-gray-900">{result.communication.overall.toFixed(1)}<span className="text-sm text-gray-400">/10</span></span>
+                </div>
+                <div className="space-y-2 mb-4">
+                  {COMM_AXES.map(ax => {
+                    const score = result.communication![ax.key]
+                    const weak = score === minComm
+                    return (
+                      <div key={ax.key} className="flex items-center gap-2">
+                        <div className="w-28 shrink-0">
+                          <span className="text-xs font-medium text-gray-700">{ax.label}</span>
+                          <span className="block text-[10px] text-gray-400">{ax.sub}</span>
+                        </div>
+                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${weak ? 'bg-amber-500' : 'bg-sky-500'}`} style={{ width: `${score * 10}%` }} />
+                        </div>
+                        <span className={`w-5 text-right text-sm font-semibold ${weak ? 'text-amber-600' : 'text-gray-700'}`}>{score}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 mb-5">
+                  <p className="text-xs font-semibold text-gray-500 mb-1">Comunicação — recomendação</p>
+                  <p className="text-sm text-gray-700">{result.communication.recommendation}</p>
+                </div>
+              </>
             )}
 
             <button
