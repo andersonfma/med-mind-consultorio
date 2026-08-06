@@ -313,6 +313,9 @@ export async function POST(
 
   // Score de comunicação — best-effort, avaliado em TODA consulta finalizada.
   let communication: (CommunicationResult & { generated_at: string }) | null = null
+  // Só true quando o juiz de fato rodou e parseou um resultado — distingue "comunicação
+  // ruim julgada" (deve punir o vínculo) de "chat vazio, sem o que julgar" (não deve).
+  let communicationJudged = false
   try {
     const chatHistory = (consultation.chat_history ?? []) as ChatMessage[]
     const hasStudentTurn = chatHistory.some(m => m.role === 'student')
@@ -327,7 +330,10 @@ export async function POST(
       }, { timeout: 25_000 })
       const raw = completion.choices[0]?.message?.content
       const parsed = raw ? parseCommunicationResponse(raw) : null
-      if (parsed) communication = { ...parsed, generated_at: new Date().toISOString() }
+      if (parsed) {
+        communication = { ...parsed, generated_at: new Date().toISOString() }
+        communicationJudged = true
+      }
     }
     if (communication) {
       await supabase
@@ -340,12 +346,14 @@ export async function POST(
     // best-effort — finish conclui mesmo se a comunicação falhar
   }
 
-  // Evolução do vínculo (best-effort): +1 por consulta, modulado pela nota A2 (Retórico)
-  // desta consulta. Toma efeito na PRÓXIMA consulta (a adesão de hoje usou o vínculo antigo).
+  // Evolução do vínculo (best-effort): +1 por consulta, modulado pela nota A2 (Retórico) e
+  // pela comunicação desta consulta — comunicação ruim JULGADA reduz o vínculo; chat vazio
+  // (sem turno do aluno, nada a julgar) não é punido: cai no comportamento só-A2. Toma efeito
+  // na PRÓXIMA consulta (a adesão de hoje usou o vínculo antigo).
   try {
     const currentBond = (patient as Record<string, unknown>).bond_level as number ?? 1
     const a2 = ab4 && typeof ab4.a2 === 'number' ? ab4.a2 : null
-    const commOverall = communication && typeof communication.overall === 'number' ? communication.overall : null
+    const commOverall = communicationJudged && communication && typeof communication.overall === 'number' ? communication.overall : null
     const newBond = nextBondLevel(currentBond, a2, commOverall)
     if (newBond !== currentBond) {
       await supabase
