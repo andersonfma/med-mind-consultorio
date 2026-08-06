@@ -7,6 +7,8 @@ import { buildAb4ScorePrompt, type Ab4ExamInput } from '@/lib/consultations/ab4-
 import { parseAb4Response, emptyReasoningResult, type Ab4Result } from '@/lib/consultations/ab4'
 import { estimateAdherence, nextBondLevel } from '@/lib/prescriptions/adherence'
 import { buildConductEvalPrompt, parseConductAdequacy, type ConductItem } from '@/lib/prescriptions/conduct-eval'
+import { buildCommunicationPrompt } from '@/lib/consultations/communication-prompts'
+import { parseCommunicationResponse, emptyCommunicationResult, type CommunicationResult } from '@/lib/consultations/communication'
 
 export async function POST(
   request: NextRequest,
@@ -309,12 +311,42 @@ export async function POST(
     // Best-effort — finish conclui mesmo se o AB4 falhar
   }
 
+  // Score de comunicação — best-effort, avaliado em TODA consulta finalizada.
+  let communication: (CommunicationResult & { generated_at: string }) | null = null
+  try {
+    const chatHistory = (consultation.chat_history ?? []) as ChatMessage[]
+    const hasStudentTurn = chatHistory.some(m => m.role === 'student')
+    if (!hasStudentTurn) {
+      communication = { ...emptyCommunicationResult(), generated_at: new Date().toISOString() }
+    } else {
+      const completion = await openai.chat.completions.create({
+        model: MODELS.utility,
+        response_format: { type: 'json_object' },
+        temperature: 0.3,
+        messages: [{ role: 'user', content: buildCommunicationPrompt(patient as never, chatHistory) }],
+      }, { timeout: 25_000 })
+      const raw = completion.choices[0]?.message?.content
+      const parsed = raw ? parseCommunicationResponse(raw) : null
+      if (parsed) communication = { ...parsed, generated_at: new Date().toISOString() }
+    }
+    if (communication) {
+      await supabase
+        .from('consultations')
+        .update({ communication_score: communication as unknown as import('@/types/database').Json })
+        .eq('id', id)
+        .eq('user_id', user.id)
+    }
+  } catch {
+    // best-effort — finish conclui mesmo se a comunicação falhar
+  }
+
   // Evolução do vínculo (best-effort): +1 por consulta, modulado pela nota A2 (Retórico)
   // desta consulta. Toma efeito na PRÓXIMA consulta (a adesão de hoje usou o vínculo antigo).
   try {
     const currentBond = (patient as Record<string, unknown>).bond_level as number ?? 1
     const a2 = ab4 && typeof ab4.a2 === 'number' ? ab4.a2 : null
-    const newBond = nextBondLevel(currentBond, a2)
+    const commOverall = communication && typeof communication.overall === 'number' ? communication.overall : null
+    const newBond = nextBondLevel(currentBond, a2, commOverall)
     if (newBond !== currentBond) {
       await supabase
         .from('patients')
@@ -326,5 +358,5 @@ export async function POST(
     // best-effort — vínculo não evolui se algo falhar
   }
 
-  return NextResponse.json({ patient_id: patient.id, diagnosis_achieved: diagnosisAchieved, ab4 }, { status: 200 })
+  return NextResponse.json({ patient_id: patient.id, diagnosis_achieved: diagnosisAchieved, ab4, communication }, { status: 200 })
 }
