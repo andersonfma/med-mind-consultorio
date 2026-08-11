@@ -5,6 +5,17 @@ import { MODELS } from '@/lib/openai/models'
 
 const MAX_BYTES = 5_000_000
 
+// Enviesa a transcrição para PT-BR + vocabulário clínico. O gpt-4o-transcribe, mesmo com
+// language:'pt', não trava o idioma de forma confiável em áudios curtos/ruidosos (escorrega
+// para espanhol/inglês) e erra termos médicos. O `prompt` ancora idioma E jargão — é o
+// parâmetro que de fato segura, muito mais que `language` sozinho.
+const TRANSCRIPTION_PROMPT =
+  'Transcrição em português do Brasil de um médico em consulta clínica. ' +
+  'Vocabulário: anamnese, queixa principal, história da doença atual, hipótese diagnóstica, ' +
+  'exame físico, ausculta cardíaca e pulmonar, sopro, dispneia, taquicardia, edema, icterícia, ' +
+  'abdome, prescrição, posologia, e exames como hemograma, troponina, eletrocardiograma, ' +
+  'ultrassonografia e tomografia. Mantenha todos os termos médicos em português.'
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -24,6 +35,7 @@ export async function POST(request: NextRequest) {
       file: file as File,
       model: MODELS.transcription,
       language: 'pt',
+      prompt: TRANSCRIPTION_PROMPT,
     }, { timeout: 25_000 })
     return NextResponse.json({ text: (result.text ?? '').trim() }, { status: 200 })
   } catch {

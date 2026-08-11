@@ -45,6 +45,9 @@ describe('POST /api/transcribe', () => {
     const arg = mockCreate.mock.calls[0][0]
     expect(arg.model).toBe('gpt-4o-transcribe')
     expect(arg.language).toBe('pt')
+    // prompt de contexto ancora idioma (PT-BR) e vocabulário clínico — evita troca de idioma
+    expect(typeof arg.prompt).toBe('string')
+    expect(arg.prompt.toLowerCase()).toContain('português do brasil')
   })
 
   it('400 quando não há file', async () => {
