@@ -105,7 +105,7 @@ describe('POST /api/consultations/[id]/finish', () => {
 
     const res = await POST(...makeRequest({}))
     expect(res.status).toBe(200)
-    const body = await res.json() as { patient_id: string; diagnosis_achieved: boolean; ab4: { overall: number; recommendation: string } | null }
+    const body = await res.json() as { patient_id: string; ab4: { overall: number; recommendation: string } | null }
     expect(body.ab4).not.toBeNull()
     expect(body.ab4?.overall).toBe(7)
     expect(body.ab4?.recommendation).toBe('foco no A3')
@@ -120,7 +120,7 @@ describe('POST /api/consultations/[id]/finish', () => {
 
     const res = await POST(...makeRequest({}))
     expect(res.status).toBe(200)
-    const body = await res.json() as { patient_id: string; diagnosis_achieved: boolean; ab4: null }
+    const body = await res.json() as { patient_id: string; ab4: null }
     expect(body.ab4).toBeNull()
   })
 

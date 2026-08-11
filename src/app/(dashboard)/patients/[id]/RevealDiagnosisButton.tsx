@@ -22,10 +22,10 @@ export function RevealDiagnosisButton({ patientId }: Props) {
       if (!res.ok) {
         if (res.status === 403) {
           setError(data.error === 'At least 2 consultations required'
-            ? 'É necessário ao menos 2 consultas finalizadas para revelar o diagnóstico.'
-            : 'É necessário ao menos 1 exame aprovado para revelar o diagnóstico.')
+            ? 'É necessário ao menos 2 consultas finalizadas para concluir o diagnóstico.'
+            : 'É necessário ao menos 1 exame aprovado para concluir o diagnóstico.')
         } else {
-          setError(data.error ?? 'Erro ao revelar diagnóstico')
+          setError(data.error ?? 'Erro ao concluir diagnóstico')
         }
         return
       }
@@ -45,7 +45,7 @@ export function RevealDiagnosisButton({ patientId }: Props) {
         disabled={loading}
         className="text-sm border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-md px-4 py-2"
       >
-        {loading ? 'Revelando...' : 'Revelar diagnóstico'}
+        {loading ? 'Avaliando...' : 'Concluir diagnóstico'}
       </button>
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>

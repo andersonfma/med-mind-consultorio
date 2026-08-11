@@ -184,45 +184,11 @@ export async function POST(
     // Non-blocking — finish já concluído mesmo se o resumo falhar
   }
 
-  // Evaluate if student's clinical_reasoning mentions the correct diagnosis (non-blocking).
-  // SÓ a partir da 2ª consulta: na 1ª não se conclui o caso (sem resultados de exame ainda),
-  // então o diagnóstico não é marcado como "alcançado" — segue a via de "revelar diagnóstico".
-  let diagnosisAchieved = false
-  try {
-    const currentPatient = (await supabase
-      .from('patients')
-      .select('diagnosis_status, true_diagnosis')
-      .eq('id', patient.id as string)
-      .single()).data
-
-    if (!isFirstConsultation && currentPatient?.diagnosis_status === 'none' && clinicalReasoning.trim()) {
-      const { buildTrueDiagnosisAndEvalPrompt } = await import('@/lib/patients/diagnosis-prompts')
-      const evalCompletion = await openai.chat.completions.create({
-        model: MODELS.utility,
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: buildTrueDiagnosisAndEvalPrompt(patient as never, clinicalReasoning) }],
-      }, { timeout: 25_000 })
-
-      if (evalCompletion.choices[0]?.message?.content) {
-        const evalResult = JSON.parse(evalCompletion.choices[0].message.content) as {
-          true_diagnosis: string
-          compatible: boolean
-          reasoning: string
-        }
-        await supabase
-          .from('patients')
-          .update({
-            true_diagnosis: evalResult.true_diagnosis,
-            ...(evalResult.compatible ? { diagnosis_status: 'achieved' } : {}),
-          })
-          .eq('id', patient.id as string)
-          .eq('user_id', user.id)
-        diagnosisAchieved = evalResult.compatible
-      }
-    }
-  } catch {
-    // Non-blocking
-  }
+  // Conclusão do diagnóstico NÃO acontece aqui: encerrar a consulta nunca marca o
+  // diagnóstico como "alcançado" automaticamente. O aluno controla o momento — pode
+  // querer esperar os resultados dos exames que pediu (que só aparecem na próxima
+  // consulta) antes de concluir. A conclusão é feita pela caixa clicável na página do
+  // paciente (rota reveal-diagnosis), que avalia o raciocínio no clique.
 
   // AB4 score — best-effort (nunca quebra o finish).
   // Em consulta de seguimento (diagnóstico já fechado), o arco AB4 acabou: não pontuamos.
@@ -366,5 +332,5 @@ export async function POST(
     // best-effort — vínculo não evolui se algo falhar
   }
 
-  return NextResponse.json({ patient_id: patient.id, diagnosis_achieved: diagnosisAchieved, ab4, communication }, { status: 200 })
+  return NextResponse.json({ patient_id: patient.id, ab4, communication }, { status: 200 })
 }

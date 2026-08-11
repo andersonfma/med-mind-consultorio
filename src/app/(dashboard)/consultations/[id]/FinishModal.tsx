@@ -10,7 +10,7 @@ type Ab4 = {
 
 type Communication = { c1: number; c2: number; c3: number; overall: number; recommendation: string } | null
 
-type FinishResult = { patient_id: string; diagnosis_achieved: boolean; ab4: Ab4; communication: Communication }
+type FinishResult = { patient_id: string; ab4: Ab4; communication: Communication }
 
 type Props = {
   consultationId: string
@@ -90,7 +90,7 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
           <>
             <h2 className="text-lg font-bold text-gray-900 mb-1">Consulta encerrada</h2>
             <p className="text-sm text-gray-500 mb-4">
-              Diagnóstico: {result.diagnosis_achieved ? 'alcançado ✓' : 'não alcançado'}
+              Veja os resultados dos exames na próxima consulta. Quando terminar de raciocinar, conclua o diagnóstico na página do paciente.
             </p>
 
             {result.ab4 ? (
