@@ -1,5 +1,12 @@
 import type { Patient } from '@/types/domain'
 
+// Mensagem mostrada ao aluno quando um exame é REJEITADO. É fixa e genérica de propósito:
+// o texto livre do juiz costuma citar a hipótese/diagnóstico ("não condiz com Raynaud..."),
+// o que estragaria o caso. Exame APROVADO não recebe feedback nenhum (o badge já basta) —
+// justamente para não revelar o diagnóstico na justificativa do aceite.
+export const EXAM_REJECTION_FEEDBACK =
+  'Justificativa sem nexo clínico suficiente com o caso. Revise e tente novamente.'
+
 export function buildExamValidationPrompt(
   patient: Patient,
   examName: string,

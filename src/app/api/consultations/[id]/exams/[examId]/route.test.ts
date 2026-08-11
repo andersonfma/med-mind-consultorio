@@ -21,6 +21,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { NextRequest } from 'next/server'
 import { PUT } from './route'
+import { EXAM_REJECTION_FEEDBACK } from '@/lib/exams/exam-prompts'
 
 const user = { id: 'user-1' }
 const mockExam = {
@@ -93,12 +94,26 @@ describe('PUT /api/consultations/[id]/exams/[examId]', () => {
     expect(res.status).toBe(409)
   })
 
-  it('retorna 200 com attempts incrementado', async () => {
+  it('retorna 200 com attempts incrementado e SEM feedback quando aprovado (não revela diagnóstico)', async () => {
     const res = await PUT(...makeRequest({ justification: 'nova justificativa' }))
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.attempts).toBe(2)
     expect(json.status).toBe('approved')
+    expect(json.ai_feedback).toBe('') // aprovado não recebe explicação — evita revelar o diagnóstico
+  })
+
+  it('retorna feedback genérico (não o texto da IA) quando rejeitado', async () => {
+    // A IA reprova E menciona o diagnóstico no texto — que NÃO deve chegar ao aluno.
+    mockCreate.mockResolvedValue({
+      choices: [{ message: { content: JSON.stringify({ approved: false, feedback: 'Não condiz com fenômeno de Raynaud' }) } }],
+    })
+    const res = await PUT(...makeRequest({ justification: 'nova' }))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('rejected')
+    expect(json.ai_feedback).toBe(EXAM_REJECTION_FEEDBACK)
+    expect(json.ai_feedback).not.toContain('Raynaud')
   })
 
   it('retorna 400 se exame já aprovado', async () => {

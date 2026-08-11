@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
-import { buildExamValidationPrompt, buildExamResultPrompt } from '@/lib/exams/exam-prompts'
+import { buildExamValidationPrompt, buildExamResultPrompt, EXAM_REJECTION_FEEDBACK } from '@/lib/exams/exam-prompts'
 import { cleanExamResult } from '@/lib/exams/clean'
 import { formatPhysicalExamSummary } from '@/lib/consultations/parse'
 import type { Patient } from '@/types/domain'
@@ -89,7 +89,10 @@ export async function POST(
 
     const parsed = JSON.parse(completion.choices[0].message.content) as Record<string, unknown>
     approved = parsed.approved === true
-    aiFeedback = typeof parsed.feedback === 'string' ? parsed.feedback : ''
+    // Descartamos o texto livre do juiz de propósito: aprovado → sem feedback (não revela
+    // o diagnóstico); rejeitado → mensagem genérica fixa. O `feedback` do prompt serve só
+    // como raciocínio interno do juiz para decidir approved, nunca é mostrado ao aluno.
+    aiFeedback = approved ? '' : EXAM_REJECTION_FEEDBACK
   } catch {
     return NextResponse.json({ error: 'OpenAI error' }, { status: 500 })
   }

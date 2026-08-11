@@ -3,10 +3,11 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-const { mockCreate, mockGetUser, mockFrom } = vi.hoisted(() => ({
+const { mockCreate, mockGetUser, mockFrom, mockInsert } = vi.hoisted(() => ({
   mockCreate: vi.fn(),
   mockGetUser: vi.fn(),
   mockFrom: vi.fn(),
+  mockInsert: vi.fn(),
 }))
 
 vi.mock('@/lib/openai/client', () => ({
@@ -21,6 +22,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { NextRequest } from 'next/server'
 import { POST, GET } from './route'
+import { EXAM_REJECTION_FEEDBACK } from '@/lib/exams/exam-prompts'
 
 const user = { id: 'user-1' }
 const mockPatient = {
@@ -67,13 +69,11 @@ describe('POST /api/consultations/[id]/exams', () => {
         choices: [{ message: { content: 'Hemograma: Hb 9,2 g/dL' } }],
       })
 
-    const insertChain = {
+    // O insert ecoa o payload gravado, para podermos verificar o ai_feedback de fato salvo.
+    mockInsert.mockImplementation((payload: Record<string, unknown>) => ({
       select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({
-        data: { id: 'er-1', exam_name: 'Hemograma completo', status: 'approved', attempts: 1, ai_feedback: 'Adequado', result: 'Hb 9,2' },
-        error: null,
-      }),
-    }
+      single: vi.fn().mockResolvedValue({ data: { id: 'er-1', ...payload }, error: null }),
+    }))
     mockFrom.mockImplementation((table: string) => ({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -82,7 +82,7 @@ describe('POST /api/consultations/[id]/exams', () => {
           ? { data: mockConsultation, error: null }
           : { data: null, error: null }
       ),
-      insert: vi.fn().mockReturnValue(insertChain),
+      insert: mockInsert,
       order: vi.fn().mockReturnThis(),
     }))
   })
@@ -103,11 +103,29 @@ describe('POST /api/consultations/[id]/exams', () => {
     expect(res.status).toBe(400)
   })
 
-  it('retorna 201 com exame aprovado', async () => {
+  it('retorna 201 com exame aprovado e SEM feedback (não revela diagnóstico)', async () => {
     const res = await POST(...makePost({ exam_name: 'Hemograma completo', justification: 'Anemia suspeita' }))
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json.status).toBe('approved')
+    // aprovado não recebe explicação — o feedback do juiz (que citaria o diagnóstico) é descartado
+    expect(mockInsert.mock.calls[0][0].ai_feedback).toBe('')
+    expect(json.ai_feedback).toBe('')
+  })
+
+  it('rejeitado recebe feedback genérico fixo, não o texto da IA (que citaria o diagnóstico)', async () => {
+    mockCreate.mockReset()
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify({ approved: false, feedback: 'Sem relação com fenômeno de Raynaud' }) } }],
+    })
+    const res = await POST(...makePost({ exam_name: 'Colonoscopia', justification: 'sem motivo' }))
+    expect(res.status).toBe(201)
+    const json = await res.json()
+    expect(json.status).toBe('rejected')
+    expect(json.ai_feedback).toBe(EXAM_REJECTION_FEEDBACK)
+    expect(json.ai_feedback).not.toContain('Raynaud')
+    // rejeitado não dispara geração de laudo → só a chamada de validação
+    expect(mockCreate).toHaveBeenCalledTimes(1)
   })
 
   it('passa o exame físico completo (além dos sinais vitais) ao juiz', async () => {
