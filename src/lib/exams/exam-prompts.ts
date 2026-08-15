@@ -39,11 +39,13 @@ Pensamento clínico: ${clinicalReasoning || '(não registrado)'}${memorySection}
 Exame solicitado: ${examName}
 Justificativa do aluno: ${justification}
 
-Critérios de aprovação (SEJA PERMISSIVO — a barra é BAIXA):
-- Aprove sempre que houver QUALQUER nexo clínico plausível: relação com a queixa, com uma hipótese diagnóstica, com um achado do exame físico (ex: sopro/turgência → ecocardiograma), com as condições do paciente, ou com rastreio/prevenção.
-- Uma justificativa que cita um achado, um sintoma ou uma hipótese razoável JÁ é suficiente — não exija justificativa longa nem perfeita.
-- NA DÚVIDA, APROVE. O objetivo é treinar o raciocínio do aluno, não puni-lo por imprecisão.
-- Reprove APENAS quando o exame não tem NENHUM nexo clínico nem preventivo com o caso (ex: exame de uma área totalmente alheia à queixa, sem menção a rastreio). Só nesse caso, "approved": false.${followUpRule}
+Critérios de aprovação (supervisor CRITERIOSO: a barra depende da PROPORCIONALIDADE do exame ao caso):
+
+1) Exames de 1ª/2ª linha — baixo custo, não invasivos (hemograma, bioquímica, eletrólitos, função renal/hepática, sorologias, FAN, urina/EAS, ECG, radiografia simples, ultrassonografia, ecocardiograma): a barra é BAIXA. Aprove com QUALQUER nexo clínico plausível — relação com a queixa, uma hipótese diagnóstica, um achado do exame físico (ex: sopro/turgência → ecocardiograma), as condições do paciente, ou rastreio/prevenção. Justificativa curta que cita um achado, sintoma ou hipótese razoável JÁ basta; não exija texto longo nem perfeito. Na dúvida, aprove.
+
+2) Exames de ALTA COMPLEXIDADE — alto custo, invasivos ou de 3ª linha (PET-CT, cintilografia, ressonância magnética, tomografia com contraste, biópsia, angiografia/cateterismo, endoscopia/colonoscopia, punção/análise de líquor, testes genéticos): a barra é ALTA. Aprove SOMENTE quando a justificativa traz uma INDICAÇÃO ESPECÍFICA e proporcional que realmente pede AQUELE exame naquele momento — um achado concreto ou uma hipótese definida cuja confirmação/mudança de conduta depende desse exame. Um nexo GENÉRICO ou exploratório NÃO basta ("investigar autoimune", "descartar neoplasia", "possível Sjögren", "para avaliar melhor") → "approved": false. Regra prática: se o mesmo raciocínio poderia ser esclarecido antes por um exame de 1ª linha, o exame caro é desproporcional agora.
+
+3) Reprove SEMPRE que o exame não tiver NENHUM nexo clínico nem preventivo com o caso (área totalmente alheia à queixa, sem rastreio) → "approved": false.${followUpRule}
 
 Responda APENAS com JSON válido:
 {
