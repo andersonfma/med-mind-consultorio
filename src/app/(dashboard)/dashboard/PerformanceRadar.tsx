@@ -63,6 +63,17 @@ export function PerformanceRadar({ result }: { result: RadarResult }) {
         })}
         <polygon points={polygon} fill="rgba(37,99,235,0.15)" stroke="#2563eb" strokeWidth="2" />
       </svg>
+      {result.reasoningCoverage && (
+        result.reasoningCoverage.reasoned >= result.reasoningCoverage.expected ? (
+          <p className="mt-2 text-xs text-emerald-600">
+            ✓ Raciocínio clínico registrado em todas as {result.reasoningCoverage.expected} consulta{result.reasoningCoverage.expected === 1 ? '' : 's'}.
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-amber-600">
+            Raciocínio clínico registrado em {result.reasoningCoverage.reasoned} de {result.reasoningCoverage.expected} consulta{result.reasoningCoverage.expected === 1 ? '' : 's'} — preencha o raciocínio ao concluir a consulta para fortalecer este eixo.
+          </p>
+        )
+      )}
     </div>
   )
 }

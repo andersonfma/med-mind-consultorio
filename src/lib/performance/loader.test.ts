@@ -25,12 +25,12 @@ describe('getRadarData', () => {
       prescriptions: [{ adequacy: 'adequada' }],
     })
     const result = await getRadarData(supabase, 'user-1')
-    expect(result).toEqual({ pensamentoClinico: 8, comunicacao: 6, tecnica: 10, n: 1 })
+    expect(result).toEqual({ pensamentoClinico: 8, comunicacao: 6, tecnica: 10, n: 1, reasoningCoverage: { reasoned: 1, expected: 1 } })
   })
 
   it('sem dados → todos os eixos null e n 0', async () => {
     const supabase = mockSupabase({})
     const result = await getRadarData(supabase, 'user-1')
-    expect(result).toEqual({ pensamentoClinico: null, comunicacao: null, tecnica: null, n: 0 })
+    expect(result).toEqual({ pensamentoClinico: null, comunicacao: null, tecnica: null, n: 0, reasoningCoverage: null })
   })
 })
