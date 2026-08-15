@@ -52,16 +52,29 @@ describe('buildExamValidationPrompt', () => {
     expect(lower).toContain('qualquer nexo')
   })
 
-  it('exige indicação específica para exames de alta complexidade (proporcionalidade)', () => {
+  it('para exames de alta complexidade, o critério é MIRAR um achado concreto (não o custo)', () => {
     const prompt = buildExamValidationPrompt(
       mockPatient as Patient, 'PET-CT', 'investigar possível Sjögren', '', ''
     )
     const lower = prompt.toLowerCase()
-    // barra alta: exames caros/invasivos precisam de indicação específica, nexo genérico não basta
     expect(lower).toContain('alta complexidade')
     expect(lower).toContain('indicação específica')
-    // cita exemplos de exames de alto custo/invasivos para ancorar o modelo
     expect(lower).toContain('pet')
+    // discriminador: achado concreto/alvo vs exploratório/pescaria
+    expect(lower).toContain('achado concreto')
+    expect(lower).toContain('explorat')
+  })
+
+  it('aprova exame invasivo que amostra diretamente o achado (ex: biópsia de úlcera/lesão)', () => {
+    const prompt = buildExamValidationPrompt(
+      mockPatient as Patient, 'Biópsia de úlcera oral', 'úlcera oral em suspeita de Behçet', '', 'úlcera oral extensa'
+    )
+    const lower = prompt.toLowerCase()
+    // exemplo positivo ancorado: biópsia de lesão visível quando a lesão é o achado
+    expect(lower).toContain('biópsia')
+    expect(lower).toContain('úlcera')
+    // não exigir 1ª linha antes quando há achado-alvo claro
+    expect(lower).toContain('não exija que exames de 1ª linha venham antes')
   })
 
   it('reprova quando não há nenhum nexo clínico', () => {
