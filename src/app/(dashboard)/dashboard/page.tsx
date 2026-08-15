@@ -5,6 +5,8 @@ import { LOGIN_ROUTE, patientDetailRoute } from '@/lib/routes'
 import { hasAvailableSlot } from '@/lib/patients/slots'
 import { BondBar } from '@/components/ui/BondBar'
 import { PlaceholderChart } from '@/components/charts/PlaceholderChart'
+import { getRadarData } from '@/lib/performance/loader'
+import { PerformanceRadar } from './PerformanceRadar'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -26,6 +28,8 @@ export default async function DashboardPage() {
   const patients = patientsResult.data ?? []
   const { total_slots, full_name } = profileResult.data
   const used_slots = patientsResult.count ?? patients.length
+
+  const radar = await getRadarData(supabase, user.id)
 
   return (
     <div className="p-6">
@@ -77,7 +81,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="w-3/5 space-y-4">
-          <PlaceholderChart title="Desempenho AB4" description="Eixos A1–A4 do método AB4" />
+          <PerformanceRadar result={radar} />
           <PlaceholderChart title="Reputação" description="Evolução ao longo do tempo" />
           <PlaceholderChart title="Volume de atendimentos" description="Consultas por semana" />
         </div>
