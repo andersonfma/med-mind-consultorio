@@ -42,14 +42,35 @@ describe('buildExamValidationPrompt', () => {
     expect(prompt).toContain('FC 110 bpm')
   })
 
-  it('instrui a aprovar na dúvida e só reprovar sem nexo algum', () => {
+  it('mantém a barra baixa para exames de 1ª/2ª linha (aprova com qualquer nexo)', () => {
     const prompt = buildExamValidationPrompt(
       mockPatient as Patient, 'Ecocardiograma', 'avaliar sopro e turgência jugular', '', ''
     )
     const lower = prompt.toLowerCase()
-    expect(lower).toContain('na dúvida')
-    expect(lower).toContain('aprov')
-    expect(lower).toContain('nenhum')
+    // via permissiva de 1ª linha preservada (conserto do ECO-por-sopro não regride)
+    expect(lower).toContain('1ª linha')
+    expect(lower).toContain('qualquer nexo')
+  })
+
+  it('exige indicação específica para exames de alta complexidade (proporcionalidade)', () => {
+    const prompt = buildExamValidationPrompt(
+      mockPatient as Patient, 'PET-CT', 'investigar possível Sjögren', '', ''
+    )
+    const lower = prompt.toLowerCase()
+    // barra alta: exames caros/invasivos precisam de indicação específica, nexo genérico não basta
+    expect(lower).toContain('alta complexidade')
+    expect(lower).toContain('indicação específica')
+    // cita exemplos de exames de alto custo/invasivos para ancorar o modelo
+    expect(lower).toContain('pet')
+  })
+
+  it('reprova quando não há nenhum nexo clínico', () => {
+    const prompt = buildExamValidationPrompt(
+      mockPatient as Patient, 'Ecocardiograma', 'só para conferir', '', ''
+    )
+    const lower = prompt.toLowerCase()
+    expect(lower).toContain('nenhum nexo')
+    expect(prompt).toContain('"approved": false')
   })
 })
 
