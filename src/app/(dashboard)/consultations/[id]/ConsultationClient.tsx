@@ -62,19 +62,19 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-white shrink-0">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-surface shrink-0">
         <div className="flex items-center gap-3">
-          <Link href={patientDetailRoute(patient.id)} className="text-gray-400 hover:text-gray-600 text-sm">
+          <Link href={patientDetailRoute(patient.id)} className="text-muted hover:text-ink text-lg leading-none">
             ←
           </Link>
           <div>
-            <h1 className="font-semibold text-gray-900 text-sm leading-tight">{patient.name}</h1>
-            <p className="text-xs text-gray-400">{patient.age} anos · {patient.specialty} · {patient.difficulty}</p>
+            <h1 className="font-display font-semibold text-ink text-sm leading-tight">{patient.name}</h1>
+            <p className="text-xs text-muted">{patient.age} anos · {patient.specialty} · {patient.difficulty}</p>
           </div>
         </div>
         <button
           onClick={() => setShowFinishModal(true)}
-          className="btn btn--primary text-sm"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-button)] transition-colors hover:bg-primary-hover"
         >
           Finalizar consulta
         </button>
@@ -84,9 +84,9 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
       <div className="flex flex-1 overflow-hidden">
 
         {/* Column 1 — Chat + Anamnese (38%) */}
-        <div className="w-[38%] border-r flex flex-col">
+        <div className="w-[38%] border-r border-border flex flex-col">
           {/* Chat — ocupa a parte superior, scrollável */}
-          <div className="flex-[3] flex flex-col overflow-hidden border-b">
+          <div className="flex-[3] flex flex-col overflow-hidden border-b border-border">
             <ConsultationChat
               consultationId={consultation.id}
               initialMessages={messages}
@@ -96,26 +96,26 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
           </div>
           {/* Anamnese — parte inferior */}
           <div className="flex-[2] flex flex-col overflow-y-auto">
-            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide shrink-0">Anamnese</p>
+            <p className="px-3 pt-3 pb-1 text-xs font-bold text-muted uppercase tracking-wide shrink-0">Anamnese</p>
             <AnamnesisPanel consultationId={consultation.id} initialAnamnesis={initialAnamnesis} />
           </div>
         </div>
 
         {/* Column 2 — Exame Físico + Exames (37%) */}
-        <div className="w-[37%] border-r flex flex-col overflow-y-auto">
-          <div className="border-b">
-            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Exame Físico</p>
+        <div className="w-[37%] border-r border-border flex flex-col overflow-y-auto">
+          <div className="border-b border-border">
+            <p className="px-3 pt-3 pb-1 text-xs font-bold text-muted uppercase tracking-wide">Exame Físico</p>
             <PhysicalExamPanel consultationId={consultation.id} initialExam={initialPhysicalExam} />
           </div>
-          <div className="border-b">
-            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Exames</p>
+          <div className="border-b border-border">
+            <p className="px-3 pt-3 pb-1 text-xs font-bold text-muted uppercase tracking-wide">Exames</p>
             <ExamRequestPanel
               consultationId={consultation.id}
               previousExamResults={previousExamResults}
             />
           </div>
-          <div className="border-t">
-            <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide">Conduta</p>
+          <div className="border-t border-border">
+            <p className="px-3 pt-3 pb-1 text-xs font-bold text-muted uppercase tracking-wide">Conduta</p>
             <PrescriptionPanel
               consultationId={consultation.id}
               specialty={patient.specialty as Specialty}
@@ -126,19 +126,19 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
 
         {/* Column 3 — Pensamento Clínico (25%) */}
         <div className="w-[25%] flex flex-col">
-          <p className="px-3 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wide shrink-0">
+          <p className="px-3 pt-3 pb-1 text-xs font-bold text-muted uppercase tracking-wide shrink-0">
             Pensamento Clínico
           </p>
           {diagnosisClosed && !reasoningOpen ? (
             <div className="px-3 pb-3">
-              <div className="rounded-md border border-gray-200 bg-gray-50 p-3 space-y-2">
-                <p className="text-sm text-gray-500">
+              <div className="rounded-md border border-border bg-surface-2 p-3 space-y-2">
+                <p className="text-sm text-muted">
                   Diagnóstico já fechado — esta é uma consulta de acompanhamento. O raciocínio
                   diagnóstico (AB4) já foi avaliado no arco anterior.
                 </p>
                 <button
                   onClick={() => setReasoningOpen(true)}
-                  className="text-sm font-medium text-blue-600 hover:underline"
+                  className="text-sm font-medium text-primary hover:underline"
                 >
                   + Registrar novo raciocínio
                 </button>
@@ -152,7 +152,7 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
                 onChange={setClinicalReasoning}
               />
               {diagnosisClosed && (
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-muted">
                   Nota de acompanhamento — não recalcula o AB4.
                 </p>
               )}

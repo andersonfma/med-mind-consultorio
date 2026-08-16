@@ -68,9 +68,9 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 py-2 border-b text-xs text-gray-500">
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-border text-xs text-muted">
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={autoSpeak} onChange={e => setAutoSpeak(e.target.checked)} aria-label="ouvir o paciente" />
+          <input type="checkbox" checked={autoSpeak} onChange={e => setAutoSpeak(e.target.checked)} aria-label="ouvir o paciente" className="accent-primary" />
           🔊 ouvir o paciente
         </label>
         <label className="flex items-center gap-1">
@@ -79,7 +79,7 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
             aria-label="velocidade"
             value={speed}
             onChange={e => setSpeed(Number(e.target.value))}
-            className="border border-gray-300 rounded px-1 py-0.5"
+            className="bg-surface-2 text-ink border border-border rounded px-1 py-0.5 focus:outline-none focus:border-primary"
           >
             <option value="1">1×</option>
             <option value="1.25">1.25×</option>
@@ -90,14 +90,14 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
-          <p className="text-gray-400 text-sm text-center">Inicie a consulta cumprimentando o paciente.</p>
+          <p className="text-muted text-sm text-center">Inicie a consulta cumprimentando o paciente.</p>
         )}
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'student' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[75%] rounded-lg px-4 py-2 text-sm ${
               msg.role === 'student'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-800'
+                ? 'bg-primary text-primary-ink'
+                : 'bg-surface-2 text-ink'
             }`}>
               <p className="font-semibold text-xs mb-1 opacity-70">
                 {msg.role === 'student' ? 'Você' : 'Paciente'}
@@ -109,14 +109,14 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
                     type="button"
                     aria-label="parar"
                     onClick={() => { stop(); setPlayingIdx(null) }}
-                    className="block mt-1 text-xs text-gray-400 hover:text-gray-600"
+                    className="block mt-1 text-xs text-muted hover:text-ink"
                   >■</button>
                 ) : (
                   <button
                     type="button"
                     aria-label="ouvir resposta"
                     onClick={() => { play(msg.content, voice, speed); setPlayingIdx(i) }}
-                    className="block mt-1 text-xs text-gray-400 hover:text-gray-600"
+                    className="block mt-1 text-xs text-muted hover:text-ink"
                   >🔊</button>
                 )
               )}
@@ -125,15 +125,15 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg px-4 py-2 text-sm text-gray-400">
+            <div className="bg-surface-2 rounded-lg px-4 py-2 text-sm text-muted">
               Paciente digitando...
             </div>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
-      {error && <p className="px-4 text-red-500 text-xs">{error}</p>}
-      <div className="border-t p-4 flex gap-2">
+      {error && <p className="px-4 text-danger text-xs">{error}</p>}
+      <div className="border-t border-border p-4 flex gap-2">
         <MicButton onTranscript={(t) => setInput(prev => appendTranscript(prev, t))} />
         <input
           type="text"
@@ -141,13 +141,13 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
           placeholder="Digite sua mensagem..."
-          className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
+          className="flex-1 bg-surface-2 text-ink placeholder:text-muted border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary"
           disabled={loading}
         />
         <button
           onClick={sendMessage}
           disabled={loading || !input.trim()}
-          className="btn btn--primary px-4"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-button)] transition-colors hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Enviar
         </button>

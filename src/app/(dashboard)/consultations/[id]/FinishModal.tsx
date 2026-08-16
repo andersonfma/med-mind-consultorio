@@ -69,38 +69,38 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+      <div className="bg-surface border border-border rounded-2xl p-6 w-full max-w-md shadow-[var(--shadow-card)]">
         {!result ? (
           <>
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Encerrar consulta</h2>
-            <p className="text-sm text-gray-500 mb-6">
+            <h2 className="font-display text-lg font-bold text-ink mb-2">Encerrar consulta</h2>
+            <p className="text-sm text-muted mb-6">
               O pensamento clínico registrado durante a consulta será avaliado. Deseja encerrar?
             </p>
-            {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+            {error && <p className="text-danger text-sm mb-3">{error}</p>}
             <div className="flex gap-3">
-              <button onClick={onClose} disabled={loading} className="flex-1 btn btn--secondary">
+              <button onClick={onClose} disabled={loading} className="flex-1 rounded-md border border-border bg-surface-2 px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface hover:border-border-strong disabled:opacity-50">
                 Cancelar
               </button>
-              <button onClick={finish} disabled={loading} className="flex-1 btn btn--primary">
+              <button onClick={finish} disabled={loading} className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-button)] transition-colors hover:bg-primary-hover disabled:opacity-50">
                 {loading ? 'Avaliando...' : 'Encerrar consulta'}
               </button>
             </div>
           </>
         ) : (
           <>
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Consulta encerrada</h2>
-            <p className="text-sm text-gray-500 mb-4">
+            <h2 className="font-display text-lg font-bold text-ink mb-1">Consulta encerrada</h2>
+            <p className="text-sm text-muted mb-4">
               Veja os resultados dos exames na próxima consulta. Quando terminar de raciocinar, conclua o diagnóstico na página do paciente.
             </p>
 
             {result.ab4 ? (
               <>
                 <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-sm font-semibold text-gray-700">Score AB4 — raciocínio clínico</span>
-                  <span className="text-2xl font-bold text-gray-900">{result.ab4.overall.toFixed(1)}<span className="text-sm text-gray-400">/10</span></span>
+                  <span className="text-sm font-semibold text-ink">Score AB4 — raciocínio clínico</span>
+                  <span className="font-display text-2xl font-bold text-ink">{result.ab4.overall.toFixed(1)}<span className="text-sm text-muted">/10</span></span>
                 </div>
                 {result.ab4.stage === 1 && (
-                  <p className="text-xs text-gray-400 mb-3">
+                  <p className="text-xs text-muted mb-3">
                     Primeira consulta: avaliamos só a abertura do raciocínio (A1 e A2). A3 e A4 serão avaliados na próxima consulta, com os resultados dos exames.
                   </p>
                 )}
@@ -113,39 +113,39 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
                     return (
                       <div key={ax.key} className="flex items-center gap-2">
                         <div className="w-28 shrink-0">
-                          <span className={`text-xs font-medium ${pending ? 'text-gray-300' : 'text-gray-700'}`}>{ax.label}</span>
-                          <span className="block text-[10px] text-gray-400">{ax.sub}</span>
+                          <span className={`text-xs font-medium ${pending ? 'text-muted/50' : 'text-ink'}`}>{ax.label}</span>
+                          <span className="block text-[10px] text-muted">{ax.sub}</span>
                         </div>
-                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="flex-1 h-2 bg-surface-2 rounded-full overflow-hidden">
                           {!pending && (
                             <div
-                              className={`h-full rounded-full ${weak ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                              className={`h-full rounded-full ${weak ? 'bg-warning' : 'bg-success'}`}
                               style={{ width: `${score * 10}%` }}
                             />
                           )}
                         </div>
                         {pending
-                          ? <span className="text-[10px] text-gray-400 shrink-0">próxima consulta</span>
-                          : <span className={`w-5 text-right text-sm font-semibold ${weak ? 'text-amber-600' : 'text-gray-700'}`}>{score}</span>}
+                          ? <span className="text-[10px] text-muted shrink-0">próxima consulta</span>
+                          : <span className={`w-5 text-right text-sm font-semibold ${weak ? 'text-warning' : 'text-ink'}`}>{score}</span>}
                       </div>
                     )
                   })}
                 </div>
 
-                <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 mb-5">
-                  <p className="text-xs font-semibold text-gray-500 mb-1">Recomendação</p>
-                  <p className="text-sm text-gray-700">{result.ab4.recommendation}</p>
+                <div className="bg-surface-2 border border-border rounded-lg p-3 mb-5">
+                  <p className="text-xs font-semibold text-muted mb-1">Recomendação</p>
+                  <p className="text-sm text-ink">{result.ab4.recommendation}</p>
                 </div>
               </>
             ) : (
-              <p className="text-sm text-gray-500 mb-5">Avaliação AB4 indisponível desta vez.</p>
+              <p className="text-sm text-muted mb-5">Avaliação AB4 indisponível desta vez.</p>
             )}
 
             {result.communication && (
               <>
                 <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-sm font-semibold text-gray-700">Score de Comunicação</span>
-                  <span className="text-2xl font-bold text-gray-900">{result.communication.overall.toFixed(1)}<span className="text-sm text-gray-400">/10</span></span>
+                  <span className="text-sm font-semibold text-ink">Score de Comunicação</span>
+                  <span className="font-display text-2xl font-bold text-ink">{result.communication.overall.toFixed(1)}<span className="text-sm text-muted">/10</span></span>
                 </div>
                 <div className="space-y-2 mb-4">
                   {COMM_AXES.map(ax => {
@@ -154,27 +154,27 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
                     return (
                       <div key={ax.key} className="flex items-center gap-2">
                         <div className="w-28 shrink-0">
-                          <span className="text-xs font-medium text-gray-700">{ax.label}</span>
-                          <span className="block text-[10px] text-gray-400">{ax.sub}</span>
+                          <span className="text-xs font-medium text-ink">{ax.label}</span>
+                          <span className="block text-[10px] text-muted">{ax.sub}</span>
                         </div>
-                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${weak ? 'bg-amber-500' : 'bg-sky-500'}`} style={{ width: `${score * 10}%` }} />
+                        <div className="flex-1 h-2 bg-surface-2 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${weak ? 'bg-warning' : 'bg-chart-2'}`} style={{ width: `${score * 10}%` }} />
                         </div>
-                        <span className={`w-5 text-right text-sm font-semibold ${weak ? 'text-amber-600' : 'text-gray-700'}`}>{score}</span>
+                        <span className={`w-5 text-right text-sm font-semibold ${weak ? 'text-warning' : 'text-ink'}`}>{score}</span>
                       </div>
                     )
                   })}
                 </div>
-                <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 mb-5">
-                  <p className="text-xs font-semibold text-gray-500 mb-1">Comunicação — recomendação</p>
-                  <p className="text-sm text-gray-700">{result.communication.recommendation}</p>
+                <div className="bg-surface-2 border border-border rounded-lg p-3 mb-5">
+                  <p className="text-xs font-semibold text-muted mb-1">Comunicação — recomendação</p>
+                  <p className="text-sm text-ink">{result.communication.recommendation}</p>
                 </div>
               </>
             )}
 
             <button
               onClick={() => router.push(patientDetailRoute(result.patient_id))}
-              className="w-full btn btn--primary"
+              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-button)] transition-colors hover:bg-primary-hover"
             >
               Ver paciente
             </button>

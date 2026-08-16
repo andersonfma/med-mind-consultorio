@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import Link from 'next/link'
 import { LogoutButton } from './LogoutButton'
+import { MedMindMark } from './MedMindMark'
 
 interface ShellProps {
   children: ReactNode
@@ -12,14 +13,9 @@ export function Shell({ children }: ShellProps) {
       <header className="bg-surface border-b border-border px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/dashboard" className="group flex items-center gap-2.5">
-            <span
-              aria-hidden
-              className="grid h-7 w-7 place-items-center rounded-lg bg-primary font-display text-sm font-bold text-primary-ink shadow-[var(--shadow-glow-primary)]"
-            >
-              M
-            </span>
-            <span className="font-display text-lg font-bold tracking-tight text-ink">
-              Med<span className="text-primary">Mind</span>
+            <MedMindMark className="h-8 w-8" />
+            <span className="font-display text-lg font-semibold tracking-tight text-primary">
+              Med Mind
             </span>
           </Link>
           <div className="flex items-center gap-4">
