@@ -1,9 +1,9 @@
 const LEVEL_COLORS: Record<number, string> = {
-  1: 'bg-red-500',
-  2: 'bg-orange-500',
-  3: 'bg-yellow-400',
-  4: 'bg-green-400',
-  5: 'bg-green-700',
+  1: 'bg-danger',
+  2: 'bg-warning',
+  3: 'bg-warning',
+  4: 'bg-success',
+  5: 'bg-success',
 }
 
 export function BondBar({ level }: { level: number }) {
@@ -12,7 +12,7 @@ export function BondBar({ level }: { level: number }) {
       {[1, 2, 3, 4, 5].map((bar) => (
         <div
           key={bar}
-          className={`h-3 w-6 rounded-sm ${bar <= level ? LEVEL_COLORS[level] : 'bg-gray-200'}`}
+          className={`h-3 w-6 rounded-sm ${bar <= level ? LEVEL_COLORS[level] : 'bg-surface-2'}`}
         />
       ))}
     </div>

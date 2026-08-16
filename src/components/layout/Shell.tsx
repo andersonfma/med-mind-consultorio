@@ -8,14 +8,22 @@ interface ShellProps {
 
 export function Shell({ children }: ShellProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="min-h-screen bg-background">
+      <header className="bg-surface border-b border-border px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link href="/dashboard" className="font-semibold text-gray-900">
-            Med Mind
+          <Link href="/dashboard" className="group flex items-center gap-2.5">
+            <span
+              aria-hidden
+              className="grid h-7 w-7 place-items-center rounded-lg bg-primary font-display text-sm font-bold text-primary-ink shadow-[var(--shadow-glow-primary)]"
+            >
+              M
+            </span>
+            <span className="font-display text-lg font-bold tracking-tight text-ink">
+              Med<span className="text-primary">Mind</span>
+            </span>
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-400">Módulo Consultório</span>
+            <span className="hidden text-xs text-muted sm:inline">Simulador clínico</span>
             <LogoutButton />
           </div>
         </div>

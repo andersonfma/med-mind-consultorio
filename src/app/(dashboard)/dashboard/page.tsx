@@ -35,18 +35,21 @@ export default async function DashboardPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{full_name}</h1>
-          <p className="text-sm text-gray-500">Reputação: 0 pts</p>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{full_name}</h1>
+          <p className="text-sm text-muted">Reputação: 0 pts</p>
         </div>
         {hasAvailableSlot(used_slots, total_slots) ? (
-          <Link href="/patients/new" className="btn btn--primary">
+          <Link
+            href="/patients/new"
+            className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[0_6px_24px_-8px_rgba(34,224,230,0.45)] transition-colors hover:bg-primary-hover"
+          >
             Novo paciente
           </Link>
         ) : (
           <button
             disabled
             title="Aumente sua reputação para desbloquear novos pacientes"
-            className="btn btn--primary"
+            className="inline-flex cursor-not-allowed items-center rounded-md border border-border bg-surface-2 px-4 py-2 text-sm font-semibold text-muted"
           >
             Novo paciente
           </button>
@@ -55,22 +58,22 @@ export default async function DashboardPage() {
 
       <div className="flex gap-6">
         <div className="w-2/5">
-          <p className="text-sm text-gray-500 mb-3">
+          <p className="text-sm text-muted mb-3">
             {used_slots} / {total_slots} slots utilizados
           </p>
           {patients.length === 0 ? (
-            <p className="text-gray-400 text-sm">Nenhum paciente ainda.</p>
+            <p className="text-muted text-sm">Nenhum paciente ainda.</p>
           ) : (
             <ul className="space-y-3">
               {patients.map((patient) => (
                 <li key={patient.id}>
                   <Link
                     href={patientDetailRoute(patient.id)}
-                    className="block border border-gray-200 rounded-lg p-3 hover:bg-gray-50"
+                    className="block rounded-lg border border-border bg-surface p-3 transition-colors hover:border-primary/50"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-gray-800">{patient.name}</span>
-                      <span className="text-xs text-gray-400">{patient.specialty}</span>
+                      <span className="font-medium text-ink">{patient.name}</span>
+                      <span className="text-xs text-muted">{patient.specialty}</span>
                     </div>
                     <BondBar level={patient.bond_level} />
                   </Link>

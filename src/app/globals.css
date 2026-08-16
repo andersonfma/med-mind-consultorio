@@ -1,1 +1,69 @@
 @import "tailwindcss";
+
+/*
+  Design system — direção visual "Ink × Elétrico" (dark-first).
+  Grafite quase-preto + par complementar ciano elétrico × coral.
+  Tokens do @theme viram utilitários Tailwind v4:
+    --color-surface   -> bg-surface / text-surface / border-surface
+    --color-muted     -> text-muted / bg-muted ...
+    --color-primary   -> bg-primary / text-primary ...
+  Regra de ouro (das referências): ciano/coral NUNCA preenchem grandes áreas —
+  só bordas, glows, dados e CTAs. A superfície continua neutra (grafite).
+*/
+@theme {
+  /* superfícies */
+  --color-background: #0A0B0F;
+  --color-surface: #12141A;
+  --color-surface-2: #1B1E27;
+  --color-border: #272B37;
+  --color-border-strong: #323848;
+
+  /* texto */
+  --color-ink: #F2F4F8;
+  --color-muted: #9AA3B7;
+
+  /* par elétrico complementar */
+  --color-primary: #22E0E6;
+  --color-primary-hover: #5AF0F4;
+  --color-primary-ink: #04191A;
+  --color-secondary: #FF7A66;
+  --color-secondary-hover: #FF9585;
+
+  /* semânticos */
+  --color-success: #34E5A0;
+  --color-warning: #FFB020;
+  --color-danger: #FF5470;
+
+  /* dados / radar */
+  --color-chart-1: #22E0E6; /* Técnica */
+  --color-chart-2: #FF7A66; /* Comunicação */
+  --color-chart-3: #A98BFF; /* Pensamento Clínico */
+
+  /* tipografia (next/font expõe --ff-*) */
+  --font-display: var(--ff-display), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--ff-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--ff-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  /* raios */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* sombras / glow */
+  --shadow-card: 0 8px 32px -16px rgba(0, 0, 0, 0.6);
+  --shadow-glow-primary: 0 6px 24px -8px rgba(34, 224, 230, 0.5);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foco visível consistente (acessibilidade) usando o acento ciano. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

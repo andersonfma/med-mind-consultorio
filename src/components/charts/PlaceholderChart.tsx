@@ -6,16 +6,16 @@ export function PlaceholderChart({
   description: string
 }) {
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+    <div className="border border-border rounded-lg p-4 bg-surface">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
-        <span className="text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">
+        <h3 className="text-sm font-semibold text-ink">{title}</h3>
+        <span className="text-xs bg-surface-2 text-muted px-2 py-0.5 rounded-full">
           Em breve
         </span>
       </div>
-      <p className="text-xs text-gray-400 mb-4">{description}</p>
+      <p className="text-xs text-muted mb-4">{description}</p>
       <svg
-        className="w-full h-24 text-gray-200"
+        className="w-full h-24 text-border"
         viewBox="0 0 200 60"
         aria-hidden="true"
       >
