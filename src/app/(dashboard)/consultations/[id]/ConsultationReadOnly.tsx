@@ -36,9 +36,9 @@ type Props = {
 }
 
 const ADEQUACY_LABEL: Record<string, { text: string; cls: string }> = {
-  adequada: { text: 'adequada', cls: 'text-emerald-600' },
-  parcial: { text: 'parcial', cls: 'text-amber-600' },
-  inadequada: { text: 'inadequada', cls: 'text-red-600' },
+  adequada: { text: 'adequada', cls: 'text-success' },
+  parcial: { text: 'parcial', cls: 'text-warning' },
+  inadequada: { text: 'inadequada', cls: 'text-danger' },
 }
 
 const ANAMNESIS_LABELS: Record<string, string> = {
@@ -69,7 +69,7 @@ const AXES: { key: 'a1' | 'a2' | 'a3' | 'a4'; label: string; sub: string }[] = [
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-6">
-      <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">{title}</h2>
+      <h2 className="text-xs font-bold text-muted uppercase tracking-wide mb-2">{title}</h2>
       {children}
     </section>
   )
@@ -101,15 +101,15 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
       : {}
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50">
+    <div className="h-full overflow-y-auto bg-background">
       <div className="max-w-2xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-1">
-          <Link href={patientDetailRoute(patient.id)} className="text-gray-400 hover:text-gray-600 text-sm">←</Link>
-          <h1 className="text-xl font-bold text-gray-900">{patient.name}</h1>
-          <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">Modo leitura</span>
+          <Link href={patientDetailRoute(patient.id)} className="text-muted hover:text-ink text-lg leading-none">←</Link>
+          <h1 className="font-display text-xl font-bold text-ink">{patient.name}</h1>
+          <span className="text-xs bg-surface-2 border border-border text-muted px-2 py-0.5 rounded-full">Modo leitura</span>
         </div>
-        <p className="text-sm text-gray-500 mb-6 pl-7">
+        <p className="text-sm text-muted mb-6 pl-7">
           Consulta finalizada{consultation.finished_at ? ` em ${new Date(consultation.finished_at).toLocaleDateString('pt-BR')}` : ''}
           {' · '}{patient.specialty} · {patient.difficulty}
         </p>
@@ -117,13 +117,13 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
         {/* AB4 */}
         {ab4 && (
           <Section title="Score AB4 — raciocínio clínico">
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="bg-surface border border-border rounded-lg p-4">
               <div className="flex items-baseline justify-between mb-1">
-                <span className="text-sm font-semibold text-gray-700">Geral</span>
-                <span className="text-2xl font-bold text-gray-900">{ab4.overall.toFixed(1)}<span className="text-sm text-gray-400">/10</span></span>
+                <span className="text-sm font-semibold text-ink">Geral</span>
+                <span className="text-2xl font-bold text-ink">{ab4.overall.toFixed(1)}<span className="text-sm text-muted">/10</span></span>
               </div>
               {ab4.stage === 1 && (
-                <p className="text-xs text-gray-400 mb-3">
+                <p className="text-xs text-muted mb-3">
                   Primeira consulta: só A1 e A2 avaliados. A3 e A4 entram na próxima consulta, com os resultados dos exames.
                 </p>
               )}
@@ -135,22 +135,22 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
                   return (
                     <div key={ax.key} className="flex items-center gap-2">
                       <div className="w-28 shrink-0">
-                        <span className={`text-xs font-medium ${pending ? 'text-gray-300' : 'text-gray-700'}`}>{ax.label}</span>
-                        <span className="block text-[10px] text-gray-400">{ax.sub}</span>
+                        <span className={`text-xs font-medium ${pending ? 'text-muted/50' : 'text-ink'}`}>{ax.label}</span>
+                        <span className="block text-[10px] text-muted">{ax.sub}</span>
                       </div>
-                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                        {!pending && <div className={`h-full rounded-full ${weak ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${score * 10}%` }} />}
+                      <div className="flex-1 h-2 bg-surface-2 rounded-full overflow-hidden">
+                        {!pending && <div className={`h-full rounded-full ${weak ? 'bg-warning' : 'bg-success'}`} style={{ width: `${score * 10}%` }} />}
                       </div>
                       {pending
-                        ? <span className="text-[10px] text-gray-400 shrink-0">próxima consulta</span>
-                        : <span className={`w-5 text-right text-sm font-semibold ${weak ? 'text-amber-600' : 'text-gray-700'}`}>{score}</span>}
+                        ? <span className="text-[10px] text-muted shrink-0">próxima consulta</span>
+                        : <span className={`w-5 text-right text-sm font-semibold ${weak ? 'text-warning' : 'text-ink'}`}>{score}</span>}
                     </div>
                   )
                 })}
               </div>
-              <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-500 mb-1">Recomendação</p>
-                <p className="text-sm text-gray-700">{ab4.recommendation}</p>
+              <div className="bg-surface-2 border border-border rounded-lg p-3">
+                <p className="text-xs font-semibold text-muted mb-1">Recomendação</p>
+                <p className="text-sm text-ink">{ab4.recommendation}</p>
               </div>
             </div>
           </Section>
@@ -158,10 +158,10 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
 
         {communication && (
           <Section title="Score de Comunicação">
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="bg-surface border border-border rounded-lg p-4">
               <div className="flex items-baseline justify-between mb-3">
-                <span className="text-sm font-semibold text-gray-700">Diálogo médico-paciente</span>
-                <span className="text-2xl font-bold text-gray-900">{communication.overall.toFixed(1)}<span className="text-sm text-gray-400">/10</span></span>
+                <span className="text-sm font-semibold text-ink">Diálogo médico-paciente</span>
+                <span className="text-2xl font-bold text-ink">{communication.overall.toFixed(1)}<span className="text-sm text-muted">/10</span></span>
               </div>
               <div className="space-y-2 mb-3">
                 {COMM_AXES.map(ax => {
@@ -170,20 +170,20 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
                   return (
                     <div key={ax.key} className="flex items-center gap-2">
                       <div className="w-28 shrink-0">
-                        <span className="text-xs font-medium text-gray-700">{ax.label}</span>
-                        <span className="block text-[10px] text-gray-400">{ax.sub}</span>
+                        <span className="text-xs font-medium text-ink">{ax.label}</span>
+                        <span className="block text-[10px] text-muted">{ax.sub}</span>
                       </div>
-                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${weak ? 'bg-amber-500' : 'bg-sky-500'}`} style={{ width: `${score * 10}%` }} />
+                      <div className="flex-1 h-2 bg-surface-2 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${weak ? 'bg-warning' : 'bg-chart-2'}`} style={{ width: `${score * 10}%` }} />
                       </div>
-                      <span className={`w-5 text-right text-sm font-semibold ${weak ? 'text-amber-600' : 'text-gray-700'}`}>{score}</span>
+                      <span className={`w-5 text-right text-sm font-semibold ${weak ? 'text-warning' : 'text-ink'}`}>{score}</span>
                     </div>
                   )
                 })}
               </div>
-              <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-500 mb-1">Recomendação</p>
-                <p className="text-sm text-gray-700">{communication.recommendation}</p>
+              <div className="bg-surface-2 border border-border rounded-lg p-3">
+                <p className="text-xs font-semibold text-muted mb-1">Recomendação</p>
+                <p className="text-sm text-ink">{communication.recommendation}</p>
               </div>
             </div>
           </Section>
@@ -191,21 +191,21 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
 
         {/* Pensamento clínico */}
         <Section title="Pensamento clínico">
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="bg-surface border border-border rounded-lg p-4">
             {reasoning
-              ? <p className="text-sm text-gray-700 whitespace-pre-wrap">{reasoning}</p>
-              : <p className="text-sm text-gray-400 italic">Não registrado nesta consulta</p>}
+              ? <p className="text-sm text-ink whitespace-pre-wrap">{reasoning}</p>
+              : <p className="text-sm text-muted italic">Não registrado nesta consulta</p>}
           </div>
         </Section>
 
         {/* Chat */}
         <Section title="Conversa com o paciente">
-          <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+          <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
             {chat.length === 0
-              ? <p className="text-sm text-gray-400 italic">Sem mensagens.</p>
+              ? <p className="text-sm text-muted italic">Sem mensagens.</p>
               : chat.map((m, i) => (
                   <div key={i} className={m.role === 'student' ? 'text-right' : 'text-left'}>
-                    <span className={`inline-block max-w-[80%] text-sm px-3 py-2 rounded-2xl whitespace-pre-wrap ${m.role === 'student' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'}`}>
+                    <span className={`inline-block max-w-[80%] text-sm px-3 py-2 rounded-2xl whitespace-pre-wrap ${m.role === 'student' ? 'bg-primary text-primary-ink' : 'bg-surface-2 text-ink'}`}>
                       {m.content}
                     </span>
                   </div>
@@ -215,11 +215,11 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
 
         {/* Anamnese */}
         <Section title="Anamnese">
-          <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+          <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
             {Object.entries(ANAMNESIS_LABELS).map(([k, label]) => (
               <div key={k}>
-                <p className="text-xs font-semibold text-gray-500 mb-1">{label}</p>
-                <p className="text-sm text-gray-700">{anamnesis[k]?.trim() || <span className="text-gray-300 italic">—</span>}</p>
+                <p className="text-xs font-semibold text-muted mb-1">{label}</p>
+                <p className="text-sm text-ink">{anamnesis[k]?.trim() || <span className="text-muted/50 italic">—</span>}</p>
               </div>
             ))}
           </div>
@@ -227,21 +227,21 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
 
         {/* Exame físico */}
         <Section title="Exame físico">
-          <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+          <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
             {peEntries.length === 0 && Object.keys(extraSystems).length === 0
-              ? <p className="text-sm text-gray-400 italic">Nenhum exame físico registrado.</p>
+              ? <p className="text-sm text-muted italic">Nenhum exame físico registrado.</p>
               : (
                 <>
                   {peEntries.map(([label, v]) => (
                     <div key={label}>
-                      <p className="text-xs font-semibold text-gray-500 mb-1">{label}</p>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{v as string}</p>
+                      <p className="text-xs font-semibold text-muted mb-1">{label}</p>
+                      <p className="text-sm text-ink whitespace-pre-wrap">{v as string}</p>
                     </div>
                   ))}
                   {Object.entries(extraSystems).map(([label, v]) => (
                     <div key={label}>
-                      <p className="text-xs font-semibold text-gray-500 mb-1">{label}</p>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{v}</p>
+                      <p className="text-xs font-semibold text-muted mb-1">{label}</p>
+                      <p className="text-sm text-ink whitespace-pre-wrap">{v}</p>
                     </div>
                   ))}
                 </>
@@ -251,17 +251,17 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
 
         {/* Exames */}
         <Section title="Exames solicitados">
-          <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+          <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
             {exams.length === 0
-              ? <p className="text-sm text-gray-400 italic">Nenhum exame solicitado.</p>
+              ? <p className="text-sm text-muted italic">Nenhum exame solicitado.</p>
               : exams.map((e, i) => (
-                  <div key={i} className="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
+                  <div key={i} className="border-b border-border last:border-0 pb-3 last:pb-0">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-gray-800">{e.exam_name}</p>
-                      <span className="text-[10px] uppercase tracking-wide text-gray-400">{e.status}</span>
+                      <p className="text-sm font-medium text-ink">{e.exam_name}</p>
+                      <span className="text-[10px] uppercase tracking-wide text-muted">{e.status}</span>
                     </div>
-                    {e.justification?.trim() && <p className="text-xs text-gray-500 mt-0.5">Justificativa: {e.justification.trim()}</p>}
-                    {e.result?.trim() && <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{cleanExamResult(e.result)}</p>}
+                    {e.justification?.trim() && <p className="text-xs text-muted mt-0.5">Justificativa: {e.justification.trim()}</p>}
+                    {e.result?.trim() && <p className="text-sm text-ink mt-1 whitespace-pre-wrap">{cleanExamResult(e.result)}</p>}
                   </div>
                 ))}
           </div>
@@ -269,23 +269,23 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
 
         {/* Prescrições */}
         <Section title="Conduta">
-          <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+          <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
             {prescriptions.length === 0
-              ? <p className="text-sm text-gray-400 italic">Nenhuma prescrição registrada.</p>
+              ? <p className="text-sm text-muted italic">Nenhuma prescrição registrada.</p>
               : prescriptions.map(rx => {
                   const adq = rx.adequacy ? ADEQUACY_LABEL[rx.adequacy] : null
                   return (
-                    <div key={rx.id} className="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
+                    <div key={rx.id} className="border-b border-border last:border-0 pb-3 last:pb-0">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-800">
-                          {rx.kind && rx.kind !== 'medicamento' && <span className="text-gray-400 font-normal">[{rx.kind}] </span>}
+                        <p className="text-sm font-medium text-ink">
+                          {rx.kind && rx.kind !== 'medicamento' && <span className="text-muted font-normal">[{rx.kind}] </span>}
                           {rx.drug_name}
-                          {rx.status === 'suspended' && <span className="text-gray-400 font-normal"> (suspenso)</span>}
+                          {rx.status === 'suspended' && <span className="text-muted font-normal"> (suspenso)</span>}
                         </p>
                         {adq && <span className={`text-[10px] uppercase tracking-wide font-semibold ${adq.cls}`}>{adq.text}</span>}
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">{rx.posology}</p>
-                      {rx.ai_feedback?.trim() && <p className="text-xs text-gray-400 mt-1">{rx.ai_feedback.trim()}</p>}
+                      <p className="text-xs text-muted mt-0.5">{rx.posology}</p>
+                      {rx.ai_feedback?.trim() && <p className="text-xs text-muted mt-1">{rx.ai_feedback.trim()}</p>}
                     </div>
                   )
                 })}

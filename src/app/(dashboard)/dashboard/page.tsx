@@ -41,7 +41,7 @@ export default async function DashboardPage() {
         {hasAvailableSlot(used_slots, total_slots) ? (
           <Link
             href="/patients/new"
-            className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[0_6px_24px_-8px_rgba(34,224,230,0.45)] transition-colors hover:bg-primary-hover"
+            className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-button)] transition-colors hover:bg-primary-hover"
           >
             Novo paciente
           </Link>

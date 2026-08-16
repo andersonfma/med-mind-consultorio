@@ -48,13 +48,13 @@ export function ClinicalReasoningField({ consultationId, value, onChange }: Prop
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-0 mb-1">
         <MicButton onTranscript={(t) => { onChange(appendTranscript(valueRef.current, t)); setSaved(false) }} />
-        <span className="text-xs text-gray-400">{saved ? 'Salvo' : 'Não salvo'}</span>
+        <span className="text-xs text-muted">{saved ? 'Salvo' : 'Não salvo'}</span>
       </div>
       <textarea
         value={value}
         onChange={e => { onChange(e.target.value); setSaved(false) }}
         placeholder="Registre seu raciocínio diagnóstico..."
-        className="flex-1 border border-gray-200 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-300"
+        className="flex-1 bg-surface-2 text-ink placeholder:text-muted border border-border rounded-md p-3 text-sm resize-none focus:outline-none focus:border-primary"
       />
     </div>
   )

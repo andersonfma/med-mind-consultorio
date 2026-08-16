@@ -84,19 +84,19 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
     <div className="p-3 space-y-3">
       {/* Previous exam results */}
       {previousExamResults.length > 0 && (
-        <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 space-y-2">
-          <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+        <div className="rounded-lg bg-surface-2 border border-border p-3 space-y-2">
+          <p className="text-xs font-semibold text-primary uppercase tracking-wide">
             Resultados anteriores
           </p>
           {previousExamResults.map((exam, i) => (
-            <div key={i} className="bg-white rounded p-2">
-              <p className="text-xs font-semibold text-gray-700 mb-1">{exam.exam_name}</p>
+            <div key={i} className="bg-surface border border-border rounded p-2">
+              <p className="text-xs font-semibold text-ink mb-1">{exam.exam_name}</p>
               {exam.result ? (
-                <pre className="text-xs text-gray-600 font-sans whitespace-pre-wrap leading-relaxed">
+                <pre className="text-xs text-muted font-sans whitespace-pre-wrap leading-relaxed">
                   {cleanExamResult(exam.result)}
                 </pre>
               ) : (
-                <p className="text-xs text-gray-400 italic">Laudo não disponível</p>
+                <p className="text-xs text-muted italic">Laudo não disponível</p>
               )}
             </div>
           ))}
@@ -112,15 +112,15 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
             onChange={e => { setExamName(e.target.value); setShowSuggestions(true) }}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
             placeholder="Nome do exame..."
-            className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+            className="w-full bg-surface-2 text-ink placeholder:text-muted border border-border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
           />
           {showSuggestions && suggestions.length > 0 && (
-            <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-32 overflow-y-auto">
+            <ul className="absolute z-10 w-full bg-surface-2 border border-border rounded-md shadow-lg mt-1 max-h-32 overflow-y-auto">
               {suggestions.map(s => (
                 <li
                   key={s}
                   onMouseDown={() => { setExamName(s); setShowSuggestions(false) }}
-                  className="px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50"
+                  className="px-3 py-1.5 text-sm text-ink cursor-pointer hover:bg-surface"
                 >
                   {s}
                 </li>
@@ -134,13 +134,13 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
           placeholder="Justificativa clínica..."
           rows={2}
           maxLength={2000}
-          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm resize-none"
+          className="w-full bg-surface-2 text-ink placeholder:text-muted border border-border rounded-md px-3 py-1.5 text-sm resize-none focus:outline-none focus:border-primary"
         />
-        {error && <p className="text-red-500 text-xs">{error}</p>}
+        {error && <p className="text-danger text-xs">{error}</p>}
         <button
           onClick={requestExam}
           disabled={loading || !examName.trim() || !justification.trim()}
-          className="w-full text-xs bg-gray-100 hover:bg-gray-200 rounded-md py-1.5 text-gray-600 font-medium"
+          className="w-full text-xs bg-surface-2 border border-border hover:bg-surface hover:border-border-strong rounded-md py-1.5 text-ink font-medium transition-colors disabled:opacity-50"
         >
           {loading ? 'Solicitando...' : '+ Solicitar exame'}
         </button>
@@ -150,26 +150,26 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
       {exams.length > 0 && (
         <div className="space-y-1.5">
           {exams.map(exam => (
-            <div key={exam.id} className="rounded-md px-3 py-2 bg-gray-50 text-sm">
+            <div key={exam.id} className="rounded-md px-3 py-2 bg-surface-2 border border-border text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-800">{exam.exam_name}</span>
+                <span className="text-xs font-medium text-ink">{exam.exam_name}</span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {exam.status === 'rejected' && exam.attempts > 1 && (
-                    <span className={`text-xs ${exam.attempts >= 2 ? 'text-red-400' : 'text-gray-400'}`}>
+                    <span className={`text-xs ${exam.attempts >= 2 ? 'text-danger' : 'text-muted'}`}>
                       {exam.attempts}/3
                     </span>
                   )}
                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                     exam.status === 'approved'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-600'
+                      ? 'bg-success/15 text-success'
+                      : 'bg-danger/15 text-danger'
                   }`}>
                     {exam.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
                   </span>
                 </div>
               </div>
               {exam.ai_feedback && (
-                <p className="text-xs text-gray-400 mt-0.5 leading-tight">{exam.ai_feedback}</p>
+                <p className="text-xs text-muted mt-0.5 leading-tight">{exam.ai_feedback}</p>
               )}
 
               {exam.status === 'rejected' && exam.attempts < 3 && (
@@ -181,19 +181,19 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
                       placeholder="Nova justificativa..."
                       rows={2}
                       maxLength={2000}
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs resize-none"
+                      className="w-full bg-surface text-ink placeholder:text-muted border border-border rounded px-2 py-1 text-xs resize-none focus:outline-none focus:border-primary"
                     />
                     <div className="flex gap-2">
                       <button
                         onClick={() => retryExam(exam.id)}
                         disabled={loading || !retryJustification.trim()}
-                        className="flex-1 text-xs bg-gray-100 rounded py-1 hover:bg-gray-200"
+                        className="flex-1 text-xs bg-surface border border-border rounded py-1 hover:border-border-strong transition-colors disabled:opacity-50"
                       >
                         Enviar
                       </button>
                       <button
                         onClick={() => { setRetryingId(null); setRetryJustification('') }}
-                        className="text-xs text-gray-400 px-2"
+                        className="text-xs text-muted hover:text-ink px-2"
                       >
                         Cancelar
                       </button>
@@ -202,7 +202,7 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
                 ) : (
                   <button
                     onClick={() => setRetryingId(exam.id)}
-                    className="text-xs text-blue-500 hover:underline"
+                    className="text-xs text-primary hover:underline"
                   >
                     Tentar novamente
                   </button>

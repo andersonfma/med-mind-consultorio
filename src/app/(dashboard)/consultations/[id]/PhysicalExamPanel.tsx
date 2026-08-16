@@ -48,32 +48,32 @@ export function PhysicalExamPanel({ consultationId, initialExam }: Props) {
     <div className="p-4 space-y-3">
       {(Object.keys(BASE_LABELS) as (keyof typeof BASE_LABELS)[]).map(field => (
         <div key={field}>
-          <p className="text-xs font-semibold text-gray-500 mb-1">{BASE_LABELS[field]}</p>
-          <p className="text-sm text-gray-700 min-h-[1.25rem]">
-            {exam[field] || <span className="text-gray-300 italic">—</span>}
+          <p className="text-xs font-semibold text-muted mb-1">{BASE_LABELS[field]}</p>
+          <p className="text-sm text-ink min-h-[1.25rem]">
+            {exam[field] || <span className="text-muted/50 italic">—</span>}
           </p>
         </div>
       ))}
 
       {Object.keys(exam.sistemas_adicionais).length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-gray-500 mb-1">Sistemas Adicionais</p>
+          <p className="text-xs font-semibold text-muted mb-1">Sistemas Adicionais</p>
           {Object.entries(exam.sistemas_adicionais).map(([sistema, achados]) => (
             <div key={sistema} className="mb-1">
-              <span className="text-xs font-medium text-gray-600 capitalize">{sistema}: </span>
-              <span className="text-sm text-gray-700">{achados}</span>
+              <span className="text-xs font-medium text-muted capitalize">{sistema}: </span>
+              <span className="text-sm text-ink">{achados}</span>
             </div>
           ))}
         </div>
       )}
 
-      {error && <p className="text-red-500 text-xs">{error}</p>}
+      {error && <p className="text-danger text-xs">{error}</p>}
 
       {!hasContent && (
         <button
           onClick={generateExam}
           disabled={loading}
-          className="w-full text-sm border border-gray-300 rounded-md py-1.5 hover:bg-gray-50 text-gray-600"
+          className="w-full text-sm border border-border bg-surface-2 rounded-md py-1.5 hover:bg-surface hover:border-border-strong text-muted transition-colors disabled:opacity-50"
         >
           {loading ? 'Gerando...' : '⊕ Gerar exame físico'}
         </button>

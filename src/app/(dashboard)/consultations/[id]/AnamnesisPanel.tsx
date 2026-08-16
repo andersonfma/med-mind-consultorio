@@ -41,17 +41,17 @@ export function AnamnesisPanel({ consultationId, initialAnamnesis }: Props) {
     <div className="p-4 space-y-3">
       {(Object.keys(LABELS) as (keyof Anamnesis)[]).map(field => (
         <div key={field}>
-          <p className="text-xs font-semibold text-gray-500 mb-1">{LABELS[field]}</p>
-          <p className="text-sm text-gray-700 min-h-[1.5rem]">
-            {anamnesis[field] || <span className="text-gray-300 italic">—</span>}
+          <p className="text-xs font-semibold text-muted mb-1">{LABELS[field]}</p>
+          <p className="text-sm text-ink min-h-[1.5rem]">
+            {anamnesis[field] || <span className="text-muted/50 italic">—</span>}
           </p>
         </div>
       ))}
-      {error && <p className="text-red-500 text-xs">{error}</p>}
+      {error && <p className="text-danger text-xs">{error}</p>}
       <button
         onClick={updateAnamnesis}
         disabled={loading}
-        className="w-full text-sm border border-gray-300 rounded-md py-1.5 hover:bg-gray-50 text-gray-600"
+        className="w-full text-sm border border-border bg-surface-2 rounded-md py-1.5 hover:bg-surface hover:border-border-strong text-muted transition-colors disabled:opacity-50"
       >
         {loading ? 'Analisando...' : '↺ Atualizar anamnese'}
       </button>
