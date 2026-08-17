@@ -17,7 +17,7 @@ export function Button({
     'w-full px-4 py-2 rounded-md font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
   const variants = {
     primary:
-      'bg-primary text-primary-ink hover:bg-primary-hover shadow-[var(--shadow-button)]',
+      'bg-primary text-primary-ink hover:bg-primary-hover shadow-[var(--shadow-glow-primary)]',
     secondary:
       'bg-surface-2 text-ink border border-border hover:bg-surface hover:border-border-strong',
   }

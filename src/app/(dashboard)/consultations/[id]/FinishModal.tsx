@@ -81,7 +81,7 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
               <button onClick={onClose} disabled={loading} className="flex-1 rounded-md border border-border bg-surface-2 px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface hover:border-border-strong disabled:opacity-50">
                 Cancelar
               </button>
-              <button onClick={finish} disabled={loading} className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-button)] transition-colors hover:bg-primary-hover disabled:opacity-50">
+              <button onClick={finish} disabled={loading} className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-glow-primary)] transition-colors hover:bg-primary-hover disabled:opacity-50">
                 {loading ? 'Avaliando...' : 'Encerrar consulta'}
               </button>
             </div>
@@ -174,7 +174,7 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
 
             <button
               onClick={() => router.push(patientDetailRoute(result.patient_id))}
-              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-button)] transition-colors hover:bg-primary-hover"
+              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-glow-primary)] transition-colors hover:bg-primary-hover"
             >
               Ver paciente
             </button>

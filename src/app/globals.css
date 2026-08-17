@@ -1,58 +1,60 @@
 @import "tailwindcss";
 
 /*
-  Design system — Manual da Marca Med Mind v1.0.
-  Paleta curta, fria e institucional. O branco é parte essencial da identidade:
-  a marca precisa de silêncio visual e espaço (branco/off-white 60–70%,
-  azul profundo 20–30%, cinzas 8–12%, charcoal pontual).
-  EVITAR: neon, gradientes chamativos e brilho.
+  Design system — direção visual "Ink × Elétrico" (dark-first).
+  Grafite quase-preto + par complementar ciano elétrico × coral.
+  O LOGO segue o Manual da Marca (coluna/pilar), mas recolorido para a
+  nossa paleta (ver MedMindMark). As CORES da interface são as nossas.
   Tokens do @theme viram utilitários Tailwind v4:
-    --color-surface -> bg-surface / text-surface / border-surface
-    --color-primary -> bg-primary / text-primary ...
+    --color-surface   -> bg-surface / text-surface / border-surface
+    --color-muted     -> text-muted / bg-muted ...
+    --color-primary   -> bg-primary / text-primary ...
+  Regra de ouro: ciano/coral NUNCA preenchem grandes áreas —
+  só bordas, glows, dados e CTAs. A superfície continua neutra (grafite).
 */
 @theme {
-  /* superfícies — branco dominante */
-  --color-background: #F8FAFC;   /* Off White — fundo do app */
-  --color-surface: #FFFFFF;      /* cards sobre branco */
-  --color-surface-2: #F1F5F9;    /* inputs, blocos suaves, seções alternadas */
-  --color-border: #E5E7EB;       /* Light Gray — bordas e divisores finos */
-  --color-border-strong: #CBD5E1;/* divisor/hover mais firme */
+  /* superfícies */
+  --color-background: #0A0B0F;
+  --color-surface: #12141A;
+  --color-surface-2: #1B1E27;
+  --color-border: #272B37;
+  --color-border-strong: #323848;
 
   /* texto */
-  --color-ink: #111827;          /* Charcoal — alto contraste */
-  --color-muted: #6B7280;        /* Slate Gray — textos secundários */
+  --color-ink: #F2F4F8;
+  --color-muted: #9AA3B7;
 
-  /* marca — azul profundo institucional */
-  --color-primary: #0D1E3D;      /* Deep Navy — logo, botões, blocos de destaque */
-  --color-primary-hover: #132B55;/* Navy Hover — hover e estados ativos */
-  --color-primary-ink: #FFFFFF;  /* texto sobre azul profundo */
-  --color-secondary: #132B55;    /* variação de azul para apoio */
-  --color-secondary-hover: #1E3A6B;
+  /* par elétrico complementar */
+  --color-primary: #22E0E6;
+  --color-primary-hover: #5AF0F4;
+  --color-primary-ink: #04191A;
+  --color-secondary: #FF7A66;
+  --color-secondary-hover: #FF9585;
 
-  /* semânticos — versões dessaturadas, institucionais (sem neon) */
-  --color-success: #2E7D5B;
-  --color-warning: #B77914;
-  --color-danger: #B42318;
+  /* semânticos */
+  --color-success: #34E5A0;
+  --color-warning: #FFB020;
+  --color-danger: #FF5470;
 
-  /* dados / radar — trio sóbrio derivado do azul/cinza da marca */
-  --color-chart-1: #0D1E3D; /* Técnica — Deep Navy */
-  --color-chart-2: #3B6EA5; /* Comunicação — steel blue */
-  --color-chart-3: #6B7280; /* Pensamento Clínico — Slate */
+  /* dados / radar */
+  --color-chart-1: #22E0E6; /* Técnica */
+  --color-chart-2: #FF7A66; /* Comunicação */
+  --color-chart-3: #A98BFF; /* Pensamento Clínico */
 
-  /* tipografia — Montserrat (marca/títulos) + Inter (interface) */
-  --font-display: var(--ff-display), "Montserrat", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--ff-sans), "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  /* tipografia (next/font expõe --ff-*) */
+  --font-display: var(--ff-display), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--ff-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--ff-mono), ui-monospace, "SFMono-Regular", monospace;
 
-  /* raios — cards 20–24px, botões 10–12px */
+  /* raios */
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 20px;
+  --radius-lg: 16px;
   --radius-full: 9999px;
 
-  /* sombras — mínimas (brand: sombra discreta, sem brilho) */
-  --shadow-card: 0 1px 3px rgba(13, 30, 61, 0.06), 0 1px 2px rgba(13, 30, 61, 0.05);
-  --shadow-button: 0 1px 2px rgba(13, 30, 61, 0.12);
+  /* sombras / glow */
+  --shadow-card: 0 8px 32px -16px rgba(0, 0, 0, 0.6);
+  --shadow-glow-primary: 0 6px 24px -8px rgba(34, 224, 230, 0.5);
 }
 
 body {
@@ -62,7 +64,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Foco visível consistente (acessibilidade) — azul profundo da marca. */
+/* Foco visível consistente (acessibilidade) usando o acento ciano. */
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

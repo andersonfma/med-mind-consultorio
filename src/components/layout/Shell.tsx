@@ -13,9 +13,9 @@ export function Shell({ children }: ShellProps) {
       <header className="bg-surface border-b border-border px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/dashboard" className="group flex items-center gap-2.5">
-            <MedMindMark className="h-8 w-8" />
-            <span className="font-display text-lg font-semibold tracking-tight text-primary">
-              Med Mind
+            <MedMindMark className="h-8 w-8 rounded-lg shadow-[var(--shadow-glow-primary)]" />
+            <span className="font-display text-lg font-bold tracking-tight text-ink">
+              Med<span className="text-primary">Mind</span>
             </span>
           </Link>
           <div className="flex items-center gap-4">
