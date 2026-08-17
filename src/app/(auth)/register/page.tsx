@@ -65,20 +65,20 @@ export default function RegisterPage() {
 
   if (emailSent) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-        <h2 className="text-xl font-semibold text-gray-900 mb-3">Confirme seu e-mail</h2>
-        <p className="text-sm text-gray-600">
+      <div className="bg-surface rounded-xl border border-border shadow-[var(--shadow-card)] p-8 text-center">
+        <h2 className="font-display text-xl font-semibold text-ink mb-3">Confirme seu e-mail</h2>
+        <p className="text-sm text-muted">
           Enviamos um link de confirmação para <strong>{email}</strong>.
           Verifique sua caixa de entrada e clique no link para ativar sua conta.
         </p>
-        <p className="text-xs text-gray-400 mt-3">Não recebeu? Verifique a pasta de spam.</p>
+        <p className="text-xs text-muted mt-3">Não recebeu? Verifique a pasta de spam.</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">Criar conta</h2>
+    <div className="bg-surface rounded-xl border border-border shadow-[var(--shadow-card)] p-8">
+      <h2 className="font-display text-xl font-semibold text-ink mb-6">Criar conta</h2>
 
       <form onSubmit={handleRegister} className="flex flex-col gap-4">
         <Input
@@ -125,7 +125,7 @@ export default function RegisterPage() {
         />
 
         {error && (
-          <p className="text-sm text-red-600 text-center">{error}</p>
+          <p className="text-sm text-danger text-center">{error}</p>
         )}
 
         <Button type="submit" loading={loading}>
@@ -133,9 +133,9 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      <p className="mt-4 text-center text-sm text-gray-500">
+      <p className="mt-4 text-center text-sm text-muted">
         Já tem conta?{' '}
-        <Link href="/login" className="text-blue-600 hover:underline">
+        <Link href="/login" className="text-primary hover:underline">
           Entrar
         </Link>
       </p>

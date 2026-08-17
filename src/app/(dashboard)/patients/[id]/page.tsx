@@ -49,29 +49,29 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">{patient.name}</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="font-display text-2xl font-bold text-ink">{patient.name}</h1>
+        <p className="text-sm text-muted">
           {patient.age} anos · {patient.gender === 'M' ? 'Masculino' : 'Feminino'} · {patient.specialty}
         </p>
       </div>
 
       <div className="mb-6">
-        <p className="text-sm font-medium text-gray-700 mb-1">Vínculo</p>
+        <p className="text-sm font-medium text-muted mb-1">Vínculo</p>
         <BondBar level={patient.bond_level} />
       </div>
 
       {/* Diagnosis status */}
       {patient.diagnosis_status === 'achieved' && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">✓ Diagnóstico alcançado</p>
-          <p className="text-sm text-green-800 font-medium">{patient.diagnosis ?? patient.true_diagnosis}</p>
+        <div className="mb-4 bg-success/10 border border-success/30 rounded-lg p-4">
+          <p className="text-xs font-semibold text-success uppercase tracking-wide mb-1">✓ Diagnóstico alcançado</p>
+          <p className="text-sm text-ink font-medium">{patient.diagnosis ?? patient.true_diagnosis}</p>
         </div>
       )}
 
       {patient.diagnosis_status === 'revealed' && (
-        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
-          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Diagnóstico revelado</p>
-          <p className="text-sm text-amber-900 font-medium">{patient.true_diagnosis}</p>
+        <div className="mb-4 bg-warning/10 border border-warning/30 rounded-lg p-4 space-y-2">
+          <p className="text-xs font-semibold text-warning uppercase tracking-wide">Diagnóstico revelado</p>
+          <p className="text-sm text-ink font-medium">{patient.true_diagnosis}</p>
         </div>
       )}
 
@@ -80,17 +80,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           {revealEligible ? (
             <>
               <RevealDiagnosisButton patientId={patient.id} />
-              <p className="text-xs text-gray-400 mt-1">Ao concluir, avaliamos se seu raciocínio bateu com o diagnóstico. Não afeta reputação nem scores.</p>
+              <p className="text-xs text-muted mt-1">Ao concluir, avaliamos se seu raciocínio bateu com o diagnóstico. Não afeta reputação nem scores.</p>
             </>
           ) : (
-            <div className="border border-gray-200 rounded-md px-4 py-2.5 bg-gray-50">
-              <p className="text-sm text-gray-400">
+            <div className="border border-border rounded-md px-4 py-2.5 bg-surface-2">
+              <p className="text-sm text-muted">
                 Concluir diagnóstico disponível após{' '}
-                {finishedCount < 2 && <span className="text-gray-500 font-medium">2 consultas finalizadas</span>}
+                {finishedCount < 2 && <span className="text-ink font-medium">2 consultas finalizadas</span>}
                 {finishedCount < 2 && approvedExamCount < 1 && ' e '}
-                {approvedExamCount < 1 && <span className="text-gray-500 font-medium">1 exame aprovado</span>}
+                {approvedExamCount < 1 && <span className="text-ink font-medium">1 exame aprovado</span>}
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-muted mt-0.5">
                 {finishedCount}/2 consultas · {approvedExamCount}/1 exame aprovado
               </p>
             </div>
@@ -99,9 +99,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       )}
 
       {ongoing ? (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 flex items-center justify-between">
-          <p className="text-sm text-yellow-800">Consulta em andamento</p>
-          <Link href={consultationRoute(ongoing.id)} className="btn btn--primary text-sm">
+        <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 mb-6 flex items-center justify-between">
+          <p className="text-sm text-ink">Consulta em andamento</p>
+          <Link href={consultationRoute(ongoing.id)} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-glow-primary)] transition-colors hover:bg-primary-hover">
             Continuar consulta
           </Link>
         </div>
@@ -112,29 +112,29 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       )}
 
       <div className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-800 mb-3">Consultas anteriores</h2>
+        <h2 className="font-display text-lg font-semibold text-ink mb-3">Consultas anteriores</h2>
         {finished.length === 0 ? (
-          <p className="text-gray-400 text-sm">Nenhuma consulta realizada ainda.</p>
+          <p className="text-muted text-sm">Nenhuma consulta realizada ainda.</p>
         ) : (
           <ul className="space-y-2">
             {finished.map(c => (
               <li key={c.id}>
                 <Link
                   href={consultationRoute(c.id)}
-                  className="block border border-gray-200 rounded-lg p-3 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                  className="block border border-border rounded-lg p-3 bg-surface hover:border-primary/50 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Pensamento clínico</p>
-                    <span className="text-xs text-blue-500">Abrir →</span>
+                    <p className="text-xs font-semibold text-muted uppercase tracking-wide">Pensamento clínico</p>
+                    <span className="text-xs text-primary">Abrir →</span>
                   </div>
                   {c.clinical_reasoning?.trim() ? (
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-4">
+                    <p className="text-sm text-ink whitespace-pre-wrap line-clamp-4">
                       {c.clinical_reasoning.trim()}
                     </p>
                   ) : (
-                    <p className="text-sm text-gray-400 italic">Não registrado nesta consulta</p>
+                    <p className="text-sm text-muted italic">Não registrado nesta consulta</p>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted mt-1">
                     {c.finished_at
                       ? new Date(c.finished_at).toLocaleDateString('pt-BR')
                       : '—'}

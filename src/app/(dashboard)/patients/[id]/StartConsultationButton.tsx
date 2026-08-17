@@ -29,10 +29,10 @@ export function StartConsultationButton({ patientId }: { patientId: string }) {
 
   return (
     <>
-      <button onClick={start} disabled={loading} className="btn btn--primary">
+      <button onClick={start} disabled={loading} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-glow-primary)] transition-colors hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed">
         {loading ? 'Abrindo...' : 'Iniciar atendimento'}
       </button>
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {error && <p className="text-danger text-xs mt-1">{error}</p>}
     </>
   )
 }

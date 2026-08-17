@@ -69,8 +69,8 @@ function ResetPasswordContent() {
 
   if (pageState === 'error') {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-        <p className="text-red-600 text-sm">{message}</p>
+      <div className="bg-surface rounded-xl border border-border shadow-[var(--shadow-card)] p-8 text-center">
+        <p className="text-danger text-sm">{message}</p>
         <Button
           variant="secondary"
           className="mt-4"
@@ -87,8 +87,8 @@ function ResetPasswordContent() {
 
   if (pageState === 'success') {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-        <p className="text-green-600 text-sm font-medium">
+      <div className="bg-surface rounded-xl border border-border shadow-[var(--shadow-card)] p-8 text-center">
+        <p className="text-success text-sm font-medium">
           Senha atualizada! Redirecionando...
         </p>
       </div>
@@ -97,8 +97,8 @@ function ResetPasswordContent() {
 
   if (pageState === 'set-password') {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">
+      <div className="bg-surface rounded-xl border border-border shadow-[var(--shadow-card)] p-8">
+        <h2 className="font-display text-xl font-semibold text-ink mb-6">
           Nova senha
         </h2>
         <form onSubmit={handleSetPassword} className="flex flex-col gap-4">
@@ -113,7 +113,7 @@ function ResetPasswordContent() {
             autoComplete="new-password"
           />
           {message && (
-            <p className="text-sm text-red-600 text-center">{message}</p>
+            <p className="text-sm text-danger text-center">{message}</p>
           )}
           <Button type="submit" loading={loading}>
             Salvar nova senha
@@ -124,11 +124,11 @@ function ResetPasswordContent() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">
+    <div className="bg-surface rounded-xl border border-border shadow-[var(--shadow-card)] p-8">
+      <h2 className="font-display text-xl font-semibold text-ink mb-2">
         Recuperar senha
       </h2>
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-sm text-muted mb-6">
         Enviaremos um link para o seu e-mail.
       </p>
       <form onSubmit={handleRequestReset} className="flex flex-col gap-4">
@@ -142,7 +142,7 @@ function ResetPasswordContent() {
           autoComplete="email"
         />
         {message && (
-          <p className="text-sm text-gray-600 text-center">{message}</p>
+          <p className="text-sm text-muted text-center">{message}</p>
         )}
         <Button type="submit" loading={loading}>
           Enviar link
