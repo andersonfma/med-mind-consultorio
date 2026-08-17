@@ -36,8 +36,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">Entrar</h2>
+    <div className="bg-surface rounded-xl border border-border shadow-[var(--shadow-card)] p-8">
+      <h2 className="font-display text-xl font-semibold text-ink mb-6">Entrar</h2>
 
       <form onSubmit={handleLogin} className="flex flex-col gap-4">
         <Input
@@ -62,7 +62,7 @@ export default function LoginPage() {
         />
 
         {error && (
-          <p className="text-sm text-red-600 text-center">{error}</p>
+          <p className="text-sm text-danger text-center">{error}</p>
         )}
 
         <Button type="submit" loading={loading}>
@@ -73,13 +73,13 @@ export default function LoginPage() {
       <div className="mt-4 flex flex-col gap-2 text-center text-sm">
         <Link
           href="/reset-password"
-          className="text-blue-600 hover:underline"
+          className="text-primary hover:underline"
         >
           Esqueci minha senha
         </Link>
-        <p className="text-gray-500">
+        <p className="text-muted">
           Não tem conta?{' '}
-          <Link href="/register" className="text-blue-600 hover:underline">
+          <Link href="/register" className="text-primary hover:underline">
             Cadastrar
           </Link>
         </p>

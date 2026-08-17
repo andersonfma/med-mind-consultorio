@@ -43,11 +43,11 @@ export function RevealDiagnosisButton({ patientId }: Props) {
       <button
         onClick={reveal}
         disabled={loading}
-        className="text-sm border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-md px-4 py-2"
+        className="text-sm border border-warning/40 text-warning bg-warning/10 hover:bg-warning/20 rounded-md px-4 py-2 transition-colors disabled:opacity-50"
       >
         {loading ? 'Avaliando...' : 'Concluir diagnóstico'}
       </button>
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {error && <p className="text-danger text-xs mt-1">{error}</p>}
     </div>
   )
 }

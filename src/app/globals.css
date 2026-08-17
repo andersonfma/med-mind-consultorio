@@ -34,7 +34,7 @@
   /* semânticos */
   --color-success: #34E5A0;
   --color-warning: #FFB020;
-  --color-danger: #FF5470;
+  --color-danger: #FF6E86; /* clareado de #FF5470 p/ o badge text-danger sobre bg-danger/15 passar AA (WCAG ≥4.5:1) */
 
   /* dados / radar */
   --color-chart-1: #22E0E6; /* Técnica */
