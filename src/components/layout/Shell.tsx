@@ -2,7 +2,7 @@ import { type ReactNode } from 'react'
 import Link from 'next/link'
 import { LogoutButton } from './LogoutButton'
 import { MedMindMark } from './MedMindMark'
-import { MedMindColonnade } from './MedMindColonnade'
+import { MedMindWatermark } from './MedMindWatermark'
 import { ThemeToggle } from './ThemeToggle'
 
 interface ShellProps {
@@ -12,7 +12,7 @@ interface ShellProps {
 export function Shell({ children }: ShellProps) {
   return (
     <div className="relative min-h-screen bg-background overflow-hidden">
-      <MedMindColonnade opacity={0.05} className="fixed" />
+      <MedMindWatermark opacity={0.06} className="fixed" />
       <header className="relative z-10 bg-surface/90 backdrop-blur-sm border-b border-border px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/dashboard" className="group flex items-center gap-3">
