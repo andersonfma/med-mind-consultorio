@@ -103,3 +103,65 @@ body {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+/*
+  Atmosfera de marca — listras (colunata) com um "batimento" que percorre e
+  deforma cada coluna num QRS. Decorativa, centro calmo (máscara), segue a cor
+  da marca (--color-primary) e respeita "reduzir movimento".
+*/
+.mm-stripes { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.mm-stripes.mm-fixed { position: fixed; }
+.mm-cols {
+  position: absolute; inset: 0; display: flex; justify-content: space-between;
+  align-items: stretch; padding: 0 3vw; gap: clamp(6px, 3vw, 28px);
+  -webkit-mask: linear-gradient(90deg, #000 0%, #000 20%, transparent 42%, transparent 58%, #000 80%, #000 100%);
+          mask: linear-gradient(90deg, #000 0%, #000 20%, transparent 42%, transparent 58%, #000 80%, #000 100%);
+}
+.mm-cols span {
+  flex: 1 1 0; max-width: 56px; transform-origin: 50% 50%; opacity: .30; will-change: transform, filter;
+  background: repeating-linear-gradient(to right, transparent 0, transparent 3px, var(--color-primary) 3px, var(--color-primary) 4px);
+}
+.mm-sweep {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 2px; opacity: 0;
+  background: linear-gradient(var(--color-primary), transparent 92%);
+  box-shadow: 0 0 20px 6px var(--color-primary); will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mm-cols span { animation: mm-qrs 6s cubic-bezier(.7, 0, .25, 1) infinite; }
+  .mm-cols span:nth-child(1)  { animation-delay: -2.40s; }
+  .mm-cols span:nth-child(2)  { animation-delay: -2.18s; }
+  .mm-cols span:nth-child(3)  { animation-delay: -1.96s; }
+  .mm-cols span:nth-child(4)  { animation-delay: -1.74s; }
+  .mm-cols span:nth-child(5)  { animation-delay: -1.52s; }
+  .mm-cols span:nth-child(6)  { animation-delay: -1.30s; }
+  .mm-cols span:nth-child(7)  { animation-delay: -1.08s; }
+  .mm-cols span:nth-child(8)  { animation-delay: -0.86s; }
+  .mm-cols span:nth-child(9)  { animation-delay: -0.64s; }
+  .mm-cols span:nth-child(10) { animation-delay: -0.42s; }
+  .mm-cols span:nth-child(11) { animation-delay: -0.20s; }
+  .mm-sweep { animation: mm-sweep 6s linear infinite; }
+}
+@keyframes mm-qrs {
+  0%, 58%, 100% { transform: scaleX(1) translateX(0); filter: none; opacity: .30; }
+  62% { transform: scaleX(.82) translateX(-2px); }
+  66% { transform: scaleX(1.55) translateX(7px); opacity: .95; filter: brightness(2.4) drop-shadow(0 0 7px var(--color-primary)); }
+  70% { transform: scaleX(.88) translateX(-3px); opacity: .5; }
+  78% { transform: scaleX(1.06) translateX(0); }
+}
+@keyframes mm-sweep {
+  0%   { transform: translateX(-4vw); opacity: 0; }
+  10%  { opacity: .85; }
+  42%  { opacity: .85; }
+  50%  { opacity: .10; }
+  58%  { opacity: .85; }
+  90%  { opacity: .85; }
+  100% { transform: translateX(102vw); opacity: 0; }
+}
+@media (max-width: 480px) {
+  .mm-cols span:nth-child(3n) { display: none; }
+  .mm-cols span { max-width: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mm-cols span { opacity: .22; }
+  .mm-sweep { display: none; }
+}
