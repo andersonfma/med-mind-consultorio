@@ -19,7 +19,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="pt-BR" data-theme="dark" suppressHydrationWarning className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+      <head>
+        {/* Aplica o tema salvo antes da pintura, evitando flash. Padrão: Noturno. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   )
