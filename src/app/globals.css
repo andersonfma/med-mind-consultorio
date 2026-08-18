@@ -57,6 +57,40 @@
   --shadow-glow-primary: 0 6px 24px -8px rgba(34, 224, 230, 0.5);
 }
 
+/*
+  Modo Diurno (tema claro opcional). Redefine os VALORES dos tokens sob
+  [data-theme="light"] — todas as utilidades Tailwind (bg-primary, text-ink…)
+  seguem automaticamente. O padrão do app é Noturno (dark). O ciano vira um
+  teal mais fechado no claro p/ manter contraste AA (texto sobre branco).
+*/
+:root[data-theme="light"] {
+  --color-background: #F4F7FB;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #EDF1F7;
+  --color-border: #DCE3EC;
+  --color-border-strong: #C6D0DE;
+
+  --color-ink: #101623;
+  --color-muted: #566076;
+
+  --color-primary: #0A6B6F;        /* teal fechado: texto-link no branco, fundo de botão e traço da colunata (AA) */
+  --color-primary-hover: #095A5E;
+  --color-primary-ink: #FFFFFF;    /* texto sobre o botão teal */
+  --color-secondary: #C24A32;
+  --color-secondary-hover: #A83E29;
+
+  --color-success: #136A40;        /* dessaturados/escurecidos p/ passar AA sobre os chips /15 */
+  --color-warning: #7A5000;
+  --color-danger: #A82E22;
+
+  --color-chart-1: #0A6B6F; /* Técnica */
+  --color-chart-2: #C24A32; /* Comunicação */
+  --color-chart-3: #6D4AB8; /* Pensamento Clínico */
+
+  --shadow-card: 0 8px 24px -16px rgba(16, 22, 35, 0.18);
+  --shadow-glow-primary: 0 10px 26px -12px rgba(10, 107, 111, 0.35);
+}
+
 body {
   background: var(--color-background);
   color: var(--color-ink);
@@ -64,7 +98,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Foco visível consistente (acessibilidade) usando o acento ciano. */
+/* Foco visível consistente (acessibilidade). */
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

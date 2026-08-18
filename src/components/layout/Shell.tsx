@@ -2,7 +2,8 @@ import { type ReactNode } from 'react'
 import Link from 'next/link'
 import { LogoutButton } from './LogoutButton'
 import { MedMindMark } from './MedMindMark'
-import { PillarWatermark } from './PillarWatermark'
+import { MedMindColonnade } from './MedMindColonnade'
+import { ThemeToggle } from './ThemeToggle'
 
 interface ShellProps {
   children: ReactNode
@@ -11,7 +12,7 @@ interface ShellProps {
 export function Shell({ children }: ShellProps) {
   return (
     <div className="relative min-h-screen bg-background overflow-hidden">
-      <PillarWatermark />
+      <MedMindColonnade opacity={0.05} className="fixed" />
       <header className="relative z-10 bg-surface/90 backdrop-blur-sm border-b border-border px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/dashboard" className="group flex items-center gap-3">
@@ -20,8 +21,9 @@ export function Shell({ children }: ShellProps) {
               Med<span className="text-primary">Mind</span>
             </span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <span className="hidden text-xs text-muted sm:inline">Simulador clínico</span>
+            <ThemeToggle />
             <LogoutButton />
           </div>
         </div>
