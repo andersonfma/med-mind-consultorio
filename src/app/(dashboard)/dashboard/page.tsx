@@ -4,8 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import { LOGIN_ROUTE, patientDetailRoute } from '@/lib/routes'
 import { hasAvailableSlot } from '@/lib/patients/slots'
 import { BondBar } from '@/components/ui/BondBar'
-import { PlaceholderChart } from '@/components/charts/PlaceholderChart'
+import { VolumeChart } from '@/components/charts/VolumeChart'
+import { ScoresChart } from '@/components/charts/ScoresChart'
 import { getRadarData } from '@/lib/performance/loader'
+import { getDashboardCharts } from '@/lib/performance/dashboard-charts'
 import { PerformanceRadar } from './PerformanceRadar'
 
 export default async function DashboardPage() {
@@ -29,7 +31,10 @@ export default async function DashboardPage() {
   const { total_slots, full_name } = profileResult.data
   const used_slots = patientsResult.count ?? patients.length
 
-  const radar = await getRadarData(supabase, user.id)
+  const [radar, charts] = await Promise.all([
+    getRadarData(supabase, user.id),
+    getDashboardCharts(supabase, user.id),
+  ])
 
   return (
     <div className="p-6">
@@ -56,8 +61,8 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      <div className="flex gap-6">
-        <div className="w-2/5">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="w-full lg:w-2/5">
           <p className="text-sm text-muted mb-3">
             {used_slots} / {total_slots} slots utilizados
           </p>
@@ -83,10 +88,10 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        <div className="w-3/5 space-y-4">
+        <div className="w-full lg:w-3/5 space-y-4">
           <PerformanceRadar result={radar} />
-          <PlaceholderChart title="Reputação" description="Evolução ao longo do tempo" />
-          <PlaceholderChart title="Volume de atendimentos" description="Consultas por semana" />
+          <ScoresChart data={charts.scores} />
+          <VolumeChart data={charts.volume} total={charts.totalFinished} />
         </div>
       </div>
     </div>
