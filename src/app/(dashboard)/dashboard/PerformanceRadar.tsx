@@ -8,7 +8,7 @@ const AXES = [
   { key: 'comunicacao', label: 'Comunicação', angle: 150 },
 ] as const
 
-const SIZE = 220, CENTER = SIZE / 2, R = 78
+const SIZE = 300, CENTER = SIZE / 2, R = 108
 
 function point(angleDeg: number, radius: number) {
   const a = (angleDeg * Math.PI) / 180
@@ -40,7 +40,7 @@ export function PerformanceRadar({ result }: { result: RadarResult }) {
         <h3 className="text-sm font-semibold text-ink">Radar de performance</h3>
         <span className="text-xs text-muted">baseado em {result.n} consulta{result.n === 1 ? '' : 's'}</span>
       </div>
-      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-56" role="img" aria-label="Radar de performance">
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-72 sm:h-80" role="img" aria-label="Radar de performance">
         {[2, 4, 6, 8, 10].map(ring => (
           <polygon key={ring}
             points={AXES.map(ax => { const p = point(ax.angle, (ring / 10) * R); return `${p.x},${p.y}` }).join(' ')}
@@ -55,7 +55,7 @@ export function PerformanceRadar({ result }: { result: RadarResult }) {
               <line x1={CENTER} y1={CENTER} x2={edge.x} y2={edge.y}
                 className="stroke-border" strokeWidth="1" strokeDasharray={isNull ? '3 3' : undefined} />
               <text x={labelP.x} y={labelP.y} textAnchor="middle" dominantBaseline="middle"
-                className={isNull ? 'fill-muted opacity-50' : 'fill-muted'} style={{ fontSize: 9 }}>
+                className={isNull ? 'fill-muted opacity-50' : 'fill-muted'} style={{ fontSize: 12 }}>
                 {isNull ? `${ax.label} (sem dados)` : `${ax.label} ${values[i]}`}
               </text>
             </g>
@@ -66,7 +66,7 @@ export function PerformanceRadar({ result }: { result: RadarResult }) {
           if (values[i] === null) return null
           const p = point(ax.angle, ((values[i] ?? 0) / 10) * R)
           const dot = ax.key === 'pensamentoClinico' ? 'fill-chart-3' : ax.key === 'tecnica' ? 'fill-chart-1' : 'fill-chart-2'
-          return <circle key={ax.key} cx={p.x} cy={p.y} r="3.2" className={dot} />
+          return <circle key={ax.key} cx={p.x} cy={p.y} r="4.5" className={dot} />
         })}
       </svg>
       {result.reasoningCoverage && (

@@ -165,3 +165,7 @@ body {
   .mm-cols span { opacity: .22; }
   .mm-sweep { display: none; }
 }
+/* Variante estática (nas telas de trabalho): listras paradas e apagadas,
+   sem batimento — mantém a referência sem cansar a vista. */
+.mm-static .mm-cols span { animation: none; opacity: .18; }
+.mm-static .mm-sweep { display: none; }

@@ -12,7 +12,7 @@ interface ShellProps {
 export function Shell({ children }: ShellProps) {
   return (
     <div className="min-h-screen bg-background">
-      <MedMindStripes className="mm-fixed opacity-50" />
+      <MedMindStripes className="mm-fixed mm-static opacity-60" />
       <header className="sticky top-0 z-20 bg-surface/85 backdrop-blur-md border-b border-border px-4 py-3 sm:px-6 sm:py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/dashboard" className="group flex items-center gap-2.5 sm:gap-3.5">
