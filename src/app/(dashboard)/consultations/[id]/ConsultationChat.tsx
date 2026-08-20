@@ -141,7 +141,7 @@ export function ConsultationChat({ consultationId, initialMessages, onMessagesUp
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
           placeholder="Digite sua mensagem..."
-          className="flex-1 bg-surface-2 text-ink placeholder:text-muted border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary"
+          className="flex-1 min-w-0 bg-surface-2 text-ink placeholder:text-muted border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary"
           disabled={loading}
         />
         <button
