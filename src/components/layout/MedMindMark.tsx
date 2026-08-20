@@ -15,23 +15,23 @@ export function MedMindMark({ className = 'h-8 w-8' }: { className?: string }) {
       <rect width="32" height="32" rx="8" className="fill-primary" />
       <g
         className="stroke-primary-ink"
-        strokeWidth="2.4"
+        strokeWidth="2.3"
         strokeLinecap="round"
         strokeLinejoin="round"
         shapeRendering="geometricPrecision"
       >
         {/* capital da coluna */}
-        <line x1="7.5" y1="8.5" x2="24.5" y2="8.5" />
-        <line x1="9.3" y1="11.2" x2="22.7" y2="11.2" />
-        {/* fustes externos — conectam limpo no ábaco (11.2), sem cap sobreposto */}
-        <line x1="10.8" y1="11.2" x2="10.8" y2="22.6" />
-        <line x1="21.2" y1="11.2" x2="21.2" y2="22.6" />
-        {/* M interno (V) — pontas abaixo do ábaco, sem tocar as outras linhas */}
-        <path d="M12.4 12.9 L16 18.6 L19.6 12.9" />
+        <line x1="7.5" y1="8.4" x2="24.5" y2="8.4" />
+        <line x1="9" y1="11.1" x2="23" y2="11.1" />
+        {/* fustes externos (do ábaco à base) */}
+        <line x1="11" y1="11.1" x2="11" y2="22.6" />
+        <line x1="21" y1="11.1" x2="21" y2="22.6" />
+        {/* M: o V liga o topo das duas colunas a um vale central */}
+        <path d="M11 11.1 L16 18 L21 11.1" />
       </g>
-      {/* base com quadrados de dados */}
-      <rect x="9.6" y="22.6" width="2.4" height="2.4" rx="0.4" className="fill-primary-ink" />
-      <rect x="20" y="22.6" width="2.4" height="2.4" rx="0.4" className="fill-primary-ink" />
+      {/* base — pés/quadrados de dados sob cada coluna */}
+      <rect x="9.8" y="22.6" width="2.4" height="2.4" rx="0.4" className="fill-primary-ink" />
+      <rect x="19.8" y="22.6" width="2.4" height="2.4" rx="0.4" className="fill-primary-ink" />
     </svg>
   )
 }

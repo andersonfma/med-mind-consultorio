@@ -24,7 +24,7 @@ type Props = {
 type RecordTab = 'anamnese' | 'exame' | 'exames' | 'conduta' | 'raciocinio'
 const TABS: { key: RecordTab; label: string; short: string }[] = [
   { key: 'anamnese', label: 'Anamnese', short: 'Anamnese' },
-  { key: 'exame', label: 'Exame Físico', short: 'Ex. Físico' },
+  { key: 'exame', label: 'Exame Físico', short: 'Ex.Físico' },
   { key: 'exames', label: 'Exames', short: 'Exames' },
   { key: 'conduta', label: 'Conduta', short: 'Conduta' },
   { key: 'raciocinio', label: 'Raciocínio', short: 'Racioc.' },
@@ -229,12 +229,12 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
           role="tab"
           aria-selected={mobileShowChat}
           onClick={() => setMobileShowChat(true)}
-          className={`relative flex-1 min-w-[54px] px-1 py-2.5 text-[11px] font-semibold border-t-2 transition-colors ${
+          className={`relative flex-1 min-w-0 px-1 py-2.5 text-[11px] font-semibold border-t-2 transition-colors ${
             mobileShowChat ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-muted'
           }`}
         >
           Chat
-          {unread > 0 && <span className="absolute top-1.5 left-1/2 ml-3 h-2 w-2 rounded-full bg-secondary" />}
+          {unread > 0 && <span className="absolute top-1.5 right-2 h-2 w-2 rounded-full bg-secondary" />}
         </button>
         {TABS.map((t) => {
           const active = !mobileShowChat && recordTab === t.key
@@ -245,14 +245,14 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
               role="tab"
               aria-selected={active}
               onClick={() => goToTab(t.key)}
-              className={`relative flex-1 min-w-[54px] px-1 py-2.5 text-[11px] font-semibold whitespace-nowrap border-t-2 transition-colors ${
+              className={`relative flex-1 min-w-0 px-1 py-2.5 text-[11px] font-semibold whitespace-nowrap border-t-2 transition-colors ${
                 active ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-muted'
               }`}
             >
               {t.short}
               {typeof c === 'number' && c > 0
-                ? <span className="ml-1 inline-flex items-center rounded-full bg-primary/15 px-1 text-[9px] font-semibold text-primary">{c}</span>
-                : touched[t.key] && <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-primary align-middle" />}
+                ? <span className="absolute top-1 right-1.5 inline-flex items-center rounded-full bg-primary/20 px-1 text-[9px] font-semibold text-primary leading-tight">{c}</span>
+                : touched[t.key] && <span className="absolute top-1.5 right-2 h-1.5 w-1.5 rounded-full bg-primary" />}
             </button>
           )
         })}
