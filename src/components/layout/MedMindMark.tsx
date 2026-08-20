@@ -13,25 +13,25 @@ export function MedMindMark({ className = 'h-8 w-8' }: { className?: string }) {
       fill="none"
     >
       <rect width="32" height="32" rx="8" className="fill-primary" />
-      <g
-        className="stroke-primary-ink"
-        strokeWidth="2.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        shapeRendering="geometricPrecision"
-      >
-        {/* capital da coluna */}
-        <line x1="7.5" y1="8.4" x2="24.5" y2="8.4" />
-        <line x1="9" y1="11.1" x2="23" y2="11.1" />
-        {/* fustes externos (do ábaco à base) */}
-        <line x1="11" y1="11.1" x2="11" y2="22.6" />
-        <line x1="21" y1="11.1" x2="21" y2="22.6" />
-        {/* M: o V liga o topo das duas colunas a um vale central */}
-        <path d="M11 11.1 L16 18 L21 11.1" />
+      {/*
+        Símbolo desenhado com FORMAS PREENCHIDAS (não traços): formas cheias da
+        mesma cor se fundem sem halo/sombra nas junções — o V do M encosta no
+        ábaco e vira um bloco único.
+      */}
+      <g className="fill-primary-ink" shapeRendering="geometricPrecision">
+        {/* capital (barra superior) */}
+        <rect x="6.6" y="7.6" width="18.8" height="1.9" rx="0.95" />
+        {/* ábaco (liga o topo das colunas) */}
+        <rect x="9" y="10.4" width="14" height="1.7" rx="0.85" />
+        {/* colunas */}
+        <rect x="10.2" y="11.2" width="2" height="12" rx="0.5" />
+        <rect x="19.8" y="11.2" width="2" height="12" rx="0.5" />
+        {/* V do M — funde no ábaco (topo em y≈11.3) */}
+        <path d="M10.2 11.3 L16 19.1 L21.8 11.3 L20 11.3 L16 17.3 L12 11.3 Z" />
+        {/* pés/base sob cada coluna */}
+        <rect x="9.4" y="22.6" width="3.6" height="2.2" rx="0.5" />
+        <rect x="19" y="22.6" width="3.6" height="2.2" rx="0.5" />
       </g>
-      {/* base — pés/quadrados de dados sob cada coluna */}
-      <rect x="9.8" y="22.6" width="2.4" height="2.4" rx="0.4" className="fill-primary-ink" />
-      <rect x="19.8" y="22.6" width="2.4" height="2.4" rx="0.4" className="fill-primary-ink" />
     </svg>
   )
 }
