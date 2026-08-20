@@ -7,9 +7,10 @@ import type { ExamRequest } from '@/lib/exams/types'
 type Props = {
   consultationId: string
   previousExamResults?: Array<{ exam_name: string; result: string | null }>
+  onStatus?: (count: number) => void
 }
 
-export function ExamRequestPanel({ consultationId, previousExamResults = [] }: Props) {
+export function ExamRequestPanel({ consultationId, previousExamResults = [], onStatus }: Props) {
   const [exams, setExams] = useState<ExamRequest[]>([])
   const [examName, setExamName] = useState('')
   const [justification, setJustification] = useState('')
@@ -25,6 +26,10 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [] }: P
       .then(data => setExams(Array.isArray(data) ? data : []))
       .catch(() => {})
   }, [consultationId])
+
+  useEffect(() => {
+    onStatus?.(exams.length)
+  }, [exams, onStatus])
 
   const suggestions = examName.length > 1
     ? (COMMON_EXAMS as readonly string[]).filter(

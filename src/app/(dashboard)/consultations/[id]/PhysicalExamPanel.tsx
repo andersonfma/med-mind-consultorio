@@ -1,10 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { PhysicalExam } from '@/lib/consultations/parse'
 
 type Props = {
   consultationId: string
   initialExam: PhysicalExam
+  onStatus?: (hasContent: boolean) => void
 }
 
 const BASE_LABELS: Record<keyof Omit<PhysicalExam, 'sistemas_adicionais'>, string> = {
@@ -17,10 +18,17 @@ const BASE_LABELS: Record<keyof Omit<PhysicalExam, 'sistemas_adicionais'>, strin
   membros_inferiores:      'Membros Inferiores',
 }
 
-export function PhysicalExamPanel({ consultationId, initialExam }: Props) {
+export function PhysicalExamPanel({ consultationId, initialExam, onStatus }: Props) {
   const [exam, setExam] = useState<PhysicalExam>(initialExam)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const has =
+      (Object.keys(BASE_LABELS) as (keyof typeof BASE_LABELS)[]).some((k) => exam[k]) ||
+      Object.keys(exam.sistemas_adicionais).length > 0
+    onStatus?.(has)
+  }, [exam, onStatus])
 
   async function generateExam() {
     setLoading(true)

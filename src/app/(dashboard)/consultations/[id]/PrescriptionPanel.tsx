@@ -8,6 +8,7 @@ type Props = {
   consultationId: string
   specialty: Specialty
   activeMedications?: Array<{ drug_name: string; posology: string }>
+  onStatus?: (count: number) => void
 }
 
 const ADEQUACY_STYLE: Record<string, string> = {
@@ -16,7 +17,7 @@ const ADEQUACY_STYLE: Record<string, string> = {
   inadequada: 'bg-danger/15 text-danger',
 }
 
-export function PrescriptionPanel({ consultationId, specialty, activeMedications = [] }: Props) {
+export function PrescriptionPanel({ consultationId, specialty, activeMedications = [], onStatus }: Props) {
   const [items, setItems] = useState<Prescription[]>([])
   const [drug, setDrug] = useState('')
   const [posology, setPosology] = useState('')
@@ -33,6 +34,10 @@ export function PrescriptionPanel({ consultationId, specialty, activeMedications
       .then(d => setItems(Array.isArray(d) ? d : []))
       .catch(() => setError('Erro ao carregar prescrições.'))
   }, [consultationId])
+
+  useEffect(() => {
+    onStatus?.(items.length)
+  }, [items, onStatus])
 
   const suggestions = drug.length > 1 ? searchCatalog(specialty, drug) : []
 

@@ -1,10 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Anamnesis } from '@/lib/consultations/parse'
 
 type Props = {
   consultationId: string
   initialAnamnesis: Anamnesis
+  onStatus?: (hasContent: boolean) => void
 }
 
 const LABELS: Record<keyof Anamnesis, string> = {
@@ -15,10 +16,14 @@ const LABELS: Record<keyof Anamnesis, string> = {
   familiar: 'História Familiar',
 }
 
-export function AnamnesisPanel({ consultationId, initialAnamnesis }: Props) {
+export function AnamnesisPanel({ consultationId, initialAnamnesis, onStatus }: Props) {
   const [anamnesis, setAnamnesis] = useState<Anamnesis>(initialAnamnesis)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    onStatus?.(Object.values(anamnesis).some((v) => v && v.trim()))
+  }, [anamnesis, onStatus])
 
   async function updateAnamnesis() {
     setLoading(true)
