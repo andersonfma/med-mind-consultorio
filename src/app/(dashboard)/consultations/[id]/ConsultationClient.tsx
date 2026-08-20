@@ -145,9 +145,9 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
       </div>
 
       {/* Corpo: mobile = um painel por vez; md+ = dois painéis */}
-      <div className="flex-1 min-h-0 flex md:grid md:grid-cols-[minmax(320px,380px)_1fr]">
+      <div className="flex-1 min-h-0 flex md:grid md:grid-cols-[minmax(340px,400px)_1fr]">
         {/* CHAT */}
-        <section className={`${mobileShowChat ? 'flex' : 'hidden'} md:flex flex-col min-h-0 flex-1 md:flex-none md:border-r border-border`}>
+        <section className={`${mobileShowChat ? 'flex' : 'hidden'} md:flex flex-col min-h-0 flex-1 md:flex-none md:border-r border-border bg-surface/30`}>
           <ConsultationChat
             consultationId={consultation.id}
             initialMessages={messages}
@@ -158,8 +158,8 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
 
         {/* PRONTUÁRIO (abas) */}
         <section className={`${!mobileShowChat ? 'flex' : 'hidden'} md:flex flex-col min-h-0 flex-1`}>
-          {/* Abas — desktop */}
-          <div role="tablist" aria-label="Seções do prontuário" className="hidden md:flex items-stretch border-b border-border px-1 shrink-0 overflow-x-auto">
+          {/* Abas — desktop (pills claramente clicáveis) */}
+          <div role="tablist" aria-label="Seções do prontuário" className="hidden md:flex items-center gap-1 border-b border-border bg-surface px-3 py-2 shrink-0 overflow-x-auto">
             {TABS.map((t) => {
               const active = recordTab === t.key
               return (
@@ -168,8 +168,8 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
                   role="tab"
                   onClick={() => setRecordTab(t.key)}
                   aria-selected={active}
-                  className={`px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                    active ? 'text-primary border-primary' : 'text-muted border-transparent hover:text-ink'
+                  className={`inline-flex items-center rounded-lg px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition-colors ${
+                    active ? 'bg-primary/15 text-primary' : 'text-muted hover:bg-surface-2 hover:text-ink'
                   }`}
                 >
                   {t.label}
@@ -181,7 +181,7 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
 
           {/* Conteúdo do prontuário — todos montados, só o ativo visível (preserva estado) */}
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-            <div className="mx-auto w-full max-w-2xl">
+            <div className="mx-auto w-full max-w-3xl px-1 sm:px-3 py-1">
               <div className={recordTab === 'anamnese' ? '' : 'hidden'}>
                 <AnamnesisPanel consultationId={consultation.id} initialAnamnesis={initialAnamnesis} onStatus={onAnamnese} />
               </div>
@@ -224,12 +224,14 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
       </div>
 
       {/* Abas — mobile (barra inferior): Chat + prontuário */}
-      <nav role="tablist" aria-label="Seções" className="md:hidden shrink-0 border-t border-border bg-surface flex items-stretch overflow-x-auto">
+      <nav role="tablist" aria-label="Seções" className="md:hidden shrink-0 border-t border-border bg-surface flex items-stretch">
         <button
           role="tab"
           aria-selected={mobileShowChat}
           onClick={() => setMobileShowChat(true)}
-          className={`relative flex-1 min-w-[54px] px-1 py-2.5 text-[11px] font-medium ${mobileShowChat ? 'text-primary' : 'text-muted'}`}
+          className={`relative flex-1 min-w-[54px] px-1 py-2.5 text-[11px] font-semibold border-t-2 transition-colors ${
+            mobileShowChat ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-muted'
+          }`}
         >
           Chat
           {unread > 0 && <span className="absolute top-1.5 left-1/2 ml-3 h-2 w-2 rounded-full bg-secondary" />}
@@ -243,7 +245,9 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
               role="tab"
               aria-selected={active}
               onClick={() => goToTab(t.key)}
-              className={`relative flex-1 min-w-[54px] px-1 py-2.5 text-[11px] font-medium whitespace-nowrap ${active ? 'text-primary' : 'text-muted'}`}
+              className={`relative flex-1 min-w-[54px] px-1 py-2.5 text-[11px] font-semibold whitespace-nowrap border-t-2 transition-colors ${
+                active ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-muted'
+              }`}
             >
               {t.short}
               {typeof c === 'number' && c > 0
