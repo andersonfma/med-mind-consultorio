@@ -28,7 +28,7 @@ export function Shell({ children }: ShellProps) {
           </div>
         </div>
       </header>
-      <main className="relative z-10 max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <main className="relative max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8">{children}</main>
     </div>
   )
 }

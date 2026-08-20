@@ -147,7 +147,7 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
       {/* Corpo: mobile = um painel por vez; md+ = dois painéis */}
       <div className="flex-1 min-h-0 flex md:grid md:grid-cols-[minmax(340px,400px)_1fr]">
         {/* CHAT */}
-        <section className={`${mobileShowChat ? 'flex' : 'hidden'} md:flex flex-col min-h-0 flex-1 md:flex-none md:border-r border-border bg-surface/30`}>
+        <section className={`${mobileShowChat ? 'flex' : 'hidden'} md:flex flex-col min-h-0 flex-1 md:flex-none overflow-hidden md:border-r border-border bg-surface/30`}>
           <ConsultationChat
             consultationId={consultation.id}
             initialMessages={messages}
