@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { withClockSkewRetry } from '@/lib/supabase/retry'
 import { LOGIN_ROUTE, patientDetailRoute } from '@/lib/routes'
 import { hasAvailableSlot } from '@/lib/patients/slots'
 import { BondBar } from '@/components/ui/BondBar'
@@ -16,8 +17,12 @@ export default async function DashboardPage() {
   if (!user) redirect(LOGIN_ROUTE)
 
   const [patientsResult, profileResult] = await Promise.all([
-    supabase.from('patients').select('*', { count: 'exact' }).order('created_at', { ascending: false }),
-    supabase.from('profiles').select('total_slots, full_name').eq('id', user.id).single(),
+    withClockSkewRetry(() =>
+      supabase.from('patients').select('*', { count: 'exact' }).order('created_at', { ascending: false }),
+    ),
+    withClockSkewRetry(() =>
+      supabase.from('profiles').select('total_slots, full_name').eq('id', user.id).single(),
+    ),
   ])
 
   if (profileResult.error) throw profileResult.error
