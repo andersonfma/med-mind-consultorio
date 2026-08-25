@@ -118,28 +118,28 @@ describe('POST /api/patients', () => {
     mockCreate.mockRejectedValue(new APIConnectionTimeoutError())
     const res = await POST(makeRequest({ specialty: 'Cardiologia', difficulty: 'easy' }))
     expect(res.status).toBe(408)
-    expect(mockRpc).not.toHaveBeenCalled()
+    expect(mockRpc).not.toHaveBeenCalledWith('create_patient', expect.anything())
   })
 
   it('retorna 500 se OpenAI lançar erro genérico e não consome slot', async () => {
     mockCreate.mockRejectedValue(new Error('network error'))
     const res = await POST(makeRequest({ specialty: 'Cardiologia', difficulty: 'easy' }))
     expect(res.status).toBe(500)
-    expect(mockRpc).not.toHaveBeenCalled()
+    expect(mockRpc).not.toHaveBeenCalledWith('create_patient', expect.anything())
   })
 
   it('retorna 500 se OpenAI retornar choices vazio', async () => {
     mockCreate.mockResolvedValue({ choices: [] })
     const res = await POST(makeRequest({ specialty: 'Cardiologia', difficulty: 'easy' }))
     expect(res.status).toBe(500)
-    expect(mockRpc).not.toHaveBeenCalled()
+    expect(mockRpc).not.toHaveBeenCalledWith('create_patient', expect.anything())
   })
 
   it('retorna 500 se OpenAI retornar JSON inválido e não consome slot', async () => {
     mockCreate.mockResolvedValue({ choices: [{ message: { content: 'not json' } }] })
     const res = await POST(makeRequest({ specialty: 'Cardiologia', difficulty: 'easy' }))
     expect(res.status).toBe(500)
-    expect(mockRpc).not.toHaveBeenCalled()
+    expect(mockRpc).not.toHaveBeenCalledWith('create_patient', expect.anything())
   })
 
   it('retorna 500 se age estiver fora de 18-80 e não consome slot', async () => {
@@ -147,7 +147,7 @@ describe('POST /api/patients', () => {
     mockCreate.mockResolvedValue({ choices: [{ message: { content: JSON.stringify(badAge) } }] })
     const res = await POST(makeRequest({ specialty: 'Cardiologia', difficulty: 'easy' }))
     expect(res.status).toBe(500)
-    expect(mockRpc).not.toHaveBeenCalled()
+    expect(mockRpc).not.toHaveBeenCalledWith('create_patient', expect.anything())
   })
 
   it('retorna 409 se não houver slots (US001)', async () => {

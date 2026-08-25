@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { consumeAiCall, aiQuotaExceededResponse } from '@/lib/usage/quota'
 import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
 
@@ -10,6 +11,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const quota = await consumeAiCall(supabase)
+  if (!quota.ok) return aiQuotaExceededResponse()
 
   let body: unknown
   try { body = await request.json() }

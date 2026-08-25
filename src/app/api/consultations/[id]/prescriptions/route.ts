@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { consumeAiCall } from '@/lib/usage/quota'
 import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
 import { buildPrescriptionEvalPrompt } from '@/lib/prescriptions/prescription-prompts'
@@ -57,7 +58,11 @@ export async function POST(
   // Avaliação pela IA — best-effort: se falhar, salva com adequacy null.
   let adequacy: Adequacy | null = null
   let aiFeedback: string | null = null
+  // Feedback de IA é best-effort e opcional: se o usuário estourou a quota,
+  // pulamos a avaliação por IA mas ainda salvamos a prescrição normalmente.
+  const quota = await consumeAiCall(supabase)
   try {
+    if (!quota.ok) throw new Error('ai_quota_exceeded')
     const completion = await openai.chat.completions.create({
       model: MODELS.utility,
       response_format: { type: 'json_object' },

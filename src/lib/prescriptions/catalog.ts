@@ -80,6 +80,15 @@ export const PRESCRIPTION_CATALOG: Record<Specialty, CatalogDrug[]> = {
     { name: 'Oseltamivir', posology: '75 mg VO 12/12h por 5 dias', indication: 'Influenza' },
     { name: 'Tenofovir/Lamivudina/Dolutegravir', posology: '1 comp VO 1x/dia', indication: 'TARV (HIV)' },
   ],
+  'Hepatologia': [
+    { name: 'Lactulose', posology: '15–30 mL VO 2–3x/dia (meta: 2–3 evacuações pastosas/dia)', indication: 'Encefalopatia hepática' },
+    { name: 'Espironolactona', posology: '100 mg VO 1x/dia (até 400 mg/dia)', indication: 'Ascite por hipertensão portal' },
+    { name: 'Furosemida', posology: '40 mg VO 1x/dia (relação 40:100 com espironolactona)', indication: 'Ascite — diurético de alça associado' },
+    { name: 'Propranolol', posology: '20–40 mg VO 12/12h, titular pela FC', indication: 'Profilaxia de sangramento por varizes' },
+    { name: 'Ceftriaxona', posology: '1 g IV 1x/dia por 5–7 dias', indication: 'Peritonite bacteriana espontânea' },
+    { name: 'Rifaximina', posology: '550 mg VO 12/12h', indication: 'Encefalopatia hepática recorrente (adjuvante)' },
+    { name: 'Ácido ursodesoxicólico', posology: '13–15 mg/kg/dia VO divididos', indication: 'Colangite biliar primária' },
+  ],
 }
 
 export function searchCatalog(specialty: Specialty, query: string): CatalogDrug[] {

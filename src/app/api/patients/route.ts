@@ -7,6 +7,7 @@ import { buildPatientPrompt } from '@/lib/patients/prompt'
 import { pickPersonality } from '@/lib/patients/personalities'
 import { SPECIALTIES, DIFFICULTIES } from '@/lib/patients/specialties'
 import type { Specialty, Difficulty } from '@/lib/patients/specialties'
+import { consumeAiCall, aiQuotaExceededResponse } from '@/lib/usage/quota'
 
 export async function POST(request: NextRequest) {
   // Fix 7: validation before createClient
@@ -30,6 +31,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const quota = await consumeAiCall(supabase)
+  if (!quota.ok) return aiQuotaExceededResponse()
 
   // Fetch existing patients to enforce variety de queixa E alternância de personalidade
   const { data: existingPatients } = await supabase

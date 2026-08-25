@@ -7,6 +7,7 @@ export const SPECIALTIES = [
   'Nefrologia',
   'Neurologia',
   'Infectologia',
+  'Hepatologia',
 ] as const
 
 export const DIFFICULTIES = ['easy', 'medium', 'hard'] as const
@@ -29,6 +30,7 @@ export const SPECIALTY_DOMAIN: Record<Specialty, string> = {
   'Nefrologia':        'sintomas renais e urinários (edema, urina espumosa/proteinúria, hematúria, oligúria, hipertensão de difícil controle, sintomas urêmicos)',
   'Neurologia':        'sintomas neurológicos (cefaleia, déficit motor ou sensitivo, convulsões, alteração de consciência ou memória, vertigem, distúrbio de marcha, tremor)',
   'Infectologia':      'síndromes infecciosas (febre, sinais de infecção localizada ou sistêmica, quadros febris prolongados, sintomas associados a exposições/viagens)',
+  'Hepatologia':       'sintomas hepatobiliares (icterícia, colúria/acolia, prurido, dor em hipocôndrio direito, distensão/ascite, edema, sangramento digestivo por varizes, confusão/sonolência por encefalopatia, achado de enzimas hepáticas alteradas)',
 }
 
 /**
@@ -46,4 +48,5 @@ export const SPECIALTY_HARD_EXAMPLES: Record<Specialty, string> = {
   'Nefrologia':        'glomerulonefrite rapidamente progressiva, nefrite lúpica, nefropatia por IgA, microangiopatia trombótica, vasculite renal, amiloidose renal',
   'Neurologia':        'esclerose múltipla, miastenia gravis, encefalite autoimune, esclerose lateral amiotrófica, síndromes paraneoplásicas, vasculite de sistema nervoso central',
   'Infectologia':      'endocardite infecciosa, tuberculose extrapulmonar, infecções oportunistas, leishmaniose visceral, infecções fúngicas sistêmicas, febre de origem indeterminada de causa infecciosa',
+  'Hepatologia':       'colangite esclerosante primária, cirrose biliar primária (colangite biliar primária), hepatite autoimune, doença de Wilson, hemocromatose hereditária, síndrome de Budd-Chiari, deficiência de alfa-1-antitripsina, carcinoma hepatocelular, síndrome hepatorrenal, colangiocarcinoma',
 }
