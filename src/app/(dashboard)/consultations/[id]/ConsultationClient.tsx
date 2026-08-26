@@ -208,8 +208,8 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4">
-                    <div className="min-h-[240px]">
+                  <div className="p-2 sm:p-4">
+                    <div className="h-[60dvh] sm:h-[440px]">
                       <ClinicalReasoningField consultationId={consultation.id} value={clinicalReasoning} onChange={setClinicalReasoning} />
                     </div>
                     {diagnosisClosed && (

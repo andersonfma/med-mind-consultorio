@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { patientDetailRoute } from '@/lib/routes'
 import { cleanExamResult } from '@/lib/exams/clean'
+import { AB4_AXES, COMM_AXES } from '@/lib/consultations/ab4-labels'
 import type { Patient, Consultation } from '@/types/domain'
 import type { ChatMessage } from '@/lib/consultations/prompts'
 
@@ -59,13 +60,6 @@ const PE_LABELS: Record<string, string> = {
   membros_inferiores: 'Membros inferiores',
 }
 
-const AXES: { key: 'a1' | 'a2' | 'a3' | 'a4'; label: string; sub: string }[] = [
-  { key: 'a1', label: 'A1 Poético', sub: 'Possibilidades' },
-  { key: 'a2', label: 'A2 Retórico', sub: 'Plausibilidade' },
-  { key: 'a3', label: 'A3 Dialético', sub: 'Confrontação' },
-  { key: 'a4', label: 'A4 Analítico', sub: 'Demonstração' },
-]
-
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-6">
@@ -86,11 +80,6 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
     : null
   const communication = (consultation.communication_score ?? null) as Communication | null
   const minComm = communication ? Math.min(communication.c1, communication.c2, communication.c3) : null
-  const COMM_AXES: { key: 'c1' | 'c2' | 'c3'; label: string; sub: string }[] = [
-    { key: 'c1', label: 'C1 Clareza', sub: 'Linguagem' },
-    { key: 'c2', label: 'C2 Empatia', sub: 'Acolhimento' },
-    { key: 'c3', label: 'C3 Condução', sub: 'Entrevista' },
-  ]
 
   const peEntries = Object.entries(PE_LABELS)
     .map(([k, label]) => [label, physicalExam[k]] as const)
@@ -116,7 +105,7 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
 
         {/* AB4 */}
         {ab4 && (
-          <Section title="Score AB4 — raciocínio clínico">
+          <Section title="Raciocínio clínico">
             <div className="bg-surface border border-border rounded-lg p-4">
               <div className="flex items-baseline justify-between mb-1">
                 <span className="text-sm font-semibold text-ink">Geral</span>
@@ -124,20 +113,17 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
               </div>
               {ab4.stage === 1 && (
                 <p className="text-xs text-muted mb-3">
-                  Primeira consulta: só A1 e A2 avaliados. A3 e A4 entram na próxima consulta, com os resultados dos exames.
+                  Primeira consulta: avaliamos a abertura do raciocínio. O diferencial e o fechamento entram na próxima consulta, com os resultados dos exames.
                 </p>
               )}
-              <div className="space-y-2 mb-4">
-                {AXES.map(ax => {
+              <div className="space-y-2.5 mb-4">
+                {AB4_AXES.map(ax => {
                   const score = ab4[ax.key]
                   const pending = score === null
                   const weak = !pending && score === minScore
                   return (
-                    <div key={ax.key} className="flex items-center gap-2">
-                      <div className="w-28 shrink-0">
-                        <span className={`text-xs font-medium ${pending ? 'text-muted/50' : 'text-ink'}`}>{ax.label}</span>
-                        <span className="block text-[10px] text-muted">{ax.sub}</span>
-                      </div>
+                    <div key={ax.key} className="flex items-center gap-3">
+                      <span className={`w-24 shrink-0 text-xs font-medium ${pending ? 'text-muted/50' : 'text-ink'}`}>{ax.label}</span>
                       <div className="flex-1 h-2 bg-surface-2 rounded-full overflow-hidden">
                         {!pending && <div className={`h-full rounded-full ${weak ? 'bg-warning' : 'bg-success'}`} style={{ width: `${score * 10}%` }} />}
                       </div>
@@ -157,22 +143,19 @@ export function ConsultationReadOnly({ consultation, patient, exams, prescriptio
         )}
 
         {communication && (
-          <Section title="Score de Comunicação">
+          <Section title="Comunicação">
             <div className="bg-surface border border-border rounded-lg p-4">
               <div className="flex items-baseline justify-between mb-3">
                 <span className="text-sm font-semibold text-ink">Diálogo médico-paciente</span>
                 <span className="text-2xl font-bold text-ink">{communication.overall.toFixed(1)}<span className="text-sm text-muted">/10</span></span>
               </div>
-              <div className="space-y-2 mb-3">
+              <div className="space-y-2.5 mb-3">
                 {COMM_AXES.map(ax => {
                   const score = communication[ax.key]
                   const weak = score === minComm
                   return (
-                    <div key={ax.key} className="flex items-center gap-2">
-                      <div className="w-28 shrink-0">
-                        <span className="text-xs font-medium text-ink">{ax.label}</span>
-                        <span className="block text-[10px] text-muted">{ax.sub}</span>
-                      </div>
+                    <div key={ax.key} className="flex items-center gap-3">
+                      <span className="w-24 shrink-0 text-xs font-medium text-ink">{ax.label}</span>
                       <div className="flex-1 h-2 bg-surface-2 rounded-full overflow-hidden">
                         <div className={`h-full rounded-full ${weak ? 'bg-warning' : 'bg-chart-2'}`} style={{ width: `${score * 10}%` }} />
                       </div>

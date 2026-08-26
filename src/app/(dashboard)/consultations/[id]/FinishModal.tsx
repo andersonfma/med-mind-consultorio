@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { patientDetailRoute } from '@/lib/routes'
+import { AB4_AXES, COMM_AXES } from '@/lib/consultations/ab4-labels'
 
 type Ab4 = {
   a1: number; a2: number; a3: number | null; a4: number | null
@@ -17,19 +18,6 @@ type Props = {
   clinicalReasoning: string
   onClose: () => void
 }
-
-const AXES: { key: 'a1' | 'a2' | 'a3' | 'a4'; label: string; sub: string }[] = [
-  { key: 'a1', label: 'A1 Poético', sub: 'Possibilidades' },
-  { key: 'a2', label: 'A2 Retórico', sub: 'Plausibilidade' },
-  { key: 'a3', label: 'A3 Dialético', sub: 'Confrontação' },
-  { key: 'a4', label: 'A4 Analítico', sub: 'Demonstração' },
-]
-
-const COMM_AXES: { key: 'c1' | 'c2' | 'c3'; label: string; sub: string }[] = [
-  { key: 'c1', label: 'C1 Clareza', sub: 'Linguagem' },
-  { key: 'c2', label: 'C2 Empatia', sub: 'Acolhimento' },
-  { key: 'c3', label: 'C3 Condução', sub: 'Entrevista' },
-]
 
 export function FinishModal({ consultationId, clinicalReasoning, onClose }: Props) {
   const router = useRouter()
@@ -68,8 +56,10 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
     : null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface border border-border rounded-2xl p-6 w-full max-w-md shadow-[var(--shadow-card)]">
+    // Container rolável: no mobile o conteúdo pode passar da altura da tela;
+    // `my-auto` centraliza quando cabe e permite rolar até o botão quando não cabe.
+    <div className="fixed inset-0 z-50 flex justify-center overflow-y-auto overscroll-contain bg-black/50 p-4">
+      <div className="my-auto w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
         {!result ? (
           <>
             <h2 className="font-display text-lg font-bold text-ink mb-2">Encerrar consulta</h2>
@@ -89,39 +79,33 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
         ) : (
           <>
             <h2 className="font-display text-lg font-bold text-ink mb-1">Consulta encerrada</h2>
-            <p className="text-sm text-muted mb-4">
+            <p className="text-sm text-muted mb-5">
               Veja os resultados dos exames na próxima consulta. Quando terminar de raciocinar, conclua o diagnóstico na página do paciente.
             </p>
 
             {result.ab4 ? (
-              <>
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-sm font-semibold text-ink">Score AB4 — raciocínio clínico</span>
+              <div className="mb-5">
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="text-sm font-semibold text-ink">Raciocínio clínico</span>
                   <span className="font-display text-2xl font-bold text-ink">{result.ab4.overall.toFixed(1)}<span className="text-sm text-muted">/10</span></span>
                 </div>
                 {result.ab4.stage === 1 && (
                   <p className="text-xs text-muted mb-3">
-                    Primeira consulta: avaliamos só a abertura do raciocínio (A1 e A2). A3 e A4 serão avaliados na próxima consulta, com os resultados dos exames.
+                    Primeira consulta: avaliamos a abertura do raciocínio. O diferencial e o fechamento entram na próxima consulta, com os resultados dos exames.
                   </p>
                 )}
 
-                <div className="space-y-2 mb-4">
-                  {AXES.map(ax => {
+                <div className="space-y-2.5">
+                  {AB4_AXES.map(ax => {
                     const score = result.ab4![ax.key]
                     const pending = score === null
                     const weak = !pending && score === minScore
                     return (
-                      <div key={ax.key} className="flex items-center gap-2">
-                        <div className="w-28 shrink-0">
-                          <span className={`text-xs font-medium ${pending ? 'text-muted/50' : 'text-ink'}`}>{ax.label}</span>
-                          <span className="block text-[10px] text-muted">{ax.sub}</span>
-                        </div>
+                      <div key={ax.key} className="flex items-center gap-3">
+                        <span className={`w-24 shrink-0 text-xs font-medium ${pending ? 'text-muted/50' : 'text-ink'}`}>{ax.label}</span>
                         <div className="flex-1 h-2 bg-surface-2 rounded-full overflow-hidden">
                           {!pending && (
-                            <div
-                              className={`h-full rounded-full ${weak ? 'bg-warning' : 'bg-success'}`}
-                              style={{ width: `${score * 10}%` }}
-                            />
+                            <div className={`h-full rounded-full ${weak ? 'bg-warning' : 'bg-success'}`} style={{ width: `${score * 10}%` }} />
                           )}
                         </div>
                         {pending
@@ -132,31 +116,28 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
                   })}
                 </div>
 
-                <div className="bg-surface-2 border border-border rounded-lg p-3 mb-5">
+                <div className="mt-3 rounded-lg border border-border bg-surface-2 p-3">
                   <p className="text-xs font-semibold text-muted mb-1">Recomendação</p>
                   <p className="text-sm text-ink">{result.ab4.recommendation}</p>
                 </div>
-              </>
+              </div>
             ) : (
-              <p className="text-sm text-muted mb-5">Avaliação AB4 indisponível desta vez.</p>
+              <p className="text-sm text-muted mb-5">Avaliação do raciocínio indisponível desta vez.</p>
             )}
 
             {result.communication && (
-              <>
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-sm font-semibold text-ink">Score de Comunicação</span>
+              <div className="mb-5">
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="text-sm font-semibold text-ink">Comunicação</span>
                   <span className="font-display text-2xl font-bold text-ink">{result.communication.overall.toFixed(1)}<span className="text-sm text-muted">/10</span></span>
                 </div>
-                <div className="space-y-2 mb-4">
+                <div className="space-y-2.5">
                   {COMM_AXES.map(ax => {
                     const score = result.communication![ax.key]
                     const weak = score === minComm
                     return (
-                      <div key={ax.key} className="flex items-center gap-2">
-                        <div className="w-28 shrink-0">
-                          <span className="text-xs font-medium text-ink">{ax.label}</span>
-                          <span className="block text-[10px] text-muted">{ax.sub}</span>
-                        </div>
+                      <div key={ax.key} className="flex items-center gap-3">
+                        <span className="w-24 shrink-0 text-xs font-medium text-ink">{ax.label}</span>
                         <div className="flex-1 h-2 bg-surface-2 rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${weak ? 'bg-warning' : 'bg-chart-2'}`} style={{ width: `${score * 10}%` }} />
                         </div>
@@ -165,11 +146,11 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
                     )
                   })}
                 </div>
-                <div className="bg-surface-2 border border-border rounded-lg p-3 mb-5">
+                <div className="mt-3 rounded-lg border border-border bg-surface-2 p-3">
                   <p className="text-xs font-semibold text-muted mb-1">Comunicação — recomendação</p>
                   <p className="text-sm text-ink">{result.communication.recommendation}</p>
                 </div>
-              </>
+              </div>
             )}
 
             <button
