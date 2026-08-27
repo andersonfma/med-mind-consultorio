@@ -7,9 +7,10 @@ import { ThemeToggle } from './ThemeToggle'
 
 interface ShellProps {
   children: ReactNode
+  isAdmin?: boolean
 }
 
-export function Shell({ children }: ShellProps) {
+export function Shell({ children, isAdmin = false }: ShellProps) {
   return (
     <div className="min-h-screen bg-background">
       <MedMindStripes className="mm-fixed mm-static opacity-60" />
@@ -22,6 +23,11 @@ export function Shell({ children }: ShellProps) {
             </span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
+            {isAdmin && (
+              <Link href="/admin" className="text-xs font-medium text-muted transition-colors hover:text-primary">
+                Admin
+              </Link>
+            )}
             <span className="hidden text-xs text-muted md:inline">Simulador clínico</span>
             <ThemeToggle />
             <LogoutButton />

@@ -2,6 +2,10 @@ import { MedMindMark } from '@/components/layout/MedMindMark'
 import { MedMindStripes } from '@/components/layout/MedMindStripes'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 
+// Sempre-fresca: evita o cache longo (s-maxage=1 ano) das páginas estáticas,
+// para que correções de UI apareçam sem precisar furar cache.
+export const dynamic = 'force-dynamic'
+
 export default function AuthLayout({
   children,
 }: {
@@ -15,7 +19,7 @@ export default function AuthLayout({
       </div>
       <div className="relative z-10 w-full max-w-sm sm:max-w-md">
         <div className="mb-6 flex flex-col items-center text-center">
-          <MedMindMark className="h-16 w-16 rounded-2xl shadow-[var(--shadow-glow-primary)]" />
+          <MedMindMark className="h-14 w-14 rounded-xl shadow-[var(--shadow-glow-primary)]" />
           <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink">
             Med<span className="text-primary">Mind</span>
           </h1>

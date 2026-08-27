@@ -2,18 +2,12 @@ import { redirect, notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isAdminEmail } from '@/lib/admin/access'
 import { LOGIN_ROUTE } from '@/lib/routes'
 import { EMPTY_REASONING_RECOMMENDATION } from '@/lib/consultations/ab4'
 import { EMPTY_COMMUNICATION_RECOMMENDATION } from '@/lib/consultations/communication'
 
 export const dynamic = 'force-dynamic'
-
-// Allowlist de admins por e-mail (server-side). Configurável via env
-// ADMIN_EMAILS (lista separada por vírgula); default = dono do projeto.
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'andersonbrito.a@gmail.com')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean)
 
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0)
 
@@ -58,7 +52,7 @@ export default async function AdminPage() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect(LOGIN_ROUTE)
-  if (!user.email || !ADMIN_EMAILS.includes(user.email.toLowerCase())) notFound()
+  if (!isAdminEmail(user.email)) notFound()
 
   const admin = createAdminClient()
 
