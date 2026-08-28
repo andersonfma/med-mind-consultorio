@@ -1,11 +1,14 @@
 import { redirect, notFound } from 'next/navigation'
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin/access'
 import { LOGIN_ROUTE } from '@/lib/routes'
-import { EMPTY_REASONING_RECOMMENDATION } from '@/lib/consultations/ab4'
-import { EMPTY_COMMUNICATION_RECOMMENDATION } from '@/lib/consultations/communication'
+import { AB4_AXES, COMM_AXES } from '@/lib/consultations/ab4-labels'
+import { ab4Averages, commAverages, type ConsultRow } from '@/lib/admin/stats'
+import { AxisBars } from '@/components/admin/AxisBars'
+import { BlockButton } from '@/components/admin/BlockButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,14 +17,6 @@ const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0)
 function fmt(s: string | null | undefined) {
   if (!s) return '—'
   return new Date(s).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-}
-
-// overall de um score JSONB, tratando o "vazio" (sentinela) como null.
-function overallOf(score: unknown, emptyRec: string): number | null {
-  if (!score || typeof score !== 'object') return null
-  const o = score as Record<string, unknown>
-  if (o.recommendation === emptyRec) return null
-  return typeof o.overall === 'number' ? o.overall : null
 }
 
 function StatCard({ label, value, sub, accent }: { label: string; value: ReactNode; sub?: string; accent?: boolean }) {
@@ -63,25 +58,24 @@ export default async function AdminPage() {
     admin.from('consultations').select('user_id, status, created_at, finished_at, ab4_score, communication_score'),
   ])
 
-  const authUsers = usersRes.data?.users ?? []
+  type AuthUser = { id: string; email?: string; created_at?: string; last_sign_in_at?: string | null; banned_until?: string | null }
+  const authUsers = (usersRes.data?.users ?? []) as AuthUser[]
   const profiles = (profilesRes.data ?? []) as Array<{
     id: string; full_name: string | null; ai_calls_used: number | null; ai_calls_limit: number | null
   }>
   const patients = (patientsRes.data ?? []) as Array<{ user_id: string; specialty: string; created_at: string }>
-  const consultations = (consultationsRes.data ?? []) as Array<{
-    user_id: string; status: string; created_at: string; finished_at: string | null; ab4_score: unknown; communication_score: unknown
-  }>
+  const consultations = (consultationsRes.data ?? []) as ConsultRow[]
 
   const profileById = new Map(profiles.map((p) => [p.id, p]))
+  const isBlocked = (u: AuthUser) => !!u.banned_until && Date.parse(u.banned_until) > Date.now()
 
-  // Janelas de tempo
   const now = new Date()
   const since7 = new Date(now.getTime() - 7 * 86_400_000)
 
-  // KPIs
   const totalUsers = authUsers.length
   const new7 = authUsers.filter((u) => u.created_at && new Date(u.created_at) >= since7).length
   const active7 = authUsers.filter((u) => u.last_sign_in_at && new Date(u.last_sign_in_at) >= since7).length
+  const blockedCount = authUsers.filter(isBlocked).length
   const totalPatients = patients.length
   const totalConsults = consultations.length
   const finished = consultations.filter((c) => c.status === 'finished').length
@@ -99,19 +93,11 @@ export default async function AdminPage() {
     { label: 'Finalizaram consulta', n: usersWithFinished },
   ]
 
-  // Cadastros por dia (14 dias)
-  const days: { key: string; label: string; count: number }[] = []
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(now)
-    d.setDate(d.getDate() - i)
-    days.push({ key: d.toISOString().slice(0, 10), label: `${d.getDate()}/${d.getMonth() + 1}`, count: 0 })
-  }
-  const dayIndex = new Map(days.map((d, i) => [d.key, i]))
-  for (const u of authUsers) {
-    const idx = dayIndex.get((u.created_at ?? '').slice(0, 10))
-    if (idx != null) days[idx].count++
-  }
-  const maxDay = Math.max(1, ...days.map((d) => d.count))
+  // Diagnóstico da turma — critérios objetivos (médias)
+  const cohortAb4 = ab4Averages(consultations)
+  const cohortComm = commAverages(consultations)
+  const ab4Axes = AB4_AXES.map((ax) => ({ label: ax.label, value: cohortAb4[ax.key] }))
+  const commAxesData = COMM_AXES.map((ax) => ({ label: ax.label, value: cohortComm[ax.key] }))
 
   // Distribuição por especialidade
   const bySpec = new Map<string, number>()
@@ -119,38 +105,30 @@ export default async function AdminPage() {
   const specRows = [...bySpec.entries()].sort((a, b) => b[1] - a[1])
   const maxSpec = Math.max(1, ...specRows.map((r) => r[1]))
 
-  // Desempenho médio (consultas finalizadas)
-  let ab4Sum = 0, ab4N = 0, commSum = 0, commN = 0
-  for (const c of consultations) {
-    const a = overallOf(c.ab4_score, EMPTY_REASONING_RECOMMENDATION)
-    if (a != null) { ab4Sum += a; ab4N++ }
-    const cm = overallOf(c.communication_score, EMPTY_COMMUNICATION_RECOMMENDATION)
-    if (cm != null) { commSum += cm; commN++ }
-  }
-  const avgAb4 = ab4N ? ab4Sum / ab4N : null
-  const avgComm = commN ? commSum / commN : null
-
-  // Tabela por testador
+  // Agregados por usuário
   const patientCount = new Map<string, number>()
   for (const p of patients) patientCount.set(p.user_id, (patientCount.get(p.user_id) ?? 0) + 1)
-  const consultTotal = new Map<string, number>()
-  const consultFinished = new Map<string, number>()
+  const consByUser = new Map<string, ConsultRow[]>()
   for (const c of consultations) {
-    consultTotal.set(c.user_id, (consultTotal.get(c.user_id) ?? 0) + 1)
-    if (c.status === 'finished') consultFinished.set(c.user_id, (consultFinished.get(c.user_id) ?? 0) + 1)
+    const arr = consByUser.get(c.user_id)
+    if (arr) arr.push(c)
+    else consByUser.set(c.user_id, [c])
   }
+
   const rows = authUsers
     .map((u) => {
       const prof = profileById.get(u.id)
+      const mine = consByUser.get(u.id) ?? []
       return {
         id: u.id,
         email: u.email ?? '—',
         name: prof?.full_name ?? '—',
-        created: u.created_at,
         lastSignIn: u.last_sign_in_at,
+        blocked: isBlocked(u),
         patients: patientCount.get(u.id) ?? 0,
-        consults: consultTotal.get(u.id) ?? 0,
-        finished: consultFinished.get(u.id) ?? 0,
+        consults: mine.length,
+        finished: mine.filter((c) => c.status === 'finished').length,
+        ab4: ab4Averages(mine).overall,
         aiUsed: prof?.ai_calls_used ?? 0,
         aiLimit: prof?.ai_calls_limit ?? 0,
       }
@@ -160,25 +138,45 @@ export default async function AdminPage() {
   return (
     <div className="space-y-6 p-1 sm:p-2">
       <header>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Painel de testes</h1>
-        <p className="text-sm text-muted">
-          Acompanhamento de acessos e uso · janela de IA de 30 dias
-        </p>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Painel do coordenador</h1>
+        <p className="text-sm text-muted">Diagnóstico da turma e de cada aluno · janela de IA de 30 dias</p>
       </header>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-        <StatCard label="Testadores" value={totalUsers} sub={new7 > 0 ? `+${new7} nos últimos 7 dias` : 'nenhum novo em 7 dias'} accent />
+        <StatCard label="Alunos" value={totalUsers} sub={new7 > 0 ? `+${new7} nos últimos 7 dias` : 'nenhum novo em 7 dias'} accent />
         <StatCard label="Ativos (7 dias)" value={active7} sub={`${pct(active7, totalUsers)}% do total`} />
-        <StatCard label="Chamadas de IA" value={totalAi} sub="somadas no período" />
+        <StatCard label="Bloqueados" value={blockedCount} sub={blockedCount ? 'sem acesso' : 'nenhum'} />
         <StatCard label="Pacientes criados" value={totalPatients} />
         <StatCard label="Consultas" value={totalConsults} sub={`${finished} finalizadas`} />
         <StatCard label="Taxa de conclusão" value={`${completion}%`} sub="consultas finalizadas" />
       </div>
 
+      {/* Diagnóstico da turma — critérios objetivos */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Raciocínio clínico — média da turma" hint={`${cohortAb4.n} consultas avaliadas`}>
+          <div className="mb-3 flex items-baseline gap-2">
+            <span className="font-display text-3xl font-bold tabular-nums text-ink">
+              {cohortAb4.overall != null ? cohortAb4.overall.toFixed(1) : '—'}
+            </span>
+            <span className="text-sm text-muted">/10 geral</span>
+          </div>
+          <AxisBars axes={ab4Axes} />
+        </Panel>
+        <Panel title="Comunicação — média da turma" hint={`${cohortComm.n} consultas avaliadas`}>
+          <div className="mb-3 flex items-baseline gap-2">
+            <span className="font-display text-3xl font-bold tabular-nums text-ink">
+              {cohortComm.overall != null ? cohortComm.overall.toFixed(1) : '—'}
+            </span>
+            <span className="text-sm text-muted">/10 geral</span>
+          </div>
+          <AxisBars axes={commAxesData} fill="bg-chart-2" />
+        </Panel>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Funil */}
-        <Panel title="Funil de engajamento" hint={`${totalUsers} testadores`}>
+        <Panel title="Funil de engajamento" hint={`${totalUsers} alunos`}>
           <div className="space-y-3">
             {funnel.map((f) => (
               <div key={f.label}>
@@ -196,26 +194,6 @@ export default async function AdminPage() {
           </div>
         </Panel>
 
-        {/* Cadastros por dia */}
-        <Panel title="Cadastros por dia" hint="últimos 14 dias">
-          <div className="flex h-32 items-end gap-1">
-            {days.map((d) => (
-              <div key={d.key} className="flex flex-1 flex-col items-center justify-end" title={`${d.label}: ${d.count}`}>
-                <div
-                  className="w-full rounded-t bg-primary/70"
-                  style={{ height: `${Math.round((d.count / maxDay) * 100)}%`, minHeight: d.count > 0 ? '4px' : '0' }}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="mt-1 flex justify-between text-[10px] text-muted">
-            <span>{days[0].label}</span>
-            <span>hoje</span>
-          </div>
-        </Panel>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
         {/* Especialidades */}
         <Panel title="Pacientes por especialidade">
           {specRows.length === 0 ? (
@@ -234,65 +212,53 @@ export default async function AdminPage() {
             </div>
           )}
         </Panel>
-
-        {/* Desempenho médio */}
-        <Panel title="Desempenho médio" hint="consultas finalizadas">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Raciocínio</p>
-              <p className="mt-1 font-display text-3xl font-bold tabular-nums text-ink">
-                {avgAb4 != null ? avgAb4.toFixed(1) : '—'}
-                <span className="text-sm text-muted">/10</span>
-              </p>
-              <p className="mt-0.5 text-xs text-muted">{ab4N} avaliadas</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Comunicação</p>
-              <p className="mt-1 font-display text-3xl font-bold tabular-nums text-ink">
-                {avgComm != null ? avgComm.toFixed(1) : '—'}
-                <span className="text-sm text-muted">/10</span>
-              </p>
-              <p className="mt-0.5 text-xs text-muted">{commN} avaliadas</p>
-            </div>
-          </div>
-        </Panel>
       </div>
 
-      {/* Tabela por testador */}
-      <Panel title="Atividade por testador" hint={`${rows.length} usuários`}>
+      {/* Alunos */}
+      <Panel title="Alunos" hint="clique no nome para o diagnóstico individual">
         <div className="-mx-1 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-muted">
-                <th className="px-3 py-2 font-medium">Usuário</th>
-                <th className="px-3 py-2 font-medium">Cadastro</th>
-                <th className="px-3 py-2 font-medium">Último login</th>
+                <th className="px-3 py-2 font-medium">Aluno</th>
+                <th className="px-3 py-2 font-medium">Status</th>
+                <th className="px-3 py-2 font-medium">Último acesso</th>
                 <th className="px-3 py-2 text-right font-medium">Pac.</th>
                 <th className="px-3 py-2 text-right font-medium">Cons.</th>
-                <th className="px-3 py-2 text-right font-medium">Final.</th>
+                <th className="px-3 py-2 text-right font-medium">Racioc.</th>
                 <th className="px-3 py-2 text-right font-medium">IA</th>
+                <th className="px-3 py-2 text-right font-medium">Ação</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-muted">Nenhum usuário ainda.</td>
+                  <td colSpan={8} className="px-3 py-8 text-center text-muted">Nenhum aluno ainda.</td>
                 </tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-border/60 last:border-0">
                   <td className="px-3 py-2.5">
-                    <div className="font-medium text-ink">{r.name}</div>
+                    <Link href={`/admin/${r.id}`} className="font-medium text-ink hover:text-primary">{r.name}</Link>
                     <div className="text-xs text-muted">{r.email}</div>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-muted">{fmt(r.created)}</td>
+                  <td className="px-3 py-2.5">
+                    {r.blocked ? (
+                      <span className="rounded-full border border-danger/40 bg-danger/10 px-2 py-0.5 text-[11px] font-semibold text-danger">Bloqueado</span>
+                    ) : (
+                      <span className="rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success">Ativo</span>
+                    )}
+                  </td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-muted">{fmt(r.lastSignIn)}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-ink">{r.patients}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-ink">{r.consults}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-ink">{r.finished}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-ink">{r.ab4 != null ? r.ab4.toFixed(1) : '—'}</td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">
                     <span className={r.aiUsed >= r.aiLimit && r.aiLimit > 0 ? 'font-semibold text-danger' : 'text-ink'}>{r.aiUsed}</span>
                     <span className="text-muted">/{r.aiLimit}</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    <BlockButton userId={r.id} blocked={r.blocked} />
                   </td>
                 </tr>
               ))}
