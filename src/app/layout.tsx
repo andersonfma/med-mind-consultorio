@@ -9,8 +9,19 @@ const sans = Inter({ subsets: ['latin'], variable: '--ff-sans' })
 const mono = JetBrains_Mono({ subsets: ['latin'], weight: ['500'], variable: '--ff-mono' })
 
 export const metadata: Metadata = {
-  title: 'Simulador MedMind',
-  description: 'Simulador gamificado de consultório clínico',
+  metadataBase: new URL('https://app.medmindedu.com.br'),
+  title: { default: 'Med Mind — Simulador clínico', template: '%s · Med Mind' },
+  description:
+    'Treine o raciocínio clínico com pacientes virtuais e avaliação por IA — antes do paciente real.',
+  openGraph: {
+    title: 'Med Mind — Simulador clínico',
+    description:
+      'Treine o raciocínio clínico com pacientes virtuais e avaliação por IA — antes do paciente real.',
+    siteName: 'Med Mind',
+    locale: 'pt_BR',
+    type: 'website',
+  },
+  twitter: { card: 'summary_large_image' },
 }
 
 export default function RootLayout({
