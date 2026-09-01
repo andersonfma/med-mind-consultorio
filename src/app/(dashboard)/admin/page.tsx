@@ -8,6 +8,7 @@ import { LOGIN_ROUTE } from '@/lib/routes'
 import { AB4_AXES, COMM_AXES } from '@/lib/consultations/ab4-labels'
 import { ab4Averages, commAverages, type ConsultRow } from '@/lib/admin/stats'
 import { AxisBars } from '@/components/admin/AxisBars'
+import { DistBars } from '@/components/admin/DistBars'
 import { BlockButton } from '@/components/admin/BlockButton'
 
 export const dynamic = 'force-dynamic'
@@ -51,11 +52,13 @@ export default async function AdminPage() {
 
   const admin = createAdminClient()
 
-  const [usersRes, profilesRes, patientsRes, consultationsRes] = await Promise.all([
+  const [usersRes, profilesRes, patientsRes, consultationsRes, examsRes, rxRes] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     admin.from('profiles').select('id, full_name, ai_calls_used, ai_calls_limit'),
-    admin.from('patients').select('user_id, specialty, created_at'),
+    admin.from('patients').select('user_id, specialty, created_at, diagnosis_status'),
     admin.from('consultations').select('user_id, status, created_at, finished_at, ab4_score, communication_score'),
+    admin.from('exam_requests').select('user_id, status, exam_name, attempts'),
+    admin.from('prescriptions').select('user_id, adequacy'),
   ])
 
   type AuthUser = { id: string; email?: string; created_at?: string; last_sign_in_at?: string | null; banned_until?: string | null }
@@ -63,8 +66,31 @@ export default async function AdminPage() {
   const profiles = (profilesRes.data ?? []) as Array<{
     id: string; full_name: string | null; ai_calls_used: number | null; ai_calls_limit: number | null
   }>
-  const patients = (patientsRes.data ?? []) as Array<{ user_id: string; specialty: string; created_at: string }>
+  const patients = (patientsRes.data ?? []) as Array<{ user_id: string; specialty: string; created_at: string; diagnosis_status: string }>
   const consultations = (consultationsRes.data ?? []) as ConsultRow[]
+  const exams = (examsRes.data ?? []) as Array<{ user_id: string; status: string; exam_name: string; attempts: number | null }>
+  const prescriptions = (rxRes.data ?? []) as Array<{ user_id: string; adequacy: string | null }>
+
+  // Indicadores pedagógicos
+  // 1) Coerência dos pedidos de exame
+  const examTotal = exams.length
+  const examRejected = exams.filter((e) => e.status === 'rejected').length
+  const examReformulated = exams.filter((e) => (e.attempts ?? 1) > 1).length
+  const rejByExam = new Map<string, number>()
+  for (const e of exams) if (e.status === 'rejected') rejByExam.set(e.exam_name, (rejByExam.get(e.exam_name) ?? 0) + 1)
+  const topRejected = [...rejByExam.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
+
+  // 2) Adequação das condutas (só as avaliadas pela IA)
+  const rxScored = prescriptions.filter((r) => r.adequacy)
+  const rxAd = rxScored.filter((r) => r.adequacy === 'adequada').length
+  const rxPar = rxScored.filter((r) => r.adequacy === 'parcial').length
+  const rxIna = rxScored.filter((r) => r.adequacy === 'inadequada').length
+  const rxN = rxScored.length
+
+  // 3) Fecho diagnóstico
+  const dxAchieved = patients.filter((p) => p.diagnosis_status === 'achieved').length
+  const dxRevealed = patients.filter((p) => p.diagnosis_status === 'revealed').length
+  const dxClosed = dxAchieved + dxRevealed
 
   const profileById = new Map(profiles.map((p) => [p.id, p]))
   const isBlocked = (u: AuthUser) => !!u.banned_until && Date.parse(u.banned_until) > Date.now()
@@ -171,6 +197,83 @@ export default async function AdminPage() {
             <span className="text-sm text-muted">/10 geral</span>
           </div>
           <AxisBars axes={commAxesData} fill="bg-chart-2" />
+        </Panel>
+      </div>
+
+      {/* Indicadores pedagógicos — onde intervir */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Panel title="Coerência dos pedidos de exame" hint={`${examTotal} pedidos`}>
+          {examTotal === 0 ? (
+            <p className="text-xs text-muted">Nenhum exame solicitado ainda.</p>
+          ) : (
+            <>
+              <div className="mb-1 flex items-baseline gap-2">
+                <span className={`font-display text-3xl font-bold tabular-nums ${pct(examRejected, examTotal) >= 30 ? 'text-danger' : 'text-ink'}`}>
+                  {pct(examRejected, examTotal)}%
+                </span>
+                <span className="text-sm text-muted">recusados por incoerência</span>
+              </div>
+              <p className="mb-3 text-xs text-muted">
+                {examRejected} de {examTotal} · {examReformulated} precisaram ser reformulados
+              </p>
+              {topRejected.length > 0 && (
+                <>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Mais recusados</p>
+                  <ul className="space-y-1.5">
+                    {topRejected.map(([name, n]) => (
+                      <li key={name} className="flex items-center justify-between gap-3 text-xs">
+                        <span className="truncate text-ink">{name}</span>
+                        <span className="shrink-0 tabular-nums text-danger">{n}×</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          )}
+        </Panel>
+
+        <Panel title="Adequação das condutas" hint={`${rxN} avaliadas`}>
+          {rxN === 0 ? (
+            <p className="text-xs text-muted">Nenhuma conduta avaliada ainda.</p>
+          ) : (
+            <>
+              <div className="mb-3 flex items-baseline gap-2">
+                <span className={`font-display text-3xl font-bold tabular-nums ${pct(rxIna, rxN) >= 25 ? 'text-danger' : 'text-ink'}`}>
+                  {pct(rxIna, rxN)}%
+                </span>
+                <span className="text-sm text-muted">inadequadas</span>
+              </div>
+              <DistBars
+                items={[
+                  { label: 'Adequada', count: rxAd, pctv: pct(rxAd, rxN), tone: 'bg-success' },
+                  { label: 'Parcial', count: rxPar, pctv: pct(rxPar, rxN), tone: 'bg-warning' },
+                  { label: 'Inadequada', count: rxIna, pctv: pct(rxIna, rxN), tone: 'bg-danger' },
+                ]}
+              />
+            </>
+          )}
+        </Panel>
+
+        <Panel title="Fecho diagnóstico" hint={`${dxClosed} encerrados`}>
+          {dxClosed === 0 ? (
+            <p className="text-xs text-muted">Nenhum caso encerrado ainda.</p>
+          ) : (
+            <>
+              <div className="mb-3 flex items-baseline gap-2">
+                <span className={`font-display text-3xl font-bold tabular-nums ${pct(dxAchieved, dxClosed) < 60 ? 'text-danger' : 'text-ink'}`}>
+                  {pct(dxAchieved, dxClosed)}%
+                </span>
+                <span className="text-sm text-muted">chegaram ao diagnóstico</span>
+              </div>
+              <DistBars
+                items={[
+                  { label: 'Diagnosticou', count: dxAchieved, pctv: pct(dxAchieved, dxClosed), tone: 'bg-success' },
+                  { label: 'Desistiu (revelou)', count: dxRevealed, pctv: pct(dxRevealed, dxClosed), tone: 'bg-warning' },
+                ]}
+              />
+            </>
+          )}
         </Panel>
       </div>
 

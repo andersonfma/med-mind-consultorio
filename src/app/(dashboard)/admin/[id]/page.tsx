@@ -7,6 +7,7 @@ import { LOGIN_ROUTE } from '@/lib/routes'
 import { AB4_AXES, COMM_AXES } from '@/lib/consultations/ab4-labels'
 import { ab4Averages, commAverages, ab4Of, commOf, type ConsultRow } from '@/lib/admin/stats'
 import { AxisBars } from '@/components/admin/AxisBars'
+import { DistBars } from '@/components/admin/DistBars'
 import { BlockButton } from '@/components/admin/BlockButton'
 
 export const dynamic = 'force-dynamic'
@@ -27,15 +28,17 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
   const { id } = await params
   const admin = createAdminClient()
 
-  const [target, profileRes, patientsRes, consultationsRes] = await Promise.all([
+  const [target, profileRes, patientsRes, consultationsRes, examsRes, rxRes] = await Promise.all([
     admin.auth.admin.getUserById(id),
     admin.from('profiles').select('full_name, ai_calls_used, ai_calls_limit, ai_period_start').eq('id', id).single(),
-    admin.from('patients').select('id, name, specialty').eq('user_id', id),
+    admin.from('patients').select('id, name, specialty, diagnosis_status').eq('user_id', id),
     admin
       .from('consultations')
       .select('user_id, status, created_at, finished_at, ab4_score, communication_score, patient_id')
       .eq('user_id', id)
       .order('finished_at', { ascending: false }),
+    admin.from('exam_requests').select('status, exam_name, attempts').eq('user_id', id),
+    admin.from('prescriptions').select('adequacy').eq('user_id', id),
   ])
 
   const au = target.data?.user as
@@ -44,10 +47,34 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
   if (!au) notFound()
 
   const prof = (profileRes.data ?? null) as { full_name: string | null; ai_calls_used: number | null; ai_calls_limit: number | null } | null
-  const patients = (patientsRes.data ?? []) as Array<{ id: string; name: string; specialty: string }>
+  const patients = (patientsRes.data ?? []) as Array<{ id: string; name: string; specialty: string; diagnosis_status: string }>
   const consultations = (consultationsRes.data ?? []) as (ConsultRow & { patient_id: string })[]
+  const exams = (examsRes.data ?? []) as Array<{ status: string; exam_name: string; attempts: number | null }>
+  const prescriptions = (rxRes.data ?? []) as Array<{ adequacy: string | null }>
   const specById = new Map(patients.map((p) => [p.id, p.specialty]))
   const nameById = new Map(patients.map((p) => [p.id, p.name]))
+
+  const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0)
+
+  // Indicadores pedagógicos do aluno
+  const examTotal = exams.length
+  const examRejected = exams.filter((e) => e.status === 'rejected').length
+  const topRejected = [...exams
+    .filter((e) => e.status === 'rejected')
+    .reduce((m, e) => m.set(e.exam_name, (m.get(e.exam_name) ?? 0) + 1), new Map<string, number>())
+    .entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+
+  const rxScored = prescriptions.filter((r) => r.adequacy)
+  const rxAd = rxScored.filter((r) => r.adequacy === 'adequada').length
+  const rxPar = rxScored.filter((r) => r.adequacy === 'parcial').length
+  const rxIna = rxScored.filter((r) => r.adequacy === 'inadequada').length
+  const rxN = rxScored.length
+
+  const dxAchieved = patients.filter((p) => p.diagnosis_status === 'achieved').length
+  const dxRevealed = patients.filter((p) => p.diagnosis_status === 'revealed').length
+  const dxClosed = dxAchieved + dxRevealed
 
   const blocked = !!au.banned_until && Date.parse(au.banned_until) > Date.now()
   const finishedC = consultations.filter((c) => c.status === 'finished')
@@ -127,6 +154,70 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
         <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
           <h2 className="mb-4 text-sm font-semibold text-ink">Comunicação — por critério</h2>
           <AxisBars axes={commAxesData} fill="bg-chart-2" />
+        </section>
+      </div>
+
+      {/* Indicadores pedagógicos do aluno */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+          <h2 className="mb-3 text-sm font-semibold text-ink">Pedidos de exame</h2>
+          {examTotal === 0 ? (
+            <p className="text-xs text-muted">Nenhum exame solicitado.</p>
+          ) : (
+            <>
+              <div className="mb-1 flex items-baseline gap-2">
+                <span className={`font-display text-2xl font-bold tabular-nums ${pct(examRejected, examTotal) >= 30 ? 'text-danger' : 'text-ink'}`}>
+                  {pct(examRejected, examTotal)}%
+                </span>
+                <span className="text-xs text-muted">recusados ({examRejected}/{examTotal})</span>
+              </div>
+              {topRejected.length > 0 && (
+                <ul className="mt-2 space-y-1.5">
+                  {topRejected.map(([name, n]) => (
+                    <li key={name} className="flex items-center justify-between gap-3 text-xs">
+                      <span className="truncate text-ink">{name}</span>
+                      <span className="shrink-0 tabular-nums text-danger">{n}×</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </section>
+
+        <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+          <h2 className="mb-3 text-sm font-semibold text-ink">Condutas</h2>
+          {rxN === 0 ? (
+            <p className="text-xs text-muted">Nenhuma conduta avaliada.</p>
+          ) : (
+            <DistBars
+              items={[
+                { label: 'Adequada', count: rxAd, pctv: pct(rxAd, rxN), tone: 'bg-success' },
+                { label: 'Parcial', count: rxPar, pctv: pct(rxPar, rxN), tone: 'bg-warning' },
+                { label: 'Inadequada', count: rxIna, pctv: pct(rxIna, rxN), tone: 'bg-danger' },
+              ]}
+            />
+          )}
+        </section>
+
+        <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+          <h2 className="mb-3 text-sm font-semibold text-ink">Fecho diagnóstico</h2>
+          {dxClosed === 0 ? (
+            <p className="text-xs text-muted">Nenhum caso encerrado.</p>
+          ) : (
+            <>
+              <div className="mb-2 flex items-baseline gap-2">
+                <span className="font-display text-2xl font-bold tabular-nums text-ink">{pct(dxAchieved, dxClosed)}%</span>
+                <span className="text-xs text-muted">diagnosticou</span>
+              </div>
+              <DistBars
+                items={[
+                  { label: 'Diagnosticou', count: dxAchieved, pctv: pct(dxAchieved, dxClosed), tone: 'bg-success' },
+                  { label: 'Desistiu', count: dxRevealed, pctv: pct(dxRevealed, dxClosed), tone: 'bg-warning' },
+                ]}
+              />
+            </>
+          )}
         </section>
       </div>
 
