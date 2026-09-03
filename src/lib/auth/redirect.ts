@@ -14,6 +14,7 @@ const PUBLIC_FILE_ROUTES = [
   '/robots.txt',
   '/sitemap.xml',
   '/manifest',
+  '/landing',
 ]
 
 export function getRedirectPath(

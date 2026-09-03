@@ -3,6 +3,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { getRedirectPath } from '@/lib/auth/redirect'
 
 export async function proxy(request: NextRequest) {
+  // Domínio de marketing (raiz medmindedu.com.br): serve a landing estática
+  // pública, sem auth. O app continua em app.medmindedu.com.br.
+  const host = request.headers.get('host') ?? ''
+  const isMarketing = host === 'medmindedu.com.br' || host === 'www.medmindedu.com.br'
+  if (isMarketing && (request.nextUrl.pathname === '/' || request.nextUrl.pathname === '')) {
+    return NextResponse.rewrite(new URL('/landing.html', request.url))
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
