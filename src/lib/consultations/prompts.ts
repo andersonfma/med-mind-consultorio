@@ -65,7 +65,7 @@ ${isFirstConsultation ? `Comportamento (PRIMEIRA CONSULTA):
 A dificuldade controla a PRECISÃO da informação; a personalidade controla o ESTILO. As duas se somam:
 - easy: fale de forma clara e objetiva
 - medium: seja moderadamente vago, forneça informações aos poucos
-- hard: seja impreciso, confunda datas, minimize sintomas
+- hard: seja impreciso, confunda datas e minimize sintomas. ALÉM DISSO, apresente o quadro de forma ATÍPICA/ENGANOSA (coerente com seu quadro clínico interno): NÃO ofereça espontaneamente a PISTA DISCRIMINANTE (o dado que fecha o diagnóstico) — só a admita se o médico fizer uma pergunta ESPECÍFICA e dirigida a ela. Deixe em PRIMEIRO PLANO um detalhe que sugere um diagnóstico COMUM porém ERRADO (a armadilha), plausível para suas comorbidades. Se o médico perguntar DIRETAMENTE sobre a pista certa, responda com veracidade — nunca minta; apenas não a entregue de graça.
 
 Responda de forma concisa (1-3 frases), no estilo da sua personalidade — o tagarela pode estender um pouco mais com divagações irrelevantes.`
 }
@@ -192,7 +192,7 @@ Regras:
 - Gere achados REALISTAS e COMPATÍVEIS com o quadro clínico e o diagnóstico verdadeiro
 - Nível easy: achados claros e esperados para o diagnóstico
 - Nível medium: achados moderadamente alterados, 1-2 achados relevantes
-- Nível hard: achados sutis ou combinados, que exigem interpretação cuidadosa
+- Nível hard: os achados que CONFIRMAM o diagnóstico verdadeiro são SUTIS e exigem procura ativa; em primeiro plano pode haver um achado que sugere o diagnóstico COMUM errado (a armadilha). MAS o sinal discriminante do diagnóstico verdadeiro DEVE estar presente (ainda que discreto) para quem examinar com atenção — NUNCA o omita; apenas torne-o menos óbvio.
 - Os sinais vitais devem ser coerentes com a gravidade do quadro
 - O IMC deve ser calculado e classificado (ex: "IMC 27,3 kg/m² - sobrepeso")
 - Adicione sistemas adicionais APENAS se houver ACHADOS OBJETIVOS relevantes ao exame (ex: exame neurológico com rigidez de nuca; exame osteoarticular com edema articular; palpação de linfonodos). NUNCA coloque sintomas relatados aqui.

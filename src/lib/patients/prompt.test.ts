@@ -56,12 +56,13 @@ describe('buildPatientPrompt', () => {
   it('em hard, injeta exemplos de diagnósticos DIFÍCEIS da especialidade e proíbe triviais', () => {
     const content = buildPatientPrompt('Cardiologia', 'hard').messages[0].content as string
     expect(content.toLowerCase()).toMatch(/cardiomiopatia|amiloidose|pericardite|hipertensão arterial pulmonar|endocardite/)
-    expect(content.toLowerCase()).toContain('reconhecimento imediato')
+    // hard reformulado: dificuldade = desafio de raciocínio (apresentação atípica / armadilha / multissistêmico)
+    expect(content.toLowerCase()).toContain('armadilha')
   })
 
   it('NÃO injeta o bloco de exemplos hard em casos easy', () => {
     const content = buildPatientPrompt('Cardiologia', 'easy').messages[0].content as string
-    expect(content.toLowerCase()).not.toContain('reconhecimento imediato')
+    expect(content.toLowerCase()).not.toContain('armadilha')
   })
 
   it('proíbe true_diagnosis vago, com hedge ou alternativas (regressão lúpus/TB)', () => {
