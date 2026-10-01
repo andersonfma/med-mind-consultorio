@@ -189,20 +189,29 @@ export async function POST(
     // Non-blocking — revelação segue mesmo sem flashcard
   }
 
-  // diagnosis_flashcard é coluna nova (fora dos tipos gerados) → cast do payload.
-  const patientUpdate = {
-    true_diagnosis: trueDiagnosis,
-    diagnosis_status: diagnosisStatus,
-    ...(flashcard ? { diagnosis_flashcard: flashcard } : {}),
-  } as Record<string, unknown>
+  // Update principal (obrigatório): diagnóstico + status.
   const { error: updateError } = await supabase
     .from('patients')
-    .update(patientUpdate as never)
+    .update({ true_diagnosis: trueDiagnosis, diagnosis_status: diagnosisStatus })
     .eq('id', id)
     .eq('user_id', user.id)
 
   if (updateError)
     return NextResponse.json({ error: 'Failed to update patient' }, { status: 500 })
+
+  // Persiste o flashcard em update SEPARADO e best-effort — se a coluna ainda não
+  // existir (migração pendente), a revelação não quebra; só não persiste o card.
+  if (flashcard) {
+    try {
+      await supabase
+        .from('patients')
+        .update({ diagnosis_flashcard: flashcard } as never)
+        .eq('id', id)
+        .eq('user_id', user.id)
+    } catch {
+      // best-effort
+    }
+  }
 
   return NextResponse.json(
     { true_diagnosis: trueDiagnosis, diagnosis_status: diagnosisStatus, clinical_summary: clinicalSummary, flashcard },
