@@ -108,11 +108,17 @@ describe('POST /api/patients/[id]/reveal-diagnosis', () => {
     expect(res.status).toBe(401)
   })
 
-  it('retorna 403 se houver menos de 2 consultas finalizadas', async () => {
-    mockFrom.mockImplementation(makeFrom({ consultCount: 1 }))
+  it('FAST — retorna 403 se não houver consulta finalizada', async () => {
+    mockFrom.mockImplementation(makeFrom({ consultCount: 0 }))
     const res = await POST(...makeRequest())
     expect(res.status).toBe(403)
     expect(mockCreate).not.toHaveBeenCalled()
+  })
+
+  it('FAST — basta 1 consulta finalizada para concluir', async () => {
+    mockFrom.mockImplementation(makeFrom({ consultCount: 1 }))
+    const res = await POST(...makeRequest())
+    expect(res.status).toBe(200)
   })
 
   it('retorna 403 se não houver exame aprovado', async () => {
@@ -146,13 +152,12 @@ describe('POST /api/patients/[id]/reveal-diagnosis', () => {
     expect(body.diagnosis_status).toBe('revealed')
   })
 
-  it("nunca marca 'achieved' quando o aluno não registrou pensamento clínico (mesmo com IA dizendo compatível)", async () => {
+  it('FAST — retorna 403 se o pensamento clínico não foi preenchido', async () => {
     mockFrom.mockImplementation(makeFrom({ lastConsult: { ...defaultLastConsult, clinical_reasoning: '   ' } }))
-    // IA (erroneamente) diria compatível, mas sem raciocínio registrado não há o que creditar
     const res = await POST(...makeRequest())
-    expect(res.status).toBe(200)
-    const body = await res.json() as { diagnosis_status: string }
-    expect(body.diagnosis_status).toBe('revealed')
+    expect(res.status).toBe(403)
+    // trava antes de qualquer chamada de IA
+    expect(mockCreate).not.toHaveBeenCalled()
   })
 
   it('retorna 500 se a avaliação da OpenAI falhar', async () => {

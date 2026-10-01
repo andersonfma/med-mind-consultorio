@@ -75,3 +75,32 @@ O resumo deve conter (em texto corrido, sem markdown, sem tópicos com asterisco
 
 Máximo 300 palavras. Texto simples, sem formatação markdown.`
 }
+
+/**
+ * Flashcard de revisão do diagnóstico — card de estudo conciso, ancorado em
+ * COMO o caso se apresentou, para fixação após a revelação. Retorna JSON.
+ */
+export function buildDiagnosisFlashcardPrompt(
+  patient: Patient,
+  trueDiagnosis: string,
+  clinicalContext: string,
+): string {
+  return `Você é um educador médico. Gere um FLASHCARD de revisão (conciso, para fixação) sobre o diagnóstico deste caso simulado, para um aluno de medicina.
+
+Diagnóstico: ${trueDiagnosis}
+Paciente: ${patient.age} anos, ${patient.specialty}, queixa: ${patient.chief_complaint}, dificuldade do caso: ${patient.difficulty}
+Dados clínicos do caso (como ele se apresentou):
+${clinicalContext || '(sem dados adicionais)'}
+
+Gere um flashcard OBJETIVO e de ALTO VALOR de estudo, ancorado neste caso. Seja conciso (frases curtas, não parágrafos longos).
+
+Responda APENAS com JSON válido:
+{
+  "diagnosis": "nome canônico do diagnóstico",
+  "one_liner": "definição em 1 frase",
+  "key_features": ["3 a 5 achados-chave que apontam o diagnóstico (clínicos/laboratoriais/imagem), de preferência os que apareceram NESTE caso"],
+  "how_it_presented": "1-2 frases: como ESTE caso se apresentou (incluindo o que o tornava atípico ou enganoso, se foi o caso)",
+  "confirm_with": "exame/achado que confirma o diagnóstico",
+  "pearl": "1 pérola clínica ou armadilha a evitar (o erro comum neste tipo de caso)"
+}`
+}

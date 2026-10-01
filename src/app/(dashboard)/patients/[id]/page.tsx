@@ -4,6 +4,7 @@ import { LOGIN_ROUTE, consultationRoute } from '@/lib/routes'
 import { BondBar } from '@/components/ui/BondBar'
 import { StartConsultationButton } from './StartConsultationButton'
 import { RevealDiagnosisButton } from './RevealDiagnosisButton'
+import { DiagnosisFlashcard } from './DiagnosisFlashcard'
 import Link from 'next/link'
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
@@ -41,10 +42,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   approvedExamCount = approvedExams?.length ?? 0
 
   const finishedCount = finished.length
+  // FAST: pode concluir já na 1ª consulta, desde que tenha ≥1 exame aprovado E
+  // o pensamento clínico preenchido na última consulta finalizada.
+  const hasReasoning = !!(finished[0]?.clinical_reasoning as string | null)?.trim()
+  const flashcardRaw = (patient as Record<string, unknown>).diagnosis_flashcard as string | null ?? null
   const revealEligible =
     patient.diagnosis_status === 'none' &&
-    finishedCount >= 2 &&
-    approvedExamCount >= 1
+    finishedCount >= 1 &&
+    approvedExamCount >= 1 &&
+    hasReasoning
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -62,16 +68,22 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
       {/* Diagnosis status */}
       {patient.diagnosis_status === 'achieved' && (
-        <div className="mb-4 bg-success/10 border border-success/30 rounded-lg p-4">
-          <p className="text-xs font-semibold text-success uppercase tracking-wide mb-1">✓ Diagnóstico alcançado</p>
-          <p className="text-sm text-ink font-medium">{patient.diagnosis ?? patient.true_diagnosis}</p>
+        <div className="mb-4 space-y-3">
+          <div className="bg-success/10 border border-success/30 rounded-lg p-4">
+            <p className="text-xs font-semibold text-success uppercase tracking-wide mb-1">✓ Diagnóstico alcançado</p>
+            <p className="text-sm text-ink font-medium">{patient.true_diagnosis}</p>
+          </div>
+          <DiagnosisFlashcard raw={flashcardRaw} />
         </div>
       )}
 
       {patient.diagnosis_status === 'revealed' && (
-        <div className="mb-4 bg-warning/10 border border-warning/30 rounded-lg p-4 space-y-2">
-          <p className="text-xs font-semibold text-warning uppercase tracking-wide">Diagnóstico revelado</p>
-          <p className="text-sm text-ink font-medium">{patient.true_diagnosis}</p>
+        <div className="mb-4 space-y-3">
+          <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 space-y-2">
+            <p className="text-xs font-semibold text-warning uppercase tracking-wide">Diagnóstico revelado</p>
+            <p className="text-sm text-ink font-medium">{patient.true_diagnosis}</p>
+          </div>
+          <DiagnosisFlashcard raw={flashcardRaw} />
         </div>
       )}
 
@@ -85,13 +97,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           ) : (
             <div className="border border-border rounded-md px-4 py-2.5 bg-surface-2">
               <p className="text-sm text-muted">
-                Concluir diagnóstico disponível após{' '}
-                {finishedCount < 2 && <span className="text-ink font-medium">2 consultas finalizadas</span>}
-                {finishedCount < 2 && approvedExamCount < 1 && ' e '}
+                Para concluir o diagnóstico, complete nesta consulta:{' '}
+                {finishedCount < 1 && <span className="text-ink font-medium">finalize a consulta</span>}
+                {finishedCount < 1 && (approvedExamCount < 1 || !hasReasoning) && ', '}
                 {approvedExamCount < 1 && <span className="text-ink font-medium">1 exame aprovado</span>}
+                {approvedExamCount < 1 && !hasReasoning && ' e '}
+                {!hasReasoning && <span className="text-ink font-medium">o pensamento clínico</span>}
               </p>
               <p className="text-xs text-muted mt-0.5">
-                {finishedCount}/2 consultas · {approvedExamCount}/1 exame aprovado
+                {finishedCount >= 1 ? '✓' : '○'} consulta finalizada · {approvedExamCount >= 1 ? '✓' : '○'} exame aprovado · {hasReasoning ? '✓' : '○'} pensamento clínico
               </p>
             </div>
           )}

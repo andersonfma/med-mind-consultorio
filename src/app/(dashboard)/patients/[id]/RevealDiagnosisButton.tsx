@@ -21,9 +21,12 @@ export function RevealDiagnosisButton({ patientId }: Props) {
       const data = await res.json()
       if (!res.ok) {
         if (res.status === 403) {
-          setError(data.error === 'At least 2 consultations required'
-            ? 'É necessário ao menos 2 consultas finalizadas para concluir o diagnóstico.'
-            : 'É necessário ao menos 1 exame aprovado para concluir o diagnóstico.')
+          const msg403: Record<string, string> = {
+            'At least 1 consultation required': 'Finalize ao menos 1 consulta para concluir o diagnóstico.',
+            'At least 1 approved exam required': 'É necessário ao menos 1 exame aprovado para concluir o diagnóstico.',
+            'Clinical reasoning required': 'Preencha o pensamento clínico para concluir o diagnóstico.',
+          }
+          setError(msg403[data.error as string] ?? 'Complete as etapas da consulta para concluir o diagnóstico.')
         } else {
           setError(data.error ?? 'Erro ao concluir diagnóstico')
         }

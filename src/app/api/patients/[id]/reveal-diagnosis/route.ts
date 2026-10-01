@@ -6,6 +6,7 @@ import { MODELS } from '@/lib/openai/models'
 import {
   buildTrueDiagnosisAndEvalPrompt,
   buildClinicalSummaryPrompt,
+  buildDiagnosisFlashcardPrompt,
 } from '@/lib/patients/diagnosis-prompts'
 import type { Patient } from '@/types/domain'
 
@@ -35,7 +36,7 @@ export async function POST(
   if (patient.diagnosis_status !== 'none')
     return NextResponse.json({ error: 'Diagnosis already revealed or achieved' }, { status: 409 })
 
-  // Eligibility: ≥2 finished consultations
+  // FAST: elegibilidade = ≥1 consulta finalizada (antes eram 2).
   const { count: consultationCount } = await supabase
     .from('consultations')
     .select('id', { count: 'exact', head: true })
@@ -43,8 +44,8 @@ export async function POST(
     .eq('user_id', user.id)
     .eq('status', 'finished')
 
-  if ((consultationCount ?? 0) < 2)
-    return NextResponse.json({ error: 'At least 2 consultations required' }, { status: 403 })
+  if ((consultationCount ?? 0) < 1)
+    return NextResponse.json({ error: 'At least 1 consultation required' }, { status: 403 })
 
   // Eligibility: ≥1 approved exam
   const { count: examCount } = await supabase
@@ -56,6 +57,21 @@ export async function POST(
 
   if ((examCount ?? 0) < 1)
     return NextResponse.json({ error: 'At least 1 approved exam required' }, { status: 403 })
+
+  // FAST: exige o pensamento clínico preenchido na última consulta finalizada
+  // (o aluno precisa ter raciocinado antes de concluir o diagnóstico).
+  const { data: lastFinishedForGate } = await supabase
+    .from('consultations')
+    .select('clinical_reasoning')
+    .eq('patient_id', id)
+    .eq('user_id', user.id)
+    .eq('status', 'finished')
+    .order('finished_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (!((lastFinishedForGate?.clinical_reasoning as string | null)?.trim()))
+    return NextResponse.json({ error: 'Clinical reasoning required' }, { status: 403 })
 
   // Coleta o pensamento clínico da última consulta finalizada + contexto clínico
   // (resultados de exames aprovados) para (a) inferir o diagnóstico verdadeiro com
@@ -153,12 +169,35 @@ export async function POST(
     // Non-blocking
   }
 
+  // Flashcard de revisão do diagnóstico (best-effort) — card de estudo exibido após revelar.
+  let flashcard: string | null = null
+  try {
+    const fcCompletion = await openai.chat.completions.create({
+      model: MODELS.utility,
+      response_format: { type: 'json_object' },
+      messages: [{
+        role: 'user',
+        content: buildDiagnosisFlashcardPrompt(patient as unknown as Patient, trueDiagnosis, clinicalContext),
+      }],
+    }, { timeout: 25_000 })
+    const raw = fcCompletion.choices[0]?.message?.content?.trim()
+    if (raw) {
+      JSON.parse(raw) // valida que é JSON antes de persistir
+      flashcard = raw
+    }
+  } catch {
+    // Non-blocking — revelação segue mesmo sem flashcard
+  }
+
+  // diagnosis_flashcard é coluna nova (fora dos tipos gerados) → cast do payload.
+  const patientUpdate = {
+    true_diagnosis: trueDiagnosis,
+    diagnosis_status: diagnosisStatus,
+    ...(flashcard ? { diagnosis_flashcard: flashcard } : {}),
+  } as Record<string, unknown>
   const { error: updateError } = await supabase
     .from('patients')
-    .update({
-      true_diagnosis: trueDiagnosis,
-      diagnosis_status: diagnosisStatus,
-    })
+    .update(patientUpdate as never)
     .eq('id', id)
     .eq('user_id', user.id)
 
@@ -166,7 +205,7 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to update patient' }, { status: 500 })
 
   return NextResponse.json(
-    { true_diagnosis: trueDiagnosis, diagnosis_status: diagnosisStatus, clinical_summary: clinicalSummary },
+    { true_diagnosis: trueDiagnosis, diagnosis_status: diagnosisStatus, clinical_summary: clinicalSummary, flashcard },
     { status: 200 }
   )
 }
