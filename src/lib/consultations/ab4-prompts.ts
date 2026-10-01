@@ -103,9 +103,9 @@ Responda APENAS com JSON válido, sem texto adicional:
 }`
   }
 
-  // Etapa 2 SEM notas herdadas (fallback): avalia os 4 eixos.
+  // MODO FAST (padrão): consulta única e completa — avalia os 4 eixos.
   return `${header}
-ETAPA DA AVALIAÇÃO: CONSULTA DE RETORNO. Avalie os 4 eixos (já há resultados de exames a interpretar).
+ETAPA DA AVALIAÇÃO: CONSULTA COMPLETA (o arco diagnóstico inteiro ocorreu nesta única consulta — o aluno levantou hipóteses, pediu e já recebeu os resultados dos exames, e concluiu). Avalie os 4 eixos.
 
 EIXOS A AVALIAR (nota inteira de 0 a 10 cada):
 ${a1a2}

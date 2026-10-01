@@ -80,7 +80,7 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
           <>
             <h2 className="font-display text-lg font-bold text-ink mb-1">Consulta encerrada</h2>
             <p className="text-sm text-muted mb-5">
-              Veja os resultados dos exames na próxima consulta. Quando terminar de raciocinar, conclua o diagnóstico na página do paciente.
+              Quando terminar de raciocinar, conclua o diagnóstico na página do paciente.
             </p>
 
             {result.ab4 ? (

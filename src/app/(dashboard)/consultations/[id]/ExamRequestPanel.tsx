@@ -73,7 +73,7 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [], onS
       if (!res.ok) { setError(data.error ?? 'Erro'); return }
       setExams(prev => prev.map(e =>
         e.id === examId
-          ? { ...e, status: data.status, ai_feedback: data.ai_feedback, attempts: data.attempts }
+          ? { ...e, status: data.status, ai_feedback: data.ai_feedback, attempts: data.attempts, result: data.result ?? null }
           : e
       ))
       setRetryingId(null)
@@ -175,6 +175,15 @@ export function ExamRequestPanel({ consultationId, previousExamResults = [], onS
               </div>
               {exam.ai_feedback && (
                 <p className="text-xs text-muted mt-0.5 leading-tight">{exam.ai_feedback}</p>
+              )}
+
+              {exam.status === 'approved' && exam.result && (
+                <div className="mt-2 rounded bg-surface border border-border p-2">
+                  <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">Resultado</p>
+                  <pre className="text-xs text-muted font-sans whitespace-pre-wrap leading-relaxed">
+                    {cleanExamResult(exam.result)}
+                  </pre>
+                </div>
               )}
 
               {exam.status === 'rejected' && exam.attempts < 3 && (

@@ -133,7 +133,7 @@ export async function POST(
       ai_feedback: aiFeedback,
       result,
     })
-    .select('id, consultation_id, exam_name, justification, attempts, status, ai_feedback, created_at')
+    .select('id, consultation_id, exam_name, justification, attempts, status, ai_feedback, result, created_at')
     .single()
 
   if (insertError)
@@ -154,7 +154,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from('exam_requests')
-    .select('id, consultation_id, exam_name, justification, attempts, status, ai_feedback, created_at')
+    .select('id, consultation_id, exam_name, justification, attempts, status, ai_feedback, result, created_at')
     .eq('consultation_id', id)
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })

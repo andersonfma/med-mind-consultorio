@@ -50,10 +50,14 @@ export async function POST(
   const clinicalReasoning = bodyReasoning ?? consultation.clinical_reasoning ?? ''
 
   // Etapa da consulta: o case_summary só existe APÓS uma consulta finalizada anterior.
-  // Sem ele → primeira consulta (etapa 1: AB4 só A1/A2, sem conclusão de diagnóstico).
+  // Sem ele → primeira consulta. (Usado no resumo/contexto do paciente.)
   const priorCaseSummary = (patient as Record<string, unknown>).case_summary as string | null ?? null
   const isFirstConsultation = !(priorCaseSummary && priorCaseSummary.trim())
-  const ab4Stage: 1 | 2 = isFirstConsultation ? 1 : 2
+  // MODO FAST: o arco diagnóstico se completa numa ÚNICA consulta — os resultados dos
+  // exames aparecem na mesma consulta, então avaliamos SEMPRE os 4 eixos (A1-A4) ao
+  // encerrar, não mais A1/A2 na 1ª e A3/A4 na 2ª. (Em consulta de seguimento, o AB4 nem
+  // é pontuado — ver isFollowUp abaixo.)
+  const ab4Stage: 1 | 2 = 2
 
   // Diagnóstico já fechado (alcançado ou revelado) numa consulta ANTERIOR → esta é uma
   // consulta de SEGUIMENTO: o arco diagnóstico (AB4) já terminou e foi avaliado. Não
@@ -198,25 +202,9 @@ export async function POST(
   // Em consulta de seguimento (diagnóstico já fechado), o arco AB4 acabou: não pontuamos.
   let ab4: (Ab4Result & { generated_at: string }) | null = null
   if (!isFollowUp) try {
-    // Etapa 2: herda A1/A2 da PRIMEIRA consulta (poética/retórica foram avaliadas lá;
-    // não se reavalia a abertura do raciocínio numa consulta de retorno).
-    let carried: { a1: number; a2: number } | null = null
-    if (ab4Stage === 2) {
-      const { data: priorRows } = await supabase
-        .from('consultations')
-        .select('ab4_score')
-        .eq('patient_id', patient.id as string)
-        .eq('user_id', user.id)
-        .eq('status', 'finished')
-        .neq('id', id)
-        .not('ab4_score', 'is', null)
-        .order('finished_at', { ascending: true })
-        .limit(1)
-      const priorScore = priorRows?.[0]?.ab4_score as { a1?: unknown; a2?: unknown } | null | undefined
-      if (priorScore && typeof priorScore.a1 === 'number' && typeof priorScore.a2 === 'number') {
-        carried = { a1: priorScore.a1, a2: priorScore.a2 }
-      }
-    }
+    // MODO FAST: cada consulta diagnóstica é autocontida e avalia os 4 eixos sozinha —
+    // não se herda A1/A2 de consulta anterior (isso era do fluxo antigo de 2 consultas).
+    const carried: { a1: number; a2: number } | null = null
 
     if (!clinicalReasoning.trim()) {
       // Sem pensamento clínico registrado → não há raciocínio a avaliar; score zerado.

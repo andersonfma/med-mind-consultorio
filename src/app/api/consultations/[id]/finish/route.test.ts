@@ -141,17 +141,17 @@ describe('POST /api/consultations/[id]/finish', () => {
     expect(body.ab4?.overall).toBe(6) // juiz AB4 foi chamado, NÃO zerado
   })
 
-  it('etapa 1 (primeira consulta, sem case_summary): AB4 só A1/A2, A3/A4 null', async () => {
+  it('FAST — consulta única (primeira, sem case_summary): avalia os 4 eixos', async () => {
     const firstConsult = {
       ...mockConsultation,
       patients: { ...mockConsultation.patients, case_summary: null },
     }
     mockFrom.mockImplementation(makeFrom({ consultation: firstConsult }))
-    // clinical_status, case summary, AB4 (juiz de etapa 1 devolve só a1/a2)
+    // clinical_status, case summary, AB4 (juiz devolve os 4 eixos numa só consulta)
     mockCreate
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Paciente melhorou.' } }] })
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Resumo.' } }] })
-      .mockResolvedValueOnce({ choices: [{ message: { content: '{"a1":6,"a2":8,"recommendation":"amplie hipoteses"}' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: '{"a1":6,"a2":8,"a3":7,"a4":9,"recommendation":"bom raciocínio"}' } }] })
 
     const res = await POST(...makeRequest({}))
     expect(res.status).toBe(200)
@@ -159,10 +159,10 @@ describe('POST /api/consultations/[id]/finish', () => {
     expect(body.ab4).not.toBeNull()
     expect(body.ab4?.a1).toBe(6)
     expect(body.ab4?.a2).toBe(8)
-    expect(body.ab4?.a3).toBeNull()
-    expect(body.ab4?.a4).toBeNull()
-    expect(body.ab4?.overall).toBe(7)
-    expect(body.ab4?.stage).toBe(1)
+    expect(body.ab4?.a3).toBe(7)
+    expect(body.ab4?.a4).toBe(9)
+    expect(body.ab4?.overall).toBe(7.5) // (6+8+7+9)/4 = 7.5
+    expect(body.ab4?.stage).toBe(2)
   })
 
   it('zera o ab4 (overall 0) quando o pensamento clínico está vazio e NÃO chama o juiz AB4', async () => {
@@ -200,22 +200,23 @@ describe('POST /api/consultations/[id]/finish', () => {
     expect(mockCreate).toHaveBeenCalledTimes(2)
   })
 
-  it('etapa 2 (retorno): herda A1/A2 da 1ª consulta e avalia só A3/A4', async () => {
-    // a 1ª consulta deixou A1=7, A2=8 gravados no ab4_score; o juiz desta consulta só dá A3/A4
+  it('FAST — cada consulta é autocontida: NÃO herda A1/A2 de consulta anterior', async () => {
+    // mesmo havendo um ab4_score anterior, no modo fast o juiz desta consulta dá os 4 eixos
+    // e são ESSES que valem (sem herança da abertura do raciocínio).
     mockFrom.mockImplementation(makeFrom({ priorAb4: [{ ab4_score: { a1: 7, a2: 8 } }] }))
     mockCreate
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Paciente melhorou.' } }] })
       .mockResolvedValueOnce({ choices: [{ message: { content: 'Resumo.' } }] })
-      .mockResolvedValueOnce({ choices: [{ message: { content: '{"a3":5,"a4":9,"recommendation":"interprete melhor os exames"}' } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: '{"a1":4,"a2":5,"a3":5,"a4":9,"recommendation":"interprete melhor os exames"}' } }] })
 
     const res = await POST(...makeRequest({}))
     expect(res.status).toBe(200)
     const body = await res.json() as { ab4: { a1: number; a2: number; a3: number; a4: number; overall: number; stage: number } | null }
-    expect(body.ab4?.a1).toBe(7) // herdado da 1ª consulta
-    expect(body.ab4?.a2).toBe(8) // herdado da 1ª consulta
+    expect(body.ab4?.a1).toBe(4) // do juiz desta consulta, NÃO herdado (seria 7)
+    expect(body.ab4?.a2).toBe(5) // do juiz desta consulta, NÃO herdado (seria 8)
     expect(body.ab4?.a3).toBe(5)
     expect(body.ab4?.a4).toBe(9)
-    expect(body.ab4?.overall).toBe(7.3) // (7+8+5+9)/4 = 7.25 -> 7.3
+    expect(body.ab4?.overall).toBe(5.8) // (4+5+5+9)/4 = 5.75 -> 5.8
     expect(body.ab4?.stage).toBe(2)
   })
 
