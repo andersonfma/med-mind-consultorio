@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { patientDetailRoute } from '@/lib/routes'
+import { patientDetailRoute, DASHBOARD_ROUTE } from '@/lib/routes'
 import { AB4_AXES, COMM_AXES } from '@/lib/consultations/ab4-labels'
 import { DiagnosisFlashcard } from '../../patients/[id]/DiagnosisFlashcard'
 
@@ -227,8 +227,14 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
             )}
 
             <button
-              onClick={() => router.push(patientDetailRoute(result.patient_id))}
+              onClick={() => router.push(DASHBOARD_ROUTE)}
               className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-glow-primary)] transition-colors hover:bg-primary-hover"
+            >
+              Voltar ao início
+            </button>
+            <button
+              onClick={() => router.push(patientDetailRoute(result.patient_id))}
+              className="mt-2 w-full text-center text-sm font-medium text-muted transition-colors hover:text-ink"
             >
               Ver paciente
             </button>
