@@ -77,30 +77,28 @@ Máximo 300 palavras. Texto simples, sem formatação markdown.`
 }
 
 /**
- * Flashcard de revisão do diagnóstico — card de estudo conciso, ancorado em
- * COMO o caso se apresentou, para fixação após a revelação. Retorna JSON.
+ * Flashcard de revisão sobre o TEMA (a doença) — card de estudo canônico e
+ * reutilizável, NÃO sobre o caso específico. Retorna JSON.
  */
 export function buildDiagnosisFlashcardPrompt(
   patient: Patient,
   trueDiagnosis: string,
-  clinicalContext: string,
 ): string {
-  return `Você é um educador médico. Gere um FLASHCARD de revisão (conciso, para fixação) sobre o diagnóstico deste caso simulado, para um aluno de medicina.
+  return `Você é um educador médico. Gere um FLASHCARD de estudo sobre a DOENÇA/TEMA abaixo, para um aluno de medicina — um card canônico de revisão da doença, NÃO sobre um caso específico. Não mencione "este paciente" nem o caso simulado; fale da doença em geral.
 
-Diagnóstico: ${trueDiagnosis}
-Paciente: ${patient.age} anos, ${patient.specialty}, queixa: ${patient.chief_complaint}, dificuldade do caso: ${patient.difficulty}
-Dados clínicos do caso (como ele se apresentou):
-${clinicalContext || '(sem dados adicionais)'}
+Doença/Tema: ${trueDiagnosis}
+(Área: ${patient.specialty})
 
-Gere um flashcard OBJETIVO e de ALTO VALOR de estudo, ancorado neste caso. Seja conciso (frases curtas, não parágrafos longos).
+Gere um flashcard OBJETIVO e de ALTO VALOR de estudo. Frases curtas (não parágrafos longos), em linguagem de revisão.
 
 Responda APENAS com JSON válido:
 {
-  "diagnosis": "nome canônico do diagnóstico",
-  "one_liner": "definição em 1 frase",
-  "key_features": ["3 a 5 achados-chave que apontam o diagnóstico (clínicos/laboratoriais/imagem), de preferência os que apareceram NESTE caso"],
-  "how_it_presented": "1-2 frases: como ESTE caso se apresentou (incluindo o que o tornava atípico ou enganoso, se foi o caso)",
-  "confirm_with": "exame/achado que confirma o diagnóstico",
-  "pearl": "1 pérola clínica ou armadilha a evitar (o erro comum neste tipo de caso)"
+  "diagnosis": "nome canônico da doença",
+  "one_liner": "definição da doença em 1 frase",
+  "epidemiology": "epidemiologia essencial em 1 frase (quem/quando é mais comum, fatores de risco principais)",
+  "classic_presentation": "apresentação clínica CLÁSSICA (sinais e sintomas típicos) em 1-2 frases",
+  "key_diagnostics": ["2 a 4 exames/achados ou critérios que confirmam ou são chave no diagnóstico"],
+  "management": "linhas gerais de tratamento / primeira linha, em 1-2 frases",
+  "pearl": "1 pérola clínica de alto valor ou armadilha a evitar (o erro comum)"
 }`
 }

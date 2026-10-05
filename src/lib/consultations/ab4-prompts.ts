@@ -54,12 +54,16 @@ PENSAMENTO CLÍNICO REGISTRADO PELO ALUNO:
 ${clinicalReasoning || '(não registrado)'}
 `
 
-  const a1a2 = `- A1 (Imaginação Poética) — amplitude de hipóteses e abertura da anamnese. Nota alta: explorou vários mundos clínicos possíveis, perguntou o que expandia a cena (cronologia, contexto, exposições, achados negligenciados). Nota baixa: afunilou cedo, rotulação precoce, anamnese estreita.
-- A2 (Plausibilidade Retórica) — priorização plausível e mecanismo. Nota alta: hierarquizou hipóteses por probabilidade/risco/coerência/fisiopatologia, adequadas a ESTE paciente. Nota baixa: lista solta, fascínio por raro, sem mecanismo.`
+  const a1a2 = `- A1 (Imaginação Poética) — AMPLITUDE de hipóteses e abertura da anamnese. Nota alta: levantou VÁRIAS hipóteses plausíveis (um diferencial real), explorou o que expandia a cena (cronologia, contexto, exposições, achados negligenciados). Nota baixa: afunilou cedo, rotulação precoce, anamnese estreita.
+  REGRA DURA A1: UMA ÚNICA hipótese registrada = SEM amplitude → A1 baixo (0-3). Duas hipóteses rasas = 4-5. Só dê ≥7 se houver um diferencial de fato (3+ hipóteses pertinentes).
+- A2 (Plausibilidade Retórica) — PRIORIZAÇÃO plausível entre as hipóteses e mecanismo. Nota alta: HIERARQUIZOU ≥2 hipóteses por probabilidade/risco/coerência/fisiopatologia, adequadas a ESTE paciente. Nota baixa: lista solta, fascínio por raro, sem mecanismo.
+  REGRA DURA A2: priorização pressupõe ≥2 hipóteses para ordenar. Com UMA única hipótese NÃO há priorização a creditar → A2 baixo (0-4); no MÁXIMO 5-6 se essa única hipótese vier com mecanismo fisiopatológico sólido E for a mais plausível para o caso.`
 
   const calibration = `CALIBRAÇÃO DA ESCALA (use toda a escala, não concentre em 7-8):
 0-2 falha grave/ausente · 3-4 fraco · 5-6 adequado · 7-8 bom · 9-10 excelente.
-Se houver POUCA evidência observável de um eixo (o aluno quase não interagiu, ou não registrou pensamento clínico), dê nota BAIXA nesse eixo — ausência de raciocínio observável é nota baixa, não média.`
+Se houver POUCA evidência observável de um eixo (o aluno quase não interagiu, ou não registrou pensamento clínico), dê nota BAIXA nesse eixo — ausência de raciocínio observável é nota baixa, não média.
+INDEPENDÊNCIA ≠ LENIÊNCIA: não premiar/punir pelo ACERTO do diagnóstico final NÃO significa ser generoso. Raciocínio estreito (poucas hipóteses), sem diferencial, sem priorização ou sem justificativa é NOTA BAIXA — independentemente de o aluno ter acertado ou errado.
+NÃO INVENTE ELOGIOS: a recomendação e as notas devem refletir o que o aluno DE FATO registrou. É PROIBIDO escrever "boa priorização" quando não houve priorização (não havia ≥2 hipóteses hierarquizadas), ou elogiar amplitude quando havia uma só hipótese. Nomeie a falha real.`
 
   if (stage === 1) {
     return `${header}

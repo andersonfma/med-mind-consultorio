@@ -177,7 +177,7 @@ export async function POST(
       response_format: { type: 'json_object' },
       messages: [{
         role: 'user',
-        content: buildDiagnosisFlashcardPrompt(patient as unknown as Patient, trueDiagnosis, clinicalContext),
+        content: buildDiagnosisFlashcardPrompt(patient as unknown as Patient, trueDiagnosis),
       }],
     }, { timeout: 25_000 })
     const raw = fcCompletion.choices[0]?.message?.content?.trim()
