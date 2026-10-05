@@ -73,4 +73,19 @@ describe('buildPatientPrompt', () => {
     // usa o caso real malformado como exemplo proibido
     expect(content.toLowerCase()).toContain('infecção pulmonar')
   })
+
+  it('MODO DOENÇA: fixa o diagnóstico escolhido e manda variar a apresentação', () => {
+    const content = buildPatientPrompt('Gastroenterologia', 'hard', [], 'Pancreatite aguda').messages[0].content as string
+    expect(content).toContain('DIAGNÓSTICO FIXO')
+    expect(content).toContain('Pancreatite aguda')
+    expect(content.toLowerCase()).toContain('variação da apresentação')
+    // em hard, orienta apresentação atípica/enganosa da doença escolhida
+    expect(content.toLowerCase()).toMatch(/at[ií]pica|enganosa/)
+  })
+
+  it('MODO ESPECIALIDADE (sem doença): mantém "escolha o diagnóstico primeiro"', () => {
+    const content = buildPatientPrompt('Gastroenterologia', 'easy').messages[0].content as string
+    expect(content).not.toContain('DIAGNÓSTICO FIXO')
+    expect(content.toLowerCase()).toContain('escolha o diagnóstico verdadeiro primeiro')
+  })
 })

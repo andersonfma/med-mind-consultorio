@@ -27,6 +27,12 @@ export async function POST(request: NextRequest) {
   const specialty = b.specialty as Specialty
   const difficulty = b.difficulty as Difficulty
 
+  // Modo "por doença" (opcional): o aluno escolhe a doença = diagnóstico fixo.
+  const diseaseRaw = typeof b.disease === 'string' ? b.disease.trim() : ''
+  if (diseaseRaw.length > 200)
+    return NextResponse.json({ error: 'Invalid disease' }, { status: 400 })
+  const disease = diseaseRaw || null
+
   // Fix 1: auth check after validation
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -49,7 +55,7 @@ export async function POST(request: NextRequest) {
   let completion: ChatCompletion
   try {
     completion = await openai.chat.completions.create(
-      buildPatientPrompt(specialty, difficulty, existingComplaints),
+      buildPatientPrompt(specialty, difficulty, existingComplaints, disease),
       { timeout: 25_000 }
     ) as ChatCompletion
   } catch (e) {
@@ -91,9 +97,11 @@ export async function POST(request: NextRequest) {
     ? openAI.conditions.filter((c: unknown): c is string => typeof c === 'string')
     : []
 
-  const trueDiagnosis = typeof openAI.true_diagnosis === 'string' && openAI.true_diagnosis.trim()
+  // No modo "por doença", o diagnóstico é a doença escolhida (autoritativo); senão,
+  // usa o que a IA inferiu.
+  const trueDiagnosis = disease ?? (typeof openAI.true_diagnosis === 'string' && openAI.true_diagnosis.trim()
     ? openAI.true_diagnosis.trim()
-    : null
+    : null)
 
   const { data, error: rpcError } = await supabase.rpc('create_patient', {
     p_name:       name,

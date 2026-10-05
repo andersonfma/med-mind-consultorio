@@ -6,9 +6,24 @@ import { MODELS } from '@/lib/openai/models'
 export function buildPatientPrompt(
   specialty: Specialty,
   difficulty: Difficulty,
-  existingComplaints: string[] = []
+  existingComplaints: string[] = [],
+  fixedDiagnosis?: string | null
 ): ChatCompletionCreateParamsNonStreaming {
   const domain = SPECIALTY_DOMAIN[specialty]
+  // MODO "POR DOENÇA": o diagnóstico verdadeiro é ESCOLHIDO pelo aluno (fixo). O gerador
+  // NÃO escolhe a doença — constrói o caso em torno dela, variando a APRESENTAÇÃO.
+  const diseaseMode = !!(fixedDiagnosis && fixedDiagnosis.trim())
+  const fixedDiag = fixedDiagnosis?.trim() ?? ''
+  const diseaseSection = diseaseMode
+    ? `\nDIAGNÓSTICO FIXO (CRÍTICO): o true_diagnosis deste caso JÁ ESTÁ DEFINIDO = "${fixedDiag}". NÃO escolha outra doença — construa TODO o caso (queixa, estado clínico, comorbidades, idade, sexo) coerente com "${fixedDiag}". No JSON, "true_diagnosis" DEVE ser exatamente "${fixedDiag}".
+VARIAÇÃO DA APRESENTAÇÃO (para o aluno treinar a MESMA doença em quadros diferentes): gere uma apresentação clínica DISTINTA — varie demografia (idade/sexo), a forma de abertura, os fatores associados e o cenário. ${
+        difficulty === 'hard'
+          ? 'Como a dificuldade é HARD, use uma apresentação ATÍPICA/ENGANOSA de "' + fixedDiag + '" (ver regras HARD abaixo) — o sinal que entrega a doença ausente/mascarado, ou uma armadilha que sugere outro diagnóstico comum.'
+          : difficulty === 'medium'
+          ? 'Como a dificuldade é MEDIUM, use uma apresentação com 1-2 nuances que exijam investigação dirigida (nem totalmente clássica, nem atípica).'
+          : 'Como a dificuldade é EASY, use uma apresentação CLÁSSICA de manual de "' + fixedDiag + '".'
+      }`
+    : ''
   const hardSection = difficulty === 'hard'
     ? `\nNÍVEL HARD — DIFICULDADE = DESAFIO DE RACIOCÍNIO, NÃO APENAS RARIDADE (CRÍTICO):
 Um caso hard NÃO é definido por ser uma doença rara com apresentação de manual — uma doença rara com quadro clássico é FÁCIL (viu os achados típicos → óbvio). Hard é definido por EXIGIR raciocínio diagnóstico fino. Construa o caso usando PELO MENOS UM (idealmente dois) destes mecanismos:
@@ -32,6 +47,7 @@ MANTENHA as regras de true_diagnosis: doença única, canônica e específica �
 Gere um paciente realista para a especialidade: ${specialty}.
 Domínio de apresentação dessa especialidade: ${domain}.
 Nível de dificuldade: ${difficulty}.
+${diseaseSection}
 ${avoidSection}
 Regras por dificuldade (a dificuldade refere-se à COMPLEXIDADE DIAGNÓSTICA, não apenas à vagueza da queixa):
 - easy: diagnóstico comum e prevalente, quadro clássico de manual, raciocínio direto (ex: pneumonia comunitária típica, ITU não complicada, enxaqueca). Sem comorbidades ou no máximo 1 leve.
@@ -44,7 +60,9 @@ REGRAS DE COMORBIDADE (conditions):
 - Varie as comorbidades de acordo com o perfil: jovens podem ter asma, ansiedade, tireoidopatia; idosos podem ter HAS, DM, DPOC, etc.
 - conditions pode ser uma lista vazia [] — não force comorbidades.
 
-IMPORTANTE: Escolha o diagnóstico verdadeiro PRIMEIRO (respeitando a complexidade da dificuldade), depois construa o caso clínico de forma consistente com ele. O chief_complaint, clinical_status e conditions devem ser compatíveis com o true_diagnosis escolhido.
+${diseaseMode
+  ? `IMPORTANTE: o diagnóstico verdadeiro JÁ ESTÁ FIXADO ("${fixedDiag}") — NÃO o altere. Construa o caso clínico consistente com ele. O chief_complaint, clinical_status e conditions devem ser compatíveis com "${fixedDiag}".`
+  : `IMPORTANTE: Escolha o diagnóstico verdadeiro PRIMEIRO (respeitando a complexidade da dificuldade), depois construa o caso clínico de forma consistente com ele. O chief_complaint, clinical_status e conditions devem ser compatíveis com o true_diagnosis escolhido.`}
 
 REGRAS DO true_diagnosis (CRÍTICO):
 - Deve ser UMA única doença/condição REAL e reconhecida, nomeada de forma CANÔNICA (como apareceria na CID-10 ou num manual de medicina). Ex válidos: "Edema agudo de pulmão", "Tromboembolismo pulmonar", "Cetoacidose diabética", "Lúpus eritematoso sistêmico".
