@@ -9,6 +9,7 @@ import {
   buildDiagnosisFlashcardPrompt,
 } from '@/lib/patients/diagnosis-prompts'
 import type { Patient } from '@/types/domain'
+import { ACHIEVED_BONUS } from '@/lib/scoring/points'
 
 export async function POST(
   request: NextRequest,
@@ -210,6 +211,32 @@ export async function POST(
         .eq('user_id', user.id)
     } catch {
       // best-effort
+    }
+  }
+
+  // Bônus de pontos por "diagnóstico alcançado" — soma ACHIEVED_BONUS à consulta
+  // que fechou o arco (a última finalizada deste paciente). Best-effort.
+  if (diagnosisStatus === 'achieved') {
+    try {
+      const { data: lastC } = await supabase
+        .from('consultations')
+        .select('*')
+        .eq('patient_id', id)
+        .eq('user_id', user.id)
+        .eq('status', 'finished')
+        .order('finished_at', { ascending: false })
+        .limit(1)
+        .single()
+      const row = lastC as { id?: string; points?: number } | null
+      if (row?.id) {
+        await supabase
+          .from('consultations')
+          .update({ points: (row.points ?? 0) + ACHIEVED_BONUS } as never)
+          .eq('id', row.id)
+          .eq('user_id', user.id)
+      }
+    } catch {
+      // best-effort — coluna points pode não existir ainda
     }
   }
 

@@ -23,6 +23,9 @@ export function Shell({ children, isAdmin = false }: ShellProps) {
             </span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
+            <Link href="/ranking" className="text-xs font-medium text-muted transition-colors hover:text-primary">
+              Ranking
+            </Link>
             {isAdmin && (
               <Link href="/admin" className="text-xs font-medium text-muted transition-colors hover:text-primary">
                 Admin

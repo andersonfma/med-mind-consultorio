@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { patientDetailRoute, DASHBOARD_ROUTE } from '@/lib/routes'
+import { patientDetailRoute, DASHBOARD_ROUTE, RANKING_ROUTE, shareCardRoute } from '@/lib/routes'
 import { AB4_AXES, COMM_AXES } from '@/lib/consultations/ab4-labels'
 import { DiagnosisFlashcard } from '../../patients/[id]/DiagnosisFlashcard'
 
@@ -12,7 +12,7 @@ type Ab4 = {
 
 type Communication = { c1: number; c2: number; c3: number; overall: number; recommendation: string } | null
 
-type FinishResult = { patient_id: string; ab4: Ab4; communication: Communication }
+type FinishResult = { patient_id: string; ab4: Ab4; communication: Communication; points?: number }
 
 type RevealResult = { true_diagnosis: string; diagnosis_status: string; flashcard: string | null }
 
@@ -81,6 +81,34 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
     }
   }
 
+  const [sharing, setSharing] = useState(false)
+  async function share() {
+    if (sharing) return
+    setSharing(true)
+    const url = shareCardRoute(consultationId)
+    try {
+      const res = await fetch(url)
+      if (res.ok) {
+        const blob = await res.blob()
+        const file = new File([blob], 'medmind.png', { type: 'image/png' })
+        const nav = navigator as Navigator & { canShare?: (d?: unknown) => boolean }
+        if (nav.canShare?.({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'Med Mind',
+            text: 'Treinei meu raciocínio clínico no Med Mind 🧠',
+          })
+          return
+        }
+      }
+    } catch {
+      // cai no fallback
+    } finally {
+      setSharing(false)
+    }
+    window.open(url, '_blank', 'noopener')
+  }
+
   const minScore = result?.ab4
     ? Math.min(...[result.ab4.a1, result.ab4.a2, result.ab4.a3, result.ab4.a4].filter((n): n is number => typeof n === 'number'))
     : null
@@ -117,7 +145,14 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
           </>
         ) : (
           <>
-            <h2 className="font-display text-lg font-bold text-ink mb-4">Consulta encerrada</h2>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="font-display text-lg font-bold text-ink">Consulta encerrada</h2>
+              {typeof result.points === 'number' && result.points > 0 && (
+                <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary ring-1 ring-primary/30">
+                  +{result.points} XP
+                </span>
+              )}
+            </div>
 
             {/* Scores compactos lado a lado */}
             <div className="grid grid-cols-2 gap-3 mb-3">
@@ -227,17 +262,41 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
             )}
 
             <button
+              onClick={share}
+              disabled={sharing}
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+            >
+              {sharing ? 'Gerando card…' : (
+                <>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                    <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+                  </svg>
+                  Compartilhar resultado
+                </>
+              )}
+            </button>
+            <button
               onClick={() => router.push(DASHBOARD_ROUTE)}
               className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-glow-primary)] transition-colors hover:bg-primary-hover"
             >
               Voltar ao início
             </button>
-            <button
-              onClick={() => router.push(patientDetailRoute(result.patient_id))}
-              className="mt-2 w-full text-center text-sm font-medium text-muted transition-colors hover:text-ink"
-            >
-              Ver paciente
-            </button>
+            <div className="mt-2 flex items-center justify-center gap-4">
+              <button
+                onClick={() => router.push(RANKING_ROUTE)}
+                className="text-sm font-medium text-muted transition-colors hover:text-ink"
+              >
+                Ver ranking
+              </button>
+              <span className="text-muted/40">·</span>
+              <button
+                onClick={() => router.push(patientDetailRoute(result.patient_id))}
+                className="text-sm font-medium text-muted transition-colors hover:text-ink"
+              >
+                Ver paciente
+              </button>
+            </div>
           </>
         )}
       </div>

@@ -10,6 +10,8 @@ import { estimateAdherence, nextBondLevel } from '@/lib/prescriptions/adherence'
 import { buildConductEvalPrompt, parseConductAdequacy, type ConductItem } from '@/lib/prescriptions/conduct-eval'
 import { buildCommunicationPrompt } from '@/lib/consultations/communication-prompts'
 import { parseCommunicationResponse, emptyCommunicationResult, type CommunicationResult } from '@/lib/consultations/communication'
+import { computePoints } from '@/lib/scoring/points'
+import type { Difficulty } from '@/lib/patients/specialties'
 
 export async function POST(
   request: NextRequest,
@@ -324,5 +326,20 @@ export async function POST(
     // best-effort — vínculo não evolui se algo falhar
   }
 
-  return NextResponse.json({ patient_id: patient.id, ab4, communication }, { status: 200 })
+  // Pontos (XP) desta consulta — ranking soma por usuário. Best-effort: se a coluna
+  // `points` ainda não existir (migração pendente), não quebra o encerramento.
+  let points = 0
+  try {
+    const difficulty = ((patient as Record<string, unknown>).difficulty as Difficulty) ?? 'easy'
+    points = computePoints(difficulty, ab4 ? ab4.overall : null)
+    await supabase
+      .from('consultations')
+      .update({ points } as never)
+      .eq('id', id)
+      .eq('user_id', user.id)
+  } catch {
+    // best-effort
+  }
+
+  return NextResponse.json({ patient_id: patient.id, ab4, communication, points }, { status: 200 })
 }
