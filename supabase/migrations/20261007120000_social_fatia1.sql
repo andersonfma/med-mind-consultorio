@@ -113,11 +113,20 @@ DROP POLICY IF EXISTS follows_select ON follows;
 CREATE POLICY follows_select ON follows FOR SELECT
   USING (auth.uid() = follower_id OR auth.uid() = followee_id);
 DROP POLICY IF EXISTS follows_insert ON follows;
+-- Só pode inserir como si mesmo; e status 'accepted' SOMENTE se o followee é público.
+-- Followee privado → só 'pending' (a aprovação vira 'accepted' via follows_update, pelo dono).
+-- Sem isso, um usuário burlaria o aprovar inserindo accepted direto no PostgREST.
 CREATE POLICY follows_insert ON follows FOR INSERT
-  WITH CHECK (auth.uid() = follower_id);
+  WITH CHECK (
+    auth.uid() = follower_id AND (
+      status = 'pending'
+      OR EXISTS (SELECT 1 FROM profiles p WHERE p.id = followee_id AND p.is_private = false)
+    )
+  );
 DROP POLICY IF EXISTS follows_update ON follows;
 CREATE POLICY follows_update ON follows FOR UPDATE
-  USING (auth.uid() = followee_id);  -- só o dono do perfil aprova
+  USING (auth.uid() = followee_id)          -- só o dono do perfil aprova
+  WITH CHECK (auth.uid() = followee_id);
 DROP POLICY IF EXISTS follows_delete ON follows;
 CREATE POLICY follows_delete ON follows FOR DELETE
   USING (auth.uid() = follower_id OR auth.uid() = followee_id);
@@ -165,7 +174,6 @@ DROP POLICY IF EXISTS blocks_all ON blocks;
 CREATE POLICY blocks_all ON blocks FOR ALL
   USING (auth.uid() = blocker_id) WITH CHECK (auth.uid() = blocker_id);
 
--- Bucket de avatares (público para leitura; escrita por URL assinada emitida pelo servidor)
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('avatars','avatars', true)
-ON CONFLICT (id) DO NOTHING;
+-- Bucket de avatares: criado FORA desta migration (via Storage API com service role),
+-- porque o papel do SQL editor pode não ter permissão de INSERT em storage.buckets e um
+-- erro ali abortaria toda a transação. Ver passo de criação do bucket no plano (Task 1).

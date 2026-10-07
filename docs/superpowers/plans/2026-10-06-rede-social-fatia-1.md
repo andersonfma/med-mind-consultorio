@@ -193,10 +193,11 @@ $$;
 -- follows: o usuário vê/gerencia follows onde é follower ou followee
 CREATE POLICY follows_select ON follows FOR SELECT
   USING (auth.uid() = follower_id OR auth.uid() = followee_id);
+-- status 'accepted' só se followee é público; privado → só 'pending' (aprovação via update)
 CREATE POLICY follows_insert ON follows FOR INSERT
-  WITH CHECK (auth.uid() = follower_id);
+  WITH CHECK (auth.uid() = follower_id AND (status = 'pending' OR EXISTS (SELECT 1 FROM profiles p WHERE p.id = followee_id AND p.is_private = false)));
 CREATE POLICY follows_update ON follows FOR UPDATE
-  USING (auth.uid() = followee_id);  -- só o dono do perfil aprova
+  USING (auth.uid() = followee_id) WITH CHECK (auth.uid() = followee_id);  -- só o dono aprova
 CREATE POLICY follows_delete ON follows FOR DELETE
   USING (auth.uid() = follower_id OR auth.uid() = followee_id);
 
