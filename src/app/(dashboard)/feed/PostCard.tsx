@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { postRoute, profileRoute, shareCardRoute } from '@/lib/routes'
+import { relativeTime } from '@/lib/social/time'
 import type { FeedPost } from '@/lib/social/feed'
 
 export function PostCard({ post }: { post: FeedPost }) {
@@ -35,11 +36,12 @@ export function PostCard({ post }: { post: FeedPost }) {
           </span>
           <span className="text-sm font-semibold text-ink">{post.author.name}</span>
         </Link>
+        <span className="ml-auto text-xs text-muted">{relativeTime(post.createdAt)}</span>
       </header>
 
       {post.kind === 'card' && post.consultationId && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={shareCardRoute(post.consultationId)} alt="Card do resultado" className="mb-3 w-full rounded-lg border border-border" />
+        <img src={shareCardRoute(post.consultationId)} alt="Card do resultado" className="mb-3 block h-auto w-full max-w-full rounded-lg border border-border" />
       )}
       {post.body && <p className="mb-3 whitespace-pre-wrap text-sm text-ink">{post.body}</p>}
 

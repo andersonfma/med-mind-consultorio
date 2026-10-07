@@ -6,6 +6,7 @@ import { LOGIN_ROUTE } from '@/lib/routes'
 import { buildFeedPosts } from '@/lib/social/feed'
 import type { ProfileSocial } from '@/lib/social/types'
 import { FeedList } from './FeedList'
+import { NewPostComposer } from './NewPostComposer'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,6 +52,7 @@ export default async function FeedPage() {
   return (
     <div className="space-y-5">
       <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">Feed</h1>
+      <NewPostComposer />
       <FeedList posts={feed} />
     </div>
   )

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { LOGIN_ROUTE, shareCardRoute } from '@/lib/routes'
 import { displayIdentity } from '@/lib/social/identity'
+import { relativeTime } from '@/lib/social/time'
 import type { ProfileSocial } from '@/lib/social/types'
 import { CommentComposer } from './CommentComposer'
 import { ReportMenu } from './ReportMenu'
@@ -19,7 +20,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
 
   // RLS garante que só carrega se visível
   const { data: post } = await db.from('posts').select('*').eq('id', id).single()
-  const p = post as { id: string; author_id: string; kind: 'card' | 'text'; consultation_id: string | null; body: string | null } | null
+  const p = post as { id: string; author_id: string; kind: 'card' | 'text'; consultation_id: string | null; body: string | null; created_at: string } | null
   if (!p) notFound()
 
   const admin = createAdminClient()
@@ -35,13 +36,14 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="mx-auto max-w-xl space-y-5">
       <article className="rounded-xl border border-border bg-surface p-4">
-        <header className="mb-3 flex items-center justify-between">
+        <header className="mb-3 flex items-center justify-between gap-2">
           <span className="text-sm font-semibold text-ink">{authorId.name}</span>
+          <span className="ml-auto text-xs text-muted">{relativeTime(p.created_at)}</span>
           <ReportMenu targetType="post" targetId={p.id} />
         </header>
         {p.kind === 'card' && p.consultation_id && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={shareCardRoute(p.consultation_id)} alt="" className="mb-3 w-full rounded-lg border border-border" />
+          <img src={shareCardRoute(p.consultation_id)} alt="" className="mb-3 block h-auto w-full max-w-full rounded-lg border border-border" />
         )}
         {p.body && <p className="whitespace-pre-wrap text-sm text-ink">{p.body}</p>}
       </article>
@@ -53,8 +55,9 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           const name = idc ? displayIdentity(idc).name : 'Aluno'
           return (
             <div key={c.id} className="rounded-lg border border-border bg-surface p-3">
-              <div className="mb-1 flex items-center justify-between">
+              <div className="mb-1 flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-ink">{name}</span>
+                <span className="ml-auto text-[11px] text-muted">{relativeTime(c.created_at)}</span>
                 <ReportMenu targetType="comment" targetId={c.id} />
               </div>
               <p className="whitespace-pre-wrap text-sm text-ink">{c.body}</p>

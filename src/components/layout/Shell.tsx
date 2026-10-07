@@ -4,6 +4,7 @@ import { LogoutButton } from './LogoutButton'
 import { MedMindMark } from './MedMindMark'
 import { MedMindStripes } from './MedMindStripes'
 import { ThemeToggle } from './ThemeToggle'
+import { MobileNav } from './MobileNav'
 
 interface ShellProps {
   children: ReactNode
@@ -23,30 +24,26 @@ export function Shell({ children, isAdmin = false }: ShellProps) {
             </span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link href="/feed" className="text-xs font-medium text-muted transition-colors hover:text-primary">
-              Feed
-            </Link>
-            <Link href="/resultados" className="hidden text-xs font-medium text-muted transition-colors hover:text-primary sm:inline">
-              Resultados
-            </Link>
-            <Link href="/ranking" className="text-xs font-medium text-muted transition-colors hover:text-primary">
-              Ranking
-            </Link>
-            <Link href="/perfil/editar" className="text-xs font-medium text-muted transition-colors hover:text-primary">
-              Perfil
-            </Link>
+            {/* Links de navegação: só no desktop; no mobile ficam na barra inferior */}
+            <div className="hidden items-center gap-3 sm:flex">
+              <Link href="/feed" className="text-xs font-medium text-muted transition-colors hover:text-primary">Feed</Link>
+              <Link href="/resultados" className="text-xs font-medium text-muted transition-colors hover:text-primary">Resultados</Link>
+              <Link href="/ranking" className="text-xs font-medium text-muted transition-colors hover:text-primary">Ranking</Link>
+              <Link href="/perfil/editar" className="text-xs font-medium text-muted transition-colors hover:text-primary">Perfil</Link>
+              {isAdmin && (
+                <Link href="/admin" className="text-xs font-medium text-muted transition-colors hover:text-primary">Admin</Link>
+              )}
+            </div>
             {isAdmin && (
-              <Link href="/admin" className="text-xs font-medium text-muted transition-colors hover:text-primary">
-                Admin
-              </Link>
+              <Link href="/admin" className="text-xs font-medium text-muted transition-colors hover:text-primary sm:hidden">Admin</Link>
             )}
-            <span className="hidden text-xs text-muted md:inline">Simulador clínico</span>
             <ThemeToggle />
             <LogoutButton />
           </div>
         </div>
       </header>
-      <main className="relative max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <main className="relative mx-auto max-w-5xl px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-8">{children}</main>
+      <MobileNav />
     </div>
   )
 }

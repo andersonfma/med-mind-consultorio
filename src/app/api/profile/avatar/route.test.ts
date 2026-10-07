@@ -38,6 +38,6 @@ describe('POST /api/profile/avatar', () => {
     const res = await POST(req({ contentType: 'image/png' }))
     expect(res.status).toBe(200)
     const j = await res.json()
-    expect(j.uploadUrl).toBe('http://up'); expect(j.publicUrl).toBe('http://pub/u1.png')
+    expect(j.uploadUrl).toBe('http://up'); expect(j.publicUrl).toMatch(/^http:\/\/pub\/u1\.png\?v=\d+$/)
   })
 })

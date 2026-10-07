@@ -20,7 +20,7 @@ export default async function ResultsPage() {
           {rows.map(r => (
             <div key={r.id} className="rounded-xl border border-border bg-surface p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={shareCardRoute(r.id)} alt="" className="mb-3 w-full rounded-lg border border-border" />
+              <img src={shareCardRoute(r.id)} alt="" className="mb-3 block h-auto w-full max-w-full rounded-lg border border-border" />
               <PublishResultButton consultationId={r.id} />
             </div>
           ))}

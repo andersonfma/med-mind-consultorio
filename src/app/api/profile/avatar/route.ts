@@ -18,11 +18,13 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient()
   const path = `${user.id}.${ext}`
   const bucket = admin.storage.from('avatars')
-  const { data, error } = await bucket.createSignedUploadUrl(path)
+  // upsert: permite trocar a foto depois (sobrescreve o mesmo path)
+  const { data, error } = await bucket.createSignedUploadUrl(path, { upsert: true })
   if (error || !data) return NextResponse.json({ error: 'Falha ao preparar upload' }, { status: 500 })
-  const { data: pub } = bucket.getPublicUrl(path)
+  // versiona a URL pública p/ furar o cache de CDN quando a foto muda (mesmo path)
+  const versioned = `${bucket.getPublicUrl(path).data.publicUrl}?v=${Date.now()}`
 
-  await admin.from('profiles').update({ avatar_url: pub.publicUrl } as never).eq('id', user.id)
+  await admin.from('profiles').update({ avatar_url: versioned } as never).eq('id', user.id)
 
-  return NextResponse.json({ uploadUrl: data.signedUrl, token: data.token, path: data.path, publicUrl: pub.publicUrl }, { status: 200 })
+  return NextResponse.json({ uploadUrl: data.signedUrl, token: data.token, path: data.path, publicUrl: versioned }, { status: 200 })
 }

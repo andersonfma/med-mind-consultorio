@@ -14,9 +14,10 @@ export function EditProfileForm({ initial }: { initial: Init }) {
     const res = await fetch('/api/profile/avatar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentType: file.type }) })
     if (!res.ok) { setMsg('Falha ao preparar upload da foto.'); return }
     const { uploadUrl, publicUrl } = await res.json()
-    const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
+    const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type, 'x-upsert': 'true' }, body: file })
     if (!put.ok) { setMsg('Falha ao enviar a foto.'); return }
     setF(s => ({ ...s, avatar_url: publicUrl }))
+    setMsg('Foto atualizada.')
   }
 
   async function save() {
