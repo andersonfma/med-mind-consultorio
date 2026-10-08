@@ -149,7 +149,7 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
               <h2 className="font-display text-lg font-bold text-ink">Consulta encerrada</h2>
               {typeof result.points === 'number' && result.points > 0 && (
                 <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary ring-1 ring-primary/30">
-                  +{result.points} XP
+                  +{result.points} MedCoin
                 </span>
               )}
             </div>

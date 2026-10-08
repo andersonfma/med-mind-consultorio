@@ -27,7 +27,7 @@ function Row({ row }: { row: LeaderRow }) {
       <span className="shrink-0 text-xs text-muted tabular-nums">{row.cases} casos</span>
       <span className="w-20 shrink-0 text-right font-display text-base font-bold tabular-nums text-ink">
         {row.xp.toLocaleString('pt-BR')}
-        <span className="ml-1 text-[10px] font-medium uppercase text-muted">xp</span>
+        <span className="ml-1 text-[10px] font-medium uppercase text-muted">MC</span>
       </span>
     </li>
   )
@@ -37,7 +37,7 @@ function Board({ board }: { board: Leaderboard }) {
   if (board.top.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-border bg-surface px-4 py-10 text-center text-sm text-muted">
-        Ainda não há pontos neste período. Conclua uma consulta para aparecer aqui.
+        Ainda não há MedCoin neste período. Conclua uma consulta ou o desafio do dia para aparecer aqui.
       </p>
     )
   }

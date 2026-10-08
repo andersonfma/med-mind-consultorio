@@ -71,7 +71,7 @@ export async function GET(
   const points = c.points ?? 0
 
   const fontText =
-    'MedMind' + headline + eyebrow + 'Raciocínio Dificuldade XP Pontos ' +
+    'MedMind' + headline + eyebrow + 'Raciocínio Dificuldade MedCoin ' +
     difficulty + points + (reasoning ?? '') + '/10'
   const font = await loadFont(fontText)
   const ff = font ? 'Grotesk' : undefined
@@ -128,7 +128,7 @@ export async function GET(
         <div style={{ display: 'flex', gap: 80 }}>
           {reasoning !== null && <Stat label="Raciocínio" value={`${reasoning}/10`} />}
           <Stat label="Dificuldade" value={difficulty} />
-          <Stat label="Pontos" value={`${points} XP`} />
+          <Stat label="MedCoin" value={`${points}`} />
         </div>
       </div>
     ),

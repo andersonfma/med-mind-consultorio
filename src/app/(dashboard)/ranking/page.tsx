@@ -21,27 +21,30 @@ export default async function RankingPage() {
   const admin = createAdminClient()
 
   const weekStart = weekStartISO(new Date())
-  const [allRes, weekRes, profRes, myProfRes] = await Promise.all([
+  const [allRes, weekRes, allMcRes, weekMcRes, profRes, myProfRes] = await Promise.all([
     admin.from('consultations').select('user_id, points').eq('status', 'finished').gt('points', 0),
     admin.from('consultations').select('user_id, points').eq('status', 'finished').gt('points', 0).gte('finished_at', weekStart),
+    admin.from('medcoin_events').select('user_id, points'),
+    admin.from('medcoin_events').select('user_id, points').gte('created_at', weekStart),
     admin.from('profiles').select('id, full_name, leaderboard_optin, leaderboard_alias'),
     admin.from('profiles').select('leaderboard_optin, leaderboard_alias').eq('id', user.id).single(),
   ])
 
-  const allConsults = (allRes.data ?? []) as ConsultRow[]
-  const weekConsults = (weekRes.data ?? []) as ConsultRow[]
+  // MedCoin = moeda única: o ranking soma consultas + ledger (mesmas linhas {user_id, points}).
+  const allRows = [...((allRes.data ?? []) as ConsultRow[]), ...((allMcRes.data ?? []) as ConsultRow[])]
+  const weekRows = [...((weekRes.data ?? []) as ConsultRow[]), ...((weekMcRes.data ?? []) as ConsultRow[])]
   const profiles = (profRes.data ?? []) as ProfileRow[]
   const myProf = (myProfRes.data ?? null) as { leaderboard_optin?: boolean | null; leaderboard_alias?: string | null } | null
 
-  const all = computeLeaderboard(allConsults, profiles, user.id)
-  const week = computeLeaderboard(weekConsults, profiles, user.id)
+  const all = computeLeaderboard(allRows, profiles, user.id)
+  const week = computeLeaderboard(weekRows, profiles, user.id)
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">Ranking</h1>
         <p className="mt-1 text-sm text-muted">
-          Pontos por consulta concluída — volume × qualidade do raciocínio. Diagnóstico alcançado rende bônus.
+          MedCoin por consulta concluída e pelo desafio diário — volume × qualidade do raciocínio.
         </p>
       </header>
 

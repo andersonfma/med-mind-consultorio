@@ -10,6 +10,7 @@ import { ab4Averages, commAverages, type ConsultRow } from '@/lib/admin/stats'
 import { AxisBars } from '@/components/admin/AxisBars'
 import { DistBars } from '@/components/admin/DistBars'
 import { BlockButton } from '@/components/admin/BlockButton'
+import { GenerateCaseButton } from './GenerateCaseButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -163,9 +164,12 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-6 p-1 sm:p-2">
-      <header>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Painel do coordenador</h1>
-        <p className="text-sm text-muted">Diagnóstico da turma e de cada aluno · janela de IA de 30 dias</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Painel do coordenador</h1>
+          <p className="text-sm text-muted">Diagnóstico da turma e de cada aluno · janela de IA de 30 dias</p>
+        </div>
+        <GenerateCaseButton />
       </header>
 
       {/* KPIs */}

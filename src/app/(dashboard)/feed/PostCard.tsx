@@ -5,6 +5,16 @@ import Link from 'next/link'
 import { postRoute, profileRoute, shareCardRoute } from '@/lib/routes'
 import { relativeTime } from '@/lib/social/time'
 import type { FeedPost } from '@/lib/social/feed'
+import { QuizCard } from './QuizCard'
+
+/** Só permite http(s) — evita href javascript:/data: (stored XSS) vindo de meta.link. */
+function safeHttpUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  try {
+    const u = new URL(url)
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null
+  } catch { return null }
+}
 
 export function PostCard({ post }: { post: FeedPost }) {
   const router = useRouter()
@@ -39,10 +49,31 @@ export function PostCard({ post }: { post: FeedPost }) {
         <span className="ml-auto text-xs text-muted">{relativeTime(post.createdAt)}</span>
       </header>
 
+      {post.kind === 'duvida' && (
+        <span className="mb-2 inline-block rounded-full bg-warning/15 px-2.5 py-0.5 text-[11px] font-semibold text-warning">Dúvida</span>
+      )}
+
       {post.kind === 'card' && post.consultationId && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={shareCardRoute(post.consultationId)} alt="Card do resultado" className="mb-3 block h-auto w-full max-w-full rounded-lg border border-border" />
       )}
+
+      {post.kind === 'resenha' && (
+        <div className="mb-3">
+          {post.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={post.imageUrl} alt="" className="mb-2 block h-auto w-full max-w-full rounded-lg border border-border" />
+          )}
+          {post.meta?.title && <p className="text-sm font-semibold text-ink">{post.meta.title}</p>}
+          {(post.meta?.authors || post.meta?.source) && (
+            <p className="text-xs text-muted">{[post.meta?.authors, post.meta?.source].filter(Boolean).join(' · ')}</p>
+          )}
+          {safeHttpUrl(post.meta?.link) && <a href={safeHttpUrl(post.meta?.link)!} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">ver artigo</a>}
+        </div>
+      )}
+
+      {post.kind === 'quiz' && post.quiz && <QuizCard quiz={post.quiz} />}
+
       {post.body && <p className="mb-3 whitespace-pre-wrap text-sm text-ink">{post.body}</p>}
 
       <footer className="flex items-center gap-4 text-sm">

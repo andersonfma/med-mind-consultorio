@@ -5,6 +5,7 @@ export const RANKING_ROUTE           = '/ranking'
 export const shareCardRoute        = (consultationId: string) => `/api/share/${consultationId}`
 
 export const FEED_ROUTE            = '/feed'
+export const CHALLENGE_ROUTE       = '/desafio'
 export const EDIT_PROFILE_ROUTE    = '/perfil/editar'
 export const REQUESTS_ROUTE        = '/solicitacoes'
 export const RESULTS_ROUTE         = '/resultados'

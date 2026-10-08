@@ -48,3 +48,6 @@ playwright-report/
 
 # supabase temp
 supabase/.temp/
+
+# workflow adicionado manualmente na UI do GitHub (token sem escopo workflow)
+.github/workflows/weekly-case.yml

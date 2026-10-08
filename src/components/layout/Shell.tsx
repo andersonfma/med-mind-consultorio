@@ -27,6 +27,7 @@ export function Shell({ children, isAdmin = false }: ShellProps) {
             {/* Links de navegação: só no desktop; no mobile ficam na barra inferior */}
             <div className="hidden items-center gap-3 sm:flex">
               <Link href="/feed" className="text-xs font-medium text-muted transition-colors hover:text-primary">Feed</Link>
+              <Link href="/desafio" className="text-xs font-medium text-muted transition-colors hover:text-primary">Desafio</Link>
               <Link href="/resultados" className="text-xs font-medium text-muted transition-colors hover:text-primary">Resultados</Link>
               <Link href="/ranking" className="text-xs font-medium text-muted transition-colors hover:text-primary">Ranking</Link>
               <Link href="/perfil/editar" className="text-xs font-medium text-muted transition-colors hover:text-primary">Perfil</Link>

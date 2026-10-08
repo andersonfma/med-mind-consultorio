@@ -4,9 +4,11 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { LOGIN_ROUTE } from '@/lib/routes'
 import { buildFeedPosts } from '@/lib/social/feed'
+import { getChallengeToday } from '@/lib/challenge/today'
 import type { ProfileSocial } from '@/lib/social/types'
 import { FeedList } from './FeedList'
 import { NewPostComposer } from './NewPostComposer'
+import { ChallengeBanner } from './ChallengeBanner'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +20,7 @@ export default async function FeedPage() {
 
   // RLS (posts_select) já filtra visibilidade; buscamos os posts visíveis mais recentes.
   const { data: rawPosts } = await db.from('posts').select('*').order('created_at', { ascending: false }).limit(30)
-  const posts = (rawPosts ?? []) as Array<{ id: string; author_id: string; kind: 'card' | 'text'; consultation_id: string | null; ranking_snapshot: unknown; body: string | null; created_at: string }>
+  const posts = (rawPosts ?? []) as Array<{ id: string; author_id: string; kind: 'card' | 'text' | 'quiz' | 'duvida' | 'resenha'; consultation_id: string | null; ranking_snapshot: unknown; body: string | null; quiz_id: string | null; image_url: string | null; meta: { title?: string; authors?: string; source?: string; link?: string } | null; created_at: string }>
 
   const admin = createAdminClient()
   const authorIds = [...new Set(posts.map(p => p.author_id))]
@@ -41,17 +43,34 @@ export default async function FeedPage() {
   const mine = new Set((myLikes as Array<{ post_id: string }> | null ?? []).map(r => r.post_id))
 
   const profilesById = new Map<string, ProfileSocial>((profs as ProfileSocial[] ?? []).map(p => [p.id, p]))
+
+  // Quizzes dos posts-quiz (só colunas seguras: sem gabarito)
+  const quizIds = posts.filter(p => p.kind === 'quiz' && p.quiz_id).map(p => p.quiz_id as string)
+  const quizzesById = new Map<string, { id: string; prompt: string; options: { key: string; text: string }[] }>()
+  if (quizIds.length) {
+    const { data: qs } = await admin.from('quizzes').select('id, prompt, options').in('id', quizIds)
+    for (const q of (qs as Array<{ id: string; prompt: string; options: { key: string; text: string }[] }> ?? [])) quizzesById.set(q.id, q)
+  }
+
   const rows = posts.map(p => ({
     ...p,
     like_count: likeMap.get(p.id) ?? 0,
     comment_count: commentMap.get(p.id) ?? 0,
     liked_by_me: mine.has(p.id),
   }))
-  const feed = buildFeedPosts(rows, profilesById, user.id)
+  const feed = buildFeedPosts(rows, profilesById, user.id, quizzesById)
+
+  // Resumo do desafio de hoje para o banner
+  const challenge = await getChallengeToday(admin, user.id, new Date().toISOString().slice(0, 10))
+  const todayDay = challenge.days.find(d => d.dayIndex === challenge.todayDayIndex) ?? null
+  const banner = challenge.case && todayDay
+    ? { title: challenge.case.title, stage: todayDay.stage, answered: !!todayDay.answered, streak: challenge.streak }
+    : null
 
   return (
     <div className="space-y-5">
       <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">Feed</h1>
+      {banner && <ChallengeBanner {...banner} />}
       <NewPostComposer />
       <FeedList posts={feed} />
     </div>
