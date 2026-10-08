@@ -177,6 +177,48 @@ Aposta em quiz de usuário; dinheiro real; histórico de semanas antigas (só a 
 especialidades além de Clínica Médica; notificação push (Fatia 2 de stories/notificações);
 multiplayer/tempo real.
 
+## Adendo (2026-10-08) — MedCoin, Post-Dúvida e Resenha
+
+Decisões novas que entram NESTA fatia (economia + tipos de post):
+
+### MedCoin = moeda única (renomeia XP/pontos)
+"MedCoin" passa a ser o nome da moeda em TODO o produto. Onde esta spec diz `xp_events`, **leia
+`medcoin_events`** (tabela renomeada). Onde a UI hoje diz "XP"/"pontos" (ranking, card
+compartilhável, FinishModal, página de ranking), **relabel para "MedCoin"**. Internamente
+`consultations.points` continua como está (coluna), apenas rotulada como MedCoin e somada ao
+ledger no cálculo do ranking. A aposta do quiz é em MedCoin.
+- Sugestão de abreviação/ícone na UI: "MC" / 🪙 (definir no front, consistente).
+
+### Post-Dúvida (`kind='duvida'`) + recompensa de resposta rápida
+- `posts.kind` passa a aceitar `'duvida'` (pergunta explícita; `body` = a dúvida). Selo "Dúvida"
+  na renderização; CTA "Responder".
+- **Recompensa**: o **primeiro** comentário de um usuário **≠ autor**, feito **≤ 30 min** após a
+  criação da dúvida, credita **+DOUBT_REWARD MedCoin** (ex.: 15) ao respondedor, **1× por dúvida**.
+  Resolvido no servidor dentro de `POST /api/posts/[id]/comments`: se o post é `duvida`, o
+  comentador não é o autor, `now - post.created_at <= 30min`, e ainda não existe `medcoin_events`
+  com `source='doubt_answer'` e `ref_id = postId`, então grava o evento + o comentário. Idempotente
+  pela checagem de evento existente.
+- Anti-farm: só 1 recompensa por dúvida (primeiro a ajudar); comentar fora de 30 min ou em dúvida
+  própria não paga.
+
+### Resenha de artigo (`kind='resenha'`)
+- `posts.kind` aceita `'resenha'`. Campos em `posts`: `image_url text null` (capa, opcional) e
+  `meta jsonb null` (`{ title, authors, source, link }`). `body` = o resumo autoral do aluno.
+- **Direito autoral**: a resenha deve ser o resumo do PRÓPRIO aluno; capa como miniatura é ok, mas
+  nada de reproduzir o conteúdo do artigo. Um aviso curto aparece no compositor.
+- Capa: upload por URL assinada num bucket novo `post-media` (mesma mecânica do avatar, com
+  `upsert` e `x-upsert`), via `POST /api/posts/image` → `{ uploadUrl, publicUrl }`.
+
+### Impactos no modelo/telas
+- `posts.kind` CHECK atualizado: `('card','text','quiz','duvida','resenha')`. `kind='resenha'`
+  pode ter `image_url`/`meta`; `kind='duvida'` exige `body`.
+- Tabela do ledger: `medcoin_events` (era `xp_events`), `source ∈ ('challenge','doubt_answer')`.
+- Bucket novo `post-media` (criado via Storage API, fora da migration — ver
+  `reference-supabase-sql-editor-automation`).
+- `NewPostComposer` vira um compositor multi-modo: **Texto · Dúvida · Quiz · Resenha** (abas/seletor).
+- Ranking/card/FinishModal relabel "XP/pontos" → "MedCoin".
+- Const nova: `DOUBT_REWARD` em `src/lib/scoring/points.ts` (ou `src/lib/economy.ts`).
+
 ## Observações herdadas
 - Deploy por webhook + builtAt (ver [[project-medmind-status]]). Aplicar migration no SQL editor:
   ver `reference-supabase-sql-editor-automation` (fechar outras abas, modal "Run query", bucket
