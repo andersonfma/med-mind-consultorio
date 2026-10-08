@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LOGIN_ROUTE, shareCardRoute } from '@/lib/routes'
 import { PublishResultButton } from './PublishResultButton'
+import { ShareButton } from '../ShareButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +22,10 @@ export default async function ResultsPage() {
             <div key={r.id} className="rounded-xl border border-border bg-surface p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={shareCardRoute(r.id)} alt="" className="mb-3 block h-auto w-full max-w-full rounded-lg border border-border" />
-              <PublishResultButton consultationId={r.id} />
+              <div className="space-y-2">
+                <PublishResultButton consultationId={r.id} />
+                <ShareButton consultationId={r.id} label="Compartilhar" />
+              </div>
             </div>
           ))}
         </div>

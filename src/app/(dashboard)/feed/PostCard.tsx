@@ -6,6 +6,7 @@ import { postRoute, profileRoute, shareCardRoute } from '@/lib/routes'
 import { relativeTime } from '@/lib/social/time'
 import type { FeedPost } from '@/lib/social/feed'
 import { QuizCard } from './QuizCard'
+import { ShareButton } from '../ShareButton'
 
 /** Só permite http(s) — evita href javascript:/data: (stored XSS) vindo de meta.link. */
 function safeHttpUrl(url: string | null | undefined): string | null {
@@ -83,6 +84,9 @@ export function PostCard({ post }: { post: FeedPost }) {
         <button onClick={() => router.push(postRoute(post.id))} className="font-medium text-muted hover:text-ink">
           💬 {post.commentCount}
         </button>
+        {post.kind === 'card' && post.consultationId && (
+          <span className="ml-auto"><ShareButton consultationId={post.consultationId} variant="ghost" label="Compartilhar" /></span>
+        )}
       </footer>
     </article>
   )

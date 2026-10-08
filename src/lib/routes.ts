@@ -3,6 +3,7 @@ export const DASHBOARD_ROUTE         = '/dashboard'
 export const RANKING_ROUTE           = '/ranking'
 
 export const shareCardRoute        = (consultationId: string) => `/api/share/${consultationId}`
+export const publicCardRoute       = (consultationId: string) => `/c/${consultationId}`
 
 export const FEED_ROUTE            = '/feed'
 export const CHALLENGE_ROUTE       = '/desafio'

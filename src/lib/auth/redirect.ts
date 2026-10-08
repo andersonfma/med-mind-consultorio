@@ -15,6 +15,7 @@ const PUBLIC_FILE_ROUTES = [
   '/sitemap.xml',
   '/manifest',
   '/landing',
+  '/c/',              // página pública do card compartilhável (sem login)
 ]
 
 export function getRedirectPath(

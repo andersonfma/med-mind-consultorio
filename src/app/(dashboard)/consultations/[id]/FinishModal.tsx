@@ -1,9 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { patientDetailRoute, DASHBOARD_ROUTE, RANKING_ROUTE, shareCardRoute } from '@/lib/routes'
+import { patientDetailRoute, DASHBOARD_ROUTE, RANKING_ROUTE } from '@/lib/routes'
 import { AB4_AXES, COMM_AXES } from '@/lib/consultations/ab4-labels'
 import { DiagnosisFlashcard } from '../../patients/[id]/DiagnosisFlashcard'
+import { ShareButton } from '../../ShareButton'
 
 type Ab4 = {
   a1: number; a2: number; a3: number | null; a4: number | null
@@ -79,34 +80,6 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
     } finally {
       setRevealing(false)
     }
-  }
-
-  const [sharing, setSharing] = useState(false)
-  async function share() {
-    if (sharing) return
-    setSharing(true)
-    const url = shareCardRoute(consultationId)
-    try {
-      const res = await fetch(url)
-      if (res.ok) {
-        const blob = await res.blob()
-        const file = new File([blob], 'medmind.png', { type: 'image/png' })
-        const nav = navigator as Navigator & { canShare?: (d?: unknown) => boolean }
-        if (nav.canShare?.({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: 'Med Mind',
-            text: 'Treinei meu raciocínio clínico no Med Mind 🧠',
-          })
-          return
-        }
-      }
-    } catch {
-      // cai no fallback
-    } finally {
-      setSharing(false)
-    }
-    window.open(url, '_blank', 'noopener')
   }
 
   const minScore = result?.ab4
@@ -261,21 +234,9 @@ export function FinishModal({ consultationId, clinicalReasoning, onClose }: Prop
               </div>
             )}
 
-            <button
-              onClick={share}
-              disabled={sharing}
-              className="mb-2 flex w-full items-center justify-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
-            >
-              {sharing ? 'Gerando card…' : (
-                <>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-                    <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
-                  </svg>
-                  Compartilhar resultado
-                </>
-              )}
-            </button>
+            <div className="mb-2">
+              <ShareButton consultationId={consultationId} label="Compartilhar resultado" />
+            </div>
             <button
               onClick={() => router.push(DASHBOARD_ROUTE)}
               className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-glow-primary)] transition-colors hover:bg-primary-hover"
