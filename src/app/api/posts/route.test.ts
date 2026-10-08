@@ -30,4 +30,9 @@ describe('POST /api/posts', () => {
     expect(res.status).toBe(201); expect((await res.json()).id).toBe('post1')
   })
   it('201 text', async () => { expect((await POST(req({ kind: 'text', body: 'dúvida sobre ICC' }))).status).toBe(201) })
+  it('201 dúvida com body', async () => { expect((await POST(req({ kind: 'duvida', body: 'por que isso?' }))).status).toBe(201) })
+  it('422 dúvida sem body', async () => { expect((await POST(req({ kind: 'duvida', body: '  ' }))).status).toBe(422) })
+  it('201 resenha com capa + meta', async () => {
+    expect((await POST(req({ kind: 'resenha', body: 'resumo autoral', imageUrl: 'http://x/c.png', meta: { title: 'Artigo', authors: 'Fulano', source: 'NEJM', link: 'http://doi' } }))).status).toBe(201)
+  })
 })

@@ -7,16 +7,21 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let body: { kind?: unknown; consultationId?: unknown; rankingSnapshot?: unknown; body?: unknown }
+  let body: { kind?: unknown; consultationId?: unknown; rankingSnapshot?: unknown; body?: unknown; imageUrl?: unknown; meta?: unknown }
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid body' }, { status: 400 }) }
 
-  const kind = body.kind === 'card' || body.kind === 'text' ? body.kind : null
+  const KINDS = ['card', 'text', 'duvida', 'resenha'] as const
+  const kind = (KINDS as readonly string[]).includes(body.kind as string) ? (body.kind as string) : null
   if (!kind) return NextResponse.json({ error: 'kind inválido' }, { status: 422 })
   const caption = typeof body.body === 'string' ? body.body.trim().slice(0, 500) : ''
   const consultationId = typeof body.consultationId === 'string' ? body.consultationId : null
   const rankingSnapshot = body.rankingSnapshot && typeof body.rankingSnapshot === 'object' ? body.rankingSnapshot : null
+  const imageUrl = typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 1000) : null
+  const meta = body.meta && typeof body.meta === 'object' ? body.meta : null
 
-  if (kind === 'text' && !caption) return NextResponse.json({ error: 'Texto vazio' }, { status: 422 })
+  if ((kind === 'text' || kind === 'duvida' || kind === 'resenha') && !caption) {
+    return NextResponse.json({ error: 'Texto vazio' }, { status: 422 })
+  }
   if (kind === 'card' && !consultationId && !rankingSnapshot) return NextResponse.json({ error: 'Card sem referência' }, { status: 422 })
 
   if (kind === 'card' && consultationId) {
@@ -31,6 +36,8 @@ export async function POST(request: NextRequest) {
     consultation_id: kind === 'card' ? consultationId : null,
     ranking_snapshot: kind === 'card' ? rankingSnapshot : null,
     body: caption || null,
+    image_url: kind === 'resenha' ? imageUrl : null,
+    meta: kind === 'resenha' ? meta : null,
   }
   const db = supabase as unknown as SupabaseClient
   const { data, error } = await db.from('posts').insert(insertRow).select('id').single()
