@@ -11,6 +11,7 @@ import { AxisBars } from '@/components/admin/AxisBars'
 import { DistBars } from '@/components/admin/DistBars'
 import { BlockButton } from '@/components/admin/BlockButton'
 import { GenerateCaseButton } from './GenerateCaseButton'
+import { ReportsQueue } from './ReportsQueue'
 
 export const dynamic = 'force-dynamic'
 
@@ -181,6 +182,11 @@ export default async function AdminPage() {
         <StatCard label="Consultas" value={totalConsults} sub={`${finished} finalizadas`} />
         <StatCard label="Taxa de conclusão" value={`${completion}%`} sub="consultas finalizadas" />
       </div>
+
+      {/* Moderação — fila de denúncias */}
+      <Panel title="Denúncias" hint="conteúdo reportado pela rede">
+        <ReportsQueue />
+      </Panel>
 
       {/* Diagnóstico da turma — critérios objetivos */}
       <div className="grid gap-4 lg:grid-cols-2">
