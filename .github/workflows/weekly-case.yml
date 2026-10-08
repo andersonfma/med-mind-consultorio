@@ -1,0 +1,11 @@
+name: Caso da semana
+on:
+  schedule:
+    - cron: '0 1 * * 1'
+  workflow_dispatch: {}
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gerar caso da proxima semana
+        run: curl -fsS -X POST "${{ secrets.APP_URL }}/api/cron/generate-weekly-case" -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
