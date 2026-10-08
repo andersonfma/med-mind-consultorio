@@ -55,7 +55,9 @@ export function NewPostComposer() {
       let res: Response
       if (mode === 'texto' || mode === 'duvida') {
         if (!text.trim()) { setMsg('Escreva algo.'); return }
-        res = await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: mode, body: text }) })
+        // a aba "Texto" usa a chave interna 'texto'; a API/banco esperam 'text'
+        const kind = mode === 'texto' ? 'text' : 'duvida'
+        res = await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, body: text }) })
       } else if (mode === 'quiz') {
         const opts = options.map((t, i) => ({ key: KEYS[i], text: t.trim() })).filter(o => o.text)
         if (!prompt.trim()) { setMsg('Escreva o enunciado.'); return }
