@@ -45,8 +45,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const nStreak = nextStreak(prof.challenge_last_date ?? null, today, prof.challenge_streak ?? 0)
   const { delta, effStake } = resolveBet(stake, isCorrect, balance, dayFactor(day.stage), streakFactor(nStreak))
 
-  await admin.from('quiz_answers').insert({ quiz_id: quizId, user_id: user.id, chosen_key: chosenKey, is_correct: isCorrect, stake: effStake, delta })
+  // O insert é o ponto de serialização (PK quiz_id+user_id): se dois requests correrem,
+  // só um grava — o outro recebe violação de unicidade (23505) e NÃO minta recompensa.
+  const { error: insErr } = await admin.from('quiz_answers')
+    .insert({ quiz_id: quizId, user_id: user.id, chosen_key: chosenKey, is_correct: isCorrect, stake: effStake, delta })
+  if (insErr) {
+    if ((insErr as { code?: string }).code === '23505') return NextResponse.json({ error: 'Já respondido' }, { status: 409 })
+    return NextResponse.json({ error: 'Falha ao responder' }, { status: 500 })
+  }
   if (delta !== 0) {
+    // defesa em profundidade: índice único (user_id, ref_id) WHERE source='challenge'
     await admin.from('medcoin_events').insert({ user_id: user.id, points: delta, source: 'challenge', ref_id: quizId })
   }
   await admin.from('profiles').update({ challenge_streak: nStreak, challenge_last_date: today }).eq('id', user.id)

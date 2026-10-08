@@ -10,4 +10,8 @@ GRANT SELECT (id, author_id, prompt, options, created_at) ON quizzes TO anon, au
 REVOKE SELECT ON weekly_cases FROM anon, authenticated;
 GRANT SELECT (id, week_start, specialty, title, overview, created_at) ON weekly_cases TO anon, authenticated;
 
+-- Defesa em profundidade contra farm do desafio: no máximo 1 evento de 'challenge' por
+-- (usuário, quiz). O TOCTOU já é barrado pela PK de quiz_answers; este índice reforça no ledger.
+CREATE UNIQUE INDEX IF NOT EXISTS medcoin_challenge_once ON medcoin_events (user_id, ref_id) WHERE source = 'challenge';
+
 NOTIFY pgrst, 'reload schema';

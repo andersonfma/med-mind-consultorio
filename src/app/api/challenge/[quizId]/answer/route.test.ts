@@ -31,7 +31,8 @@ function wire({ reveal = TODAY, answered = false, correct = 'A' } = {}) {
           chain.then = (res: (v: unknown) => void) => res({ data: [{ is_correct: true }] })
           return chain
         },
-        insert: () => Promise.resolve({ error: null }),
+        // insert falha com 23505 quando `answered` (simula corrida/TOCTOU)
+        insert: () => Promise.resolve({ error: answered ? { code: '23505' } : null }),
       }
     }
     return {}
@@ -63,6 +64,21 @@ describe('POST challenge answer', () => {
     expect(res.status).toBe(200)
     const j = await res.json()
     expect(j.isCorrect).toBe(true); expect(j.correctKey).toBe('A'); expect(j.delta).toBeGreaterThan(0)
+  })
+  it('409 em corrida: prev-check passa mas insert viola unicidade (TOCTOU)', async () => {
+    // prev SELECT sem resposta, mas insert retorna 23505 (outro request gravou antes)
+    mockFrom.mockImplementation((t: string) => {
+      if (t === 'challenge_days') return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { reveal_date: TODAY, stage: 'anamnese' } }) }) }) }
+      if (t === 'quizzes') return { select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { correct_key: 'A', explanation: 'e' } }) }) }) }
+      if (t === 'profiles') return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { challenge_streak: 1, challenge_last_date: null } }) }) }), update: () => ({ eq: () => Promise.resolve({ error: null }) }) }
+      if (t === 'medcoin_events') return { insert: () => Promise.resolve({ error: null }) }
+      if (t === 'quiz_answers') return {
+        select: () => { const c: Record<string, unknown> = {}; c.eq = () => c; c.maybeSingle = () => Promise.resolve({ data: null }); c.then = (r: (v: unknown) => void) => r({ data: [] }); return c },
+        insert: () => Promise.resolve({ error: { code: '23505' } }),
+      }
+      return {}
+    })
+    expect((await POST(req({ chosenKey: 'A', stake: 10 }), ctx('q1'))).status).toBe(409)
   })
   it('200 erro → delta<=0', async () => {
     const res = await POST(req({ chosenKey: 'B', stake: 10 }), ctx('q1'))
