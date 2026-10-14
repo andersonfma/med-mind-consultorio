@@ -38,7 +38,7 @@ export function InlineComments({ postId, onCountChange }: { postId: string; onCo
       ) : comments.length === 0 ? (
         <p className="text-xs text-muted">Seja o primeiro a comentar.</p>
       ) : (
-        <ul className="space-y-2.5">
+        <ul className={`space-y-2.5 ${comments.length > 5 ? 'max-h-72 overflow-y-auto pr-1' : ''}`}>
           {comments.map(c => (
             <li key={c.id} className="flex gap-2.5">
               <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full bg-surface-2 text-[11px] font-bold text-ink">
