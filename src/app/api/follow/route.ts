@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notify } from '@/lib/social/notify'
 
 async function caller() {
   const supabase = await createClient()
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
     { onConflict: 'follower_id,followee_id' } as never,
   )
   if (error) return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  await notify(admin, { userId: followeeId, actorId: user.id, type: 'follow' })
   return NextResponse.json({ status }, { status: 200 })
 }
 

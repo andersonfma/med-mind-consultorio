@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { DOUBT_REWARD, DOUBT_WINDOW_MIN } from '@/lib/economy'
 import { displayIdentity } from '@/lib/social/identity'
+import { notify } from '@/lib/social/notify'
 import type { ProfileSocial } from '@/lib/social/types'
 
 export const dynamic = 'force-dynamic'
@@ -44,11 +45,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { data, error } = await db.from('comments').insert({ post_id: id, author_id: user.id, body: text }).select('id').single()
   if (error || !data) return NextResponse.json({ error: 'Não foi possível comentar' }, { status: 403 })
 
-  // Recompensa de MedCoin: 1º a responder uma DÚVIDA (≠ autor) em ≤30min. Best-effort.
+  // Notificação ao autor do post + recompensa de dúvida. Best-effort.
   try {
     const admin = createAdminClient()
     const { data: postRow } = await admin.from('posts').select('kind, author_id, created_at').eq('id', id).maybeSingle()
     const post = postRow as { kind?: string; author_id?: string; created_at?: string } | null
+    if (post?.author_id) await notify(admin, { userId: post.author_id, actorId: user.id, type: 'comment', postId: id })
+
     if (post?.kind === 'duvida' && post.author_id && post.author_id !== user.id && post.created_at) {
       const ageMin = (Date.now() - Date.parse(post.created_at)) / 60000
       if (ageMin <= DOUBT_WINDOW_MIN) {
@@ -56,6 +59,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         if (!already) {
           // o índice único medcoin_doubt_once(ref_id) garante 1× mesmo em corrida
           await admin.from('medcoin_events').insert({ user_id: user.id, points: DOUBT_REWARD, source: 'doubt_answer', ref_id: id })
+          await notify(admin, { userId: user.id, actorId: post.author_id, type: 'doubt_answer', postId: id }) // avisa o respondedor do bônus
         }
       }
     }

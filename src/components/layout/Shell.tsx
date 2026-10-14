@@ -5,6 +5,7 @@ import { MedMindMark } from './MedMindMark'
 import { MedMindStripes } from './MedMindStripes'
 import { ThemeToggle } from './ThemeToggle'
 import { MobileNav } from './MobileNav'
+import { NotificationBell } from './NotificationBell'
 
 interface ShellProps {
   children: ReactNode
@@ -38,6 +39,7 @@ export function Shell({ children, isAdmin = false }: ShellProps) {
             {isAdmin && (
               <Link href="/admin" className="text-xs font-medium text-muted transition-colors hover:text-primary sm:hidden">Admin</Link>
             )}
+            <NotificationBell />
             <ThemeToggle />
             <LogoutButton />
           </div>
