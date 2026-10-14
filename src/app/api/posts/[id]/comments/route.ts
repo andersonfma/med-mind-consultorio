@@ -3,6 +3,33 @@ import { type SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { DOUBT_REWARD, DOUBT_WINDOW_MIN } from '@/lib/economy'
+import { displayIdentity } from '@/lib/social/identity'
+import type { ProfileSocial } from '@/lib/social/types'
+
+export const dynamic = 'force-dynamic'
+
+/** Lista comentários do post (RLS garante visibilidade); nomes resolvidos via admin. */
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const db = supabase as unknown as SupabaseClient
+  const { data: rows } = await db.from('comments').select('id, author_id, body, created_at').eq('post_id', id).is('hidden_at', null).order('created_at', { ascending: true })
+  const comments = (rows ?? []) as Array<{ id: string; author_id: string; body: string; created_at: string }>
+
+  const admin = createAdminClient()
+  const ids = [...new Set(comments.map(c => c.author_id))]
+  const { data: profs } = await admin.from('profiles').select('id, identity_mode, handle, display_name, avatar_url, leaderboard_alias, full_name').in('id', ids.length ? ids : ['_'])
+  const byId = new Map((profs as ProfileSocial[] ?? []).map(p => [p.id, p]))
+
+  const out = comments.map(c => {
+    const p = byId.get(c.author_id)
+    const d = p ? displayIdentity(p) : { name: 'Aluno', avatarUrl: null, initials: 'A' }
+    return { id: c.id, name: d.name, initials: d.initials, avatarUrl: d.avatarUrl, body: c.body, createdAt: c.created_at }
+  })
+  return NextResponse.json({ comments: out }, { status: 200 })
+}
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

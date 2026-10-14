@@ -10,7 +10,11 @@ describe('displayIdentity', () => {
     const d = displayIdentity({ identity_mode: 'alias', display_name: 'Ana Silva', avatar_url: 'http://x/a.png', leaderboard_alias: 'aninha', full_name: 'Ana S' })
     expect(d.name).toBe('aninha'); expect(d.avatarUrl).toBeNull(); expect(d.initials).toBe('A')
   })
-  it('alias sem apelido cai em "Aluno"', () => {
+  it('alias sem apelido usa o nome de cadastro (full_name)', () => {
+    const d = displayIdentity({ identity_mode: 'alias', display_name: null, avatar_url: null, leaderboard_alias: null, full_name: 'Fernanda Ciuffo' })
+    expect(d.name).toBe('Fernanda Ciuffo'); expect(d.avatarUrl).toBeNull(); expect(d.initials).toBe('FC')
+  })
+  it('alias sem apelido e sem nome cai em "Aluno"', () => {
     const d = displayIdentity({ identity_mode: 'alias', display_name: null, avatar_url: null, leaderboard_alias: null, full_name: null })
     expect(d.name).toBe('Aluno')
   })

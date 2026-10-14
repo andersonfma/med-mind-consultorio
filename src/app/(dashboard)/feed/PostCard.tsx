@@ -1,12 +1,12 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { postRoute, profileRoute, shareCardRoute } from '@/lib/routes'
+import { profileRoute, shareCardRoute } from '@/lib/routes'
 import { relativeTime } from '@/lib/social/time'
 import type { FeedPost } from '@/lib/social/feed'
 import { QuizCard } from './QuizCard'
 import { ShareButton } from '../ShareButton'
+import { InlineComments } from './InlineComments'
 
 /** Só permite http(s) — evita href javascript:/data: (stored XSS) vindo de meta.link. */
 function safeHttpUrl(url: string | null | undefined): string | null {
@@ -18,10 +18,11 @@ function safeHttpUrl(url: string | null | undefined): string | null {
 }
 
 export function PostCard({ post }: { post: FeedPost }) {
-  const router = useRouter()
   const [liked, setLiked] = useState(post.likedByMe)
   const [count, setCount] = useState(post.likeCount)
   const [busy, setBusy] = useState(false)
+  const [showComments, setShowComments] = useState(false)
+  const [commentCount, setCommentCount] = useState(post.commentCount)
 
   async function toggleLike() {
     if (busy) return
@@ -81,13 +82,15 @@ export function PostCard({ post }: { post: FeedPost }) {
         <button onClick={toggleLike} disabled={busy} className={`font-medium ${liked ? 'text-primary' : 'text-muted hover:text-ink'}`}>
           ♥ {count}
         </button>
-        <button onClick={() => router.push(postRoute(post.id))} className="font-medium text-muted hover:text-ink">
-          💬 {post.commentCount}
+        <button onClick={() => setShowComments(v => !v)} className={`font-medium ${showComments ? 'text-primary' : 'text-muted hover:text-ink'}`}>
+          💬 {commentCount}
         </button>
         {post.kind === 'card' && post.consultationId && (
           <span className="ml-auto"><ShareButton consultationId={post.consultationId} variant="ghost" label="Compartilhar" /></span>
         )}
       </footer>
+
+      {showComments && <InlineComments postId={post.id} onCountChange={setCommentCount} />}
     </article>
   )
 }

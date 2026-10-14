@@ -19,7 +19,9 @@ export function displayIdentity(p: IdInput): { name: string; avatarUrl: string |
     const name = p.display_name?.trim() || p.full_name?.trim() || 'Aluno'
     return { name, avatarUrl: p.avatar_url ?? null, initials: initialsOf(name) }
   }
-  const name = p.leaderboard_alias?.trim() || 'Aluno'
+  // alias (padrão): apelido escolhido, senão o nome de cadastro — nunca "Aluno" se houver nome.
+  // Foto só no modo 'real'; aqui o avatar é sempre as iniciais.
+  const name = p.leaderboard_alias?.trim() || p.full_name?.trim() || 'Aluno'
   return { name, avatarUrl: null, initials: initialsOf(name) }
 }
 
