@@ -5,10 +5,13 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { LOGIN_ROUTE } from '@/lib/routes'
 import { buildFeedPosts } from '@/lib/social/feed'
 import { getChallengeToday } from '@/lib/challenge/today'
+import { getActiveStories } from '@/lib/social/stories'
+import { displayIdentity } from '@/lib/social/identity'
 import type { ProfileSocial } from '@/lib/social/types'
 import { FeedList } from './FeedList'
 import { NewPostComposer } from './NewPostComposer'
 import { ChallengeBanner } from './ChallengeBanner'
+import { StoriesBar } from './StoriesBar'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,9 +70,18 @@ export default async function FeedPage() {
     ? { title: challenge.case.title, stage: todayDay.stage, answered: !!todayDay.answered, streak: challenge.streak }
     : null
 
+  // Stories ativos + identidade do próprio (para o botão "seu story")
+  const storyGroups = await getActiveStories(db, admin, user.id)
+  const myProfile = profilesById.get(user.id) ?? (await (async () => {
+    const { data } = await admin.from('profiles').select('id, identity_mode, handle, display_name, avatar_url, leaderboard_alias, full_name').eq('id', user.id).maybeSingle()
+    return data as ProfileSocial | null
+  })())
+  const myId = myProfile ? displayIdentity(myProfile) : { name: 'Você', avatarUrl: null, initials: 'V' }
+
   return (
     <div className="space-y-5">
       <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">Feed</h1>
+      <StoriesBar groups={storyGroups} myInitials={myId.initials} myAvatar={myId.avatarUrl} />
       {banner && <ChallengeBanner {...banner} />}
       <NewPostComposer />
       <FeedList posts={feed} />

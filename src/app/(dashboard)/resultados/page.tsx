@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { LOGIN_ROUTE, shareCardRoute } from '@/lib/routes'
 import { PublishResultButton } from './PublishResultButton'
 import { ShareButton } from '../ShareButton'
+import { AddToStoryButton } from './AddToStoryButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +26,7 @@ export default async function ResultsPage() {
               <div className="space-y-2">
                 <PublishResultButton consultationId={r.id} />
                 <ShareButton consultationId={r.id} label="Compartilhar" />
+                <AddToStoryButton consultationId={r.id} />
               </div>
             </div>
           ))}

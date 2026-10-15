@@ -20,6 +20,12 @@ DROP POLICY IF EXISTS stories_sel ON stories;
 CREATE POLICY stories_sel ON stories FOR SELECT
   USING (expires_at > now() AND social_can_see_author(auth.uid(), author_id));
 DROP POLICY IF EXISTS stories_ins ON stories;
-CREATE POLICY stories_ins ON stories FOR INSERT WITH CHECK (auth.uid() = author_id);
+-- além de ser o próprio autor, um story-card só pode referenciar uma consulta DO USUÁRIO
+CREATE POLICY stories_ins ON stories FOR INSERT WITH CHECK (
+  auth.uid() = author_id AND (
+    kind = 'image'
+    OR (kind = 'card' AND EXISTS (SELECT 1 FROM consultations c WHERE c.id = consultation_id AND c.user_id = auth.uid()))
+  )
+);
 DROP POLICY IF EXISTS stories_del ON stories;
 CREATE POLICY stories_del ON stories FOR DELETE USING (auth.uid() = author_id);
