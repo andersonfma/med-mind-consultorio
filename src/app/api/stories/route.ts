@@ -9,13 +9,13 @@ export async function POST(request: NextRequest) {
 
   let body: { kind?: unknown; mediaUrl?: unknown; consultationId?: unknown; caption?: unknown }
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid body' }, { status: 400 }) }
-  const kind = body.kind === 'image' || body.kind === 'card' ? body.kind : null
+  const kind = body.kind === 'image' || body.kind === 'video' || body.kind === 'card' ? body.kind : null
   if (!kind) return NextResponse.json({ error: 'kind inválido' }, { status: 422 })
   const mediaUrl = typeof body.mediaUrl === 'string' ? body.mediaUrl.slice(0, 1000) : null
   const consultationId = typeof body.consultationId === 'string' ? body.consultationId : null
   const caption = typeof body.caption === 'string' ? body.caption.trim().slice(0, 200) || null : null
 
-  if (kind === 'image' && !mediaUrl) return NextResponse.json({ error: 'Imagem obrigatória' }, { status: 422 })
+  if ((kind === 'image' || kind === 'video') && !mediaUrl) return NextResponse.json({ error: 'Mídia obrigatória' }, { status: 422 })
   if (kind === 'card' && !consultationId) return NextResponse.json({ error: 'Consulta obrigatória' }, { status: 422 })
 
   if (kind === 'card' && consultationId) {
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   const db = supabase as unknown as SupabaseClient
   const { data, error } = await db.from('stories').insert({
-    author_id: user.id, kind, media_url: kind === 'image' ? mediaUrl : null,
+    author_id: user.id, kind, media_url: (kind === 'image' || kind === 'video') ? mediaUrl : null,
     consultation_id: kind === 'card' ? consultationId : null, caption,
   }).select('id').single()
   if (error || !data) return NextResponse.json({ error: 'Falha ao publicar story' }, { status: 500 })

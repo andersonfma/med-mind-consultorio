@@ -2,7 +2,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const EXT: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
+const EXT: Record<string, string> = {
+  'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
+  'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov',
+}
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -13,7 +16,7 @@ export async function POST(request: NextRequest) {
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid body' }, { status: 400 }) }
   const ct = typeof body.contentType === 'string' ? body.contentType : ''
   const ext = EXT[ct]
-  if (!ct.startsWith('image/') || !ext) return NextResponse.json({ error: 'Tipo não suportado' }, { status: 415 })
+  if (!ext || !(ct.startsWith('image/') || ct.startsWith('video/'))) return NextResponse.json({ error: 'Tipo não suportado' }, { status: 415 })
 
   const admin = createAdminClient()
   const path = `${user.id}/${crypto.randomUUID()}.${ext}`

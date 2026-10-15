@@ -3,7 +3,7 @@ import { type SupabaseClient } from '@supabase/supabase-js'
 import { displayIdentity } from './identity'
 import type { ProfileSocial } from './types'
 
-export type StoryItem = { id: string; kind: 'image' | 'card'; mediaUrl: string | null; consultationId: string | null; caption: string | null; createdAt: string }
+export type StoryItem = { id: string; kind: 'image' | 'video' | 'card'; mediaUrl: string | null; consultationId: string | null; caption: string | null; createdAt: string }
 export type StoryGroup = {
   author: { id: string; name: string; initials: string; avatarUrl: string | null; handle: string | null }
   isOwn: boolean
@@ -18,7 +18,7 @@ export async function getActiveStories(userDb: SupabaseClient, admin: SupabaseCl
   const { data: rows } = await userDb.from('stories')
     .select('id, author_id, kind, media_url, consultation_id, caption, created_at')
     .order('created_at', { ascending: true })
-  const stories = (rows ?? []) as Array<{ id: string; author_id: string; kind: 'image' | 'card'; media_url: string | null; consultation_id: string | null; caption: string | null; created_at: string }>
+  const stories = (rows ?? []) as Array<{ id: string; author_id: string; kind: 'image' | 'video' | 'card'; media_url: string | null; consultation_id: string | null; caption: string | null; created_at: string }>
   if (stories.length === 0) return []
 
   const authorIds = [...new Set(stories.map(s => s.author_id))]

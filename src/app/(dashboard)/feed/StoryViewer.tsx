@@ -22,16 +22,20 @@ export function StoryViewer({ groups, startGroup, onClose }: { groups: StoryGrou
     if (gi > 0) { const pg = gi - 1; setGi(pg); setSi(groups[pg].stories.length - 1); return }
   }
 
-  // auto-avanço + Esc
+  const isVideo = story?.kind === 'video'
+
+  // auto-avanço (imagem/card: 5s; vídeo avança no onEnded) + Esc
   useEffect(() => {
-    const t = setTimeout(next, DURATION)
+    const t = isVideo ? null : setTimeout(next, DURATION)
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowRight') next(); if (e.key === 'ArrowLeft') prev() }
     window.addEventListener('keydown', onKey)
-    return () => { clearTimeout(t); window.removeEventListener('keydown', onKey) }
+    return () => { if (t) clearTimeout(t); window.removeEventListener('keydown', onKey) }
   }) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!group || !story) return null
-  const src = story.kind === 'image' ? (story.mediaUrl ?? '') : shareCardRoute(story.consultationId ?? '')
+  const src = isVideo ? (story.mediaUrl ?? '')
+    : story.kind === 'image' ? (story.mediaUrl ?? '')
+    : shareCardRoute(story.consultationId ?? '')
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
@@ -54,9 +58,13 @@ export function StoryViewer({ groups, startGroup, onClose }: { groups: StoryGrou
       </div>
 
       <div className="relative flex-1">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt="" className="absolute inset-0 m-auto max-h-full max-w-full object-contain" />
-        {story.caption && <p className="absolute bottom-6 left-0 right-0 px-6 text-center text-sm text-white drop-shadow">{story.caption}</p>}
+        {isVideo ? (
+          <video src={src} autoPlay playsInline onEnded={next} className="absolute inset-0 m-auto max-h-full max-w-full object-contain" />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt="" className="absolute inset-0 m-auto max-h-full max-w-full object-contain" />
+        )}
+        {story.caption && <p className="absolute bottom-10 left-0 right-0 px-6 text-center text-base font-medium text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">{story.caption}</p>}
         {/* zonas de toque: esquerda=voltar, direita=avançar */}
         <button onClick={prev} className="absolute inset-y-0 left-0 w-1/3" aria-label="Anterior" />
         <button onClick={next} className="absolute inset-y-0 right-0 w-2/3" aria-label="Próximo" />
