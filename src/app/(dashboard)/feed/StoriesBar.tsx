@@ -109,14 +109,15 @@ export function StoriesBar({ groups, myInitials, myAvatar }: { groups: StoryGrou
               >{caption}</p>
             )}
             {caption && (
-              <input type="range" min={0.6} max={2.6} step={0.1} value={capScale} onChange={e => setCapScale(Number(e.target.value))}
-                aria-label="Tamanho do texto"
-                className="absolute right-2 top-1/2 h-40 -translate-y-1/2 [writing-mode:vertical-lr] [direction:rtl] accent-primary" />
+              <div className="absolute right-2 top-1/2 flex -translate-y-1/2 flex-col gap-2">
+                <button onClick={() => setCapScale(s => Math.min(2.6, +(s + 0.2).toFixed(2)))} className="grid h-9 w-9 place-items-center rounded-full bg-white/20 text-lg font-bold text-white" aria-label="Aumentar texto">A+</button>
+                <button onClick={() => setCapScale(s => Math.max(0.6, +(s - 0.2).toFixed(2)))} className="grid h-9 w-9 place-items-center rounded-full bg-white/20 text-xs font-bold text-white" aria-label="Diminuir texto">A−</button>
+              </div>
             )}
           </div>
           <div className="mx-auto mt-3 w-full max-w-md space-y-2">
             {err && <p className="text-center text-xs text-danger">{err}</p>}
-            {caption && <p className="text-center text-[11px] text-white/50">Arraste o texto para posicionar</p>}
+            {caption && <p className="text-center text-[11px] text-white/50">Arraste o texto para posicionar · A+/A− para o tamanho</p>}
             <input value={caption} onChange={e => setCaption(e.target.value)} maxLength={200} placeholder="Escreva algo… 🙂 (emojis pelo teclado)" className="w-full rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/50 outline-none focus:border-white/50" />
             <button onClick={publish} disabled={busy} className="w-full rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-ink disabled:opacity-50">{busy ? 'Publicando…' : 'Publicar no story'}</button>
           </div>
