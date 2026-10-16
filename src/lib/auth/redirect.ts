@@ -16,6 +16,7 @@ const PUBLIC_FILE_ROUTES = [
   '/manifest',
   '/landing',
   '/c/',              // página pública do card compartilhável (sem login)
+  '/sw.js',           // service worker do Web Push
 ]
 
 export function getRedirectPath(

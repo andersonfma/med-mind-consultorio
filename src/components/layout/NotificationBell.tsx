@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { postRoute, profileRoute } from '@/lib/routes'
 import { relativeTime } from '@/lib/social/time'
+import { PushToggle } from './PushToggle'
 
 type Item = { id: string; type: string; postId: string | null; read: boolean; createdAt: string; actorName: string; actorInitials: string; actorAvatar: string | null; actorHandle: string | null }
 
@@ -66,6 +67,7 @@ export function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-10 z-40 w-80 max-w-[85vw] overflow-hidden rounded-xl border border-border bg-surface shadow-[var(--shadow-card)]">
           <p className="border-b border-border px-4 py-2.5 text-xs font-semibold text-ink">Notificações</p>
+          <PushToggle />
           {items.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted">Nada por aqui ainda.</p>
           ) : (
