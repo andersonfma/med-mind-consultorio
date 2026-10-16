@@ -3,7 +3,7 @@ import { type SupabaseClient } from '@supabase/supabase-js'
 import { displayIdentity } from './identity'
 import type { ProfileSocial } from './types'
 
-export type StoryItem = { id: string; kind: 'image' | 'video' | 'card'; mediaUrl: string | null; consultationId: string | null; caption: string | null; createdAt: string }
+export type StoryItem = { id: string; kind: 'image' | 'video' | 'card'; mediaUrl: string | null; consultationId: string | null; caption: string | null; captionX: number | null; captionY: number | null; createdAt: string }
 export type StoryGroup = {
   author: { id: string; name: string; initials: string; avatarUrl: string | null; handle: string | null }
   isOwn: boolean
@@ -16,9 +16,10 @@ export type StoryGroup = {
  */
 export async function getActiveStories(userDb: SupabaseClient, admin: SupabaseClient, userId: string): Promise<StoryGroup[]> {
   const { data: rows } = await userDb.from('stories')
-    .select('id, author_id, kind, media_url, consultation_id, caption, created_at')
+    .select('id, author_id, kind, media_url, consultation_id, caption, caption_x, caption_y, created_at')
+    .gt('expires_at', new Date().toISOString()) // 24h: além da RLS, filtra aqui explicitamente
     .order('created_at', { ascending: true })
-  const stories = (rows ?? []) as Array<{ id: string; author_id: string; kind: 'image' | 'video' | 'card'; media_url: string | null; consultation_id: string | null; caption: string | null; created_at: string }>
+  const stories = (rows ?? []) as Array<{ id: string; author_id: string; kind: 'image' | 'video' | 'card'; media_url: string | null; consultation_id: string | null; caption: string | null; caption_x: number | null; caption_y: number | null; created_at: string }>
   if (stories.length === 0) return []
 
   const authorIds = [...new Set(stories.map(s => s.author_id))]
@@ -34,7 +35,7 @@ export async function getActiveStories(userDb: SupabaseClient, admin: SupabaseCl
       g = { author: { id: s.author_id, name: d.name, initials: d.initials, avatarUrl: d.avatarUrl, handle: p?.handle ?? null }, isOwn: s.author_id === userId, stories: [] }
       groups.set(s.author_id, g)
     }
-    g.stories.push({ id: s.id, kind: s.kind, mediaUrl: s.media_url, consultationId: s.consultation_id, caption: s.caption, createdAt: s.created_at })
+    g.stories.push({ id: s.id, kind: s.kind, mediaUrl: s.media_url, consultationId: s.consultation_id, caption: s.caption, captionX: s.caption_x, captionY: s.caption_y, createdAt: s.created_at })
   }
 
   const list = [...groups.values()]

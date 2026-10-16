@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { shareCardRoute } from '@/lib/routes'
+import { relativeTime } from '@/lib/social/time'
 import type { StoryGroup } from '@/lib/social/stories'
 
 const DURATION = 5000
@@ -54,6 +55,7 @@ export function StoryViewer({ groups, startGroup, onClose }: { groups: StoryGrou
             ? <img src={group.author.avatarUrl} alt="" className="h-full w-full object-cover" /> : group.author.initials}
         </span>
         <span className="text-sm font-semibold text-white">{group.author.name}</span>
+        <span className="text-xs text-white/70">· {relativeTime(story.createdAt)}</span>
         <button onClick={onClose} className="ml-auto text-2xl leading-none text-white/80" aria-label="Fechar">×</button>
       </div>
 
@@ -64,7 +66,13 @@ export function StoryViewer({ groups, startGroup, onClose }: { groups: StoryGrou
           // eslint-disable-next-line @next/next/no-img-element
           <img src={src} alt="" className="absolute inset-0 m-auto max-h-full max-w-full object-contain" />
         )}
-        {story.caption && <p className="absolute bottom-10 left-0 right-0 px-6 text-center text-base font-medium text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">{story.caption}</p>}
+        {story.caption && (
+          story.captionX != null && story.captionY != null ? (
+            <p className="pointer-events-none absolute max-w-[80%] -translate-x-1/2 -translate-y-1/2 px-2 text-center text-base font-semibold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]" style={{ left: `${story.captionX * 100}%`, top: `${story.captionY * 100}%` }}>{story.caption}</p>
+          ) : (
+            <p className="pointer-events-none absolute bottom-10 left-0 right-0 px-6 text-center text-base font-semibold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">{story.caption}</p>
+          )
+        )}
         {/* zonas de toque: esquerda=voltar, direita=avançar */}
         <button onClick={prev} className="absolute inset-y-0 left-0 w-1/3" aria-label="Anterior" />
         <button onClick={next} className="absolute inset-y-0 right-0 w-2/3" aria-label="Próximo" />

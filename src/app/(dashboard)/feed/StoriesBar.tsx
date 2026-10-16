@@ -12,8 +12,20 @@ export function StoriesBar({ groups, myInitials, myAvatar }: { groups: StoryGrou
   const [viewing, setViewing] = useState<number | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [caption, setCaption] = useState('')
+  const [capPos, setCapPos] = useState({ x: 0.5, y: 0.72 })
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const draggingRef = useRef(false)
+
+  function moveCaption(clientX: number, clientY: number) {
+    const el = stageRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const x = Math.min(1, Math.max(0, (clientX - r.left) / r.width))
+    const y = Math.min(1, Math.max(0, (clientY - r.top) / r.height))
+    setCapPos({ x, y })
+  }
 
   async function onPick(file: File) {
     setErr(null)
@@ -42,7 +54,7 @@ export function StoriesBar({ groups, myInitials, myAvatar }: { groups: StoryGrou
       const { uploadUrl, publicUrl } = await up.json()
       const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': draft.file.type, 'x-upsert': 'true' }, body: draft.file })
       if (!put.ok) { setErr('Falha no envio.'); return }
-      const res = await fetch('/api/stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: draft.isVideo ? 'video' : 'image', mediaUrl: publicUrl, caption }) })
+      const res = await fetch('/api/stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: draft.isVideo ? 'video' : 'image', mediaUrl: publicUrl, caption, captionX: caption ? capPos.x : null, captionY: caption ? capPos.y : null }) })
       if (res.ok) { setDraft(null); router.refresh() } else setErr('Falha ao publicar.')
     } finally { setBusy(false) }
   }
@@ -80,15 +92,25 @@ export function StoriesBar({ groups, myInitials, myAvatar }: { groups: StoryGrou
       {draft && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/95 p-4">
           <button onClick={() => setDraft(null)} className="self-end text-2xl leading-none text-white/80" aria-label="Fechar">×</button>
-          <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+          <div ref={stageRef} className="relative flex flex-1 touch-none items-center justify-center overflow-hidden"
+            onPointerMove={e => { if (draggingRef.current) moveCaption(e.clientX, e.clientY) }}
+            onPointerUp={() => { draggingRef.current = false }}
+          >
             {draft.isVideo
               ? <video src={draft.url} autoPlay loop playsInline muted className="max-h-full max-w-full rounded-lg object-contain" />
               // eslint-disable-next-line @next/next/no-img-element
               : <img src={draft.url} alt="" className="max-h-full max-w-full rounded-lg object-contain" />}
-            {caption && <p className="pointer-events-none absolute bottom-6 left-0 right-0 px-6 text-center text-base font-medium text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">{caption}</p>}
+            {caption && (
+              <p
+                onPointerDown={e => { draggingRef.current = true; (e.target as HTMLElement).setPointerCapture?.(e.pointerId) }}
+                className="absolute max-w-[80%] -translate-x-1/2 -translate-y-1/2 cursor-move touch-none select-none px-2 text-center text-lg font-semibold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]"
+                style={{ left: `${capPos.x * 100}%`, top: `${capPos.y * 100}%` }}
+              >{caption}</p>
+            )}
           </div>
           <div className="mx-auto mt-3 w-full max-w-md space-y-2">
             {err && <p className="text-center text-xs text-danger">{err}</p>}
+            {caption && <p className="text-center text-[11px] text-white/50">Arraste o texto para posicionar</p>}
             <input value={caption} onChange={e => setCaption(e.target.value)} maxLength={200} placeholder="Escreva algo… 🙂 (emojis pelo teclado)" className="w-full rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/50 outline-none focus:border-white/50" />
             <button onClick={publish} disabled={busy} className="w-full rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-ink disabled:opacity-50">{busy ? 'Publicando…' : 'Publicar no story'}</button>
           </div>
