@@ -9,6 +9,7 @@ const DURATION = 5000
 export function StoryViewer({ groups, startGroup, onClose }: { groups: StoryGroup[]; startGroup: number; onClose: () => void }) {
   const [gi, setGi] = useState(startGroup)
   const [si, setSi] = useState(0)
+  const [muted, setMuted] = useState(false)
   const group = groups[gi]
   const story = group?.stories[si]
 
@@ -56,19 +57,20 @@ export function StoryViewer({ groups, startGroup, onClose }: { groups: StoryGrou
         </span>
         <span className="text-sm font-semibold text-white">{group.author.name}</span>
         <span className="text-xs text-white/70">· {relativeTime(story.createdAt)}</span>
-        <button onClick={onClose} className="ml-auto text-2xl leading-none text-white/80" aria-label="Fechar">×</button>
+        {isVideo && <button onClick={() => setMuted(m => !m)} className="ml-auto text-lg text-white/80" aria-label={muted ? 'Ativar som' : 'Mudo'}>{muted ? '🔇' : '🔊'}</button>}
+        <button onClick={onClose} className={`${isVideo ? '' : 'ml-auto'} text-2xl leading-none text-white/80`} aria-label="Fechar">×</button>
       </div>
 
       <div className="relative flex-1">
         {isVideo ? (
-          <video src={src} autoPlay playsInline onEnded={next} className="absolute inset-0 m-auto max-h-full max-w-full object-contain" />
+          <video key={src} src={src} autoPlay playsInline muted={muted} onEnded={next} className="absolute inset-0 m-auto max-h-full max-w-full object-contain" />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={src} alt="" className="absolute inset-0 m-auto max-h-full max-w-full object-contain" />
         )}
         {story.caption && (
           story.captionX != null && story.captionY != null ? (
-            <p className="pointer-events-none absolute max-w-[80%] -translate-x-1/2 -translate-y-1/2 px-2 text-center text-base font-semibold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]" style={{ left: `${story.captionX * 100}%`, top: `${story.captionY * 100}%` }}>{story.caption}</p>
+            <p className="pointer-events-none absolute max-w-[80%] -translate-x-1/2 -translate-y-1/2 px-2 text-center font-semibold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]" style={{ left: `${story.captionX * 100}%`, top: `${story.captionY * 100}%`, fontSize: `${1.125 * (story.captionScale ?? 1)}rem` }}>{story.caption}</p>
           ) : (
             <p className="pointer-events-none absolute bottom-10 left-0 right-0 px-6 text-center text-base font-semibold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">{story.caption}</p>
           )

@@ -74,6 +74,13 @@ export function PostCard({ post }: { post: FeedPost }) {
         </div>
       )}
 
+      {post.kind === 'media' && post.imageUrl && (
+        post.meta?.video
+          ? <video src={post.imageUrl} controls playsInline className="mb-3 block h-auto w-full max-w-full rounded-lg border border-border" />
+          // eslint-disable-next-line @next/next/no-img-element
+          : <img src={post.imageUrl} alt="" className="mb-3 block h-auto w-full max-w-full rounded-lg border border-border" />
+      )}
+
       {post.kind === 'quiz' && post.quiz && <QuizCard quiz={post.quiz} />}
 
       {post.body && <p className="mb-3 whitespace-pre-wrap text-sm text-ink">{post.body}</p>}

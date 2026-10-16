@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   let body: { kind?: unknown; consultationId?: unknown; rankingSnapshot?: unknown; body?: unknown; imageUrl?: unknown; meta?: unknown }
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid body' }, { status: 400 }) }
 
-  const KINDS = ['card', 'text', 'duvida', 'resenha'] as const
+  const KINDS = ['card', 'text', 'duvida', 'resenha', 'media'] as const
   const kind = (KINDS as readonly string[]).includes(body.kind as string) ? (body.kind as string) : null
   if (!kind) return NextResponse.json({ error: 'kind inválido' }, { status: 422 })
   const caption = typeof body.body === 'string' ? body.body.trim().slice(0, 500) : ''
@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
   if ((kind === 'text' || kind === 'duvida' || kind === 'resenha') && !caption) {
     return NextResponse.json({ error: 'Texto vazio' }, { status: 422 })
   }
+  if (kind === 'media' && !imageUrl) return NextResponse.json({ error: 'Mídia obrigatória' }, { status: 422 })
   if (kind === 'card' && !consultationId && !rankingSnapshot) return NextResponse.json({ error: 'Card sem referência' }, { status: 422 })
 
   if (kind === 'card' && consultationId) {
@@ -36,8 +37,8 @@ export async function POST(request: NextRequest) {
     consultation_id: kind === 'card' ? consultationId : null,
     ranking_snapshot: kind === 'card' ? rankingSnapshot : null,
     body: caption || null,
-    image_url: kind === 'resenha' ? imageUrl : null,
-    meta: kind === 'resenha' ? meta : null,
+    image_url: (kind === 'resenha' || kind === 'media') ? imageUrl : null,
+    meta: (kind === 'resenha' || kind === 'media') ? meta : null,
   }
   const db = supabase as unknown as SupabaseClient
   const { data, error } = await db.from('posts').insert(insertRow).select('id').single()

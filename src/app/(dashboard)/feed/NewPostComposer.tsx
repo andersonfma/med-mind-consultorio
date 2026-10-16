@@ -2,9 +2,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-type Mode = 'texto' | 'duvida' | 'quiz' | 'resenha'
+type Mode = 'texto' | 'midia' | 'duvida' | 'quiz' | 'resenha'
 const MODES: { key: Mode; label: string }[] = [
   { key: 'texto', label: 'Texto' },
+  { key: 'midia', label: 'Foto/Vídeo' },
   { key: 'duvida', label: 'Dúvida' },
   { key: 'quiz', label: 'Quiz' },
   { key: 'resenha', label: 'Resenha' },
@@ -21,6 +22,10 @@ export function NewPostComposer() {
 
   // texto/dúvida
   const [text, setText] = useState('')
+  // mídia (foto/vídeo da biblioteca)
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null)
+  const [mediaIsVideo, setMediaIsVideo] = useState(false)
+  const [mediaCaption, setMediaCaption] = useState('')
   // quiz
   const [prompt, setPrompt] = useState('')
   const [options, setOptions] = useState<string[]>(['', ''])
@@ -37,6 +42,21 @@ export function NewPostComposer() {
   function reset() {
     setText(''); setPrompt(''); setOptions(['', '']); setCorrect(0); setExplanation('')
     setRTitle(''); setRAuthors(''); setRSource(''); setRLink(''); setRBody(''); setCoverUrl(null); setMsg(null)
+    setMediaUrl(null); setMediaIsVideo(false); setMediaCaption('')
+  }
+
+  async function uploadMedia(file: File) {
+    setMsg(null)
+    if (file.type.startsWith('video/')) {
+      const dur = await new Promise<number>(r => { const v = document.createElement('video'); v.preload = 'metadata'; v.onloadedmetadata = () => r(v.duration); v.onerror = () => r(0); v.src = URL.createObjectURL(file) })
+      if (dur > 61) { setMsg('Vídeo de no máximo 1 minuto.'); return }
+    }
+    const res = await fetch('/api/posts/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentType: file.type }) })
+    if (!res.ok) { setMsg('Tipo de arquivo não suportado.'); return }
+    const { uploadUrl, publicUrl } = await res.json()
+    const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type, 'x-upsert': 'true' }, body: file })
+    if (!put.ok) { setMsg('Falha no envio.'); return }
+    setMediaUrl(publicUrl); setMediaIsVideo(file.type.startsWith('video/'))
   }
 
   async function uploadCover(file: File) {
@@ -64,6 +84,9 @@ export function NewPostComposer() {
         if (opts.length < 2) { setMsg('Use ao menos 2 alternativas.'); return }
         if (correct >= opts.length) { setMsg('Marque a alternativa correta.'); return }
         res = await fetch('/api/quizzes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, options: opts, correctKey: KEYS[correct], explanation }) })
+      } else if (mode === 'midia') {
+        if (!mediaUrl) { setMsg('Escolha uma foto ou vídeo.'); return }
+        res = await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'media', imageUrl: mediaUrl, body: mediaCaption, meta: { video: mediaIsVideo } }) })
       } else {
         if (!rBody.trim()) { setMsg('Escreva o resumo.'); return }
         res = await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'resenha', body: rBody, imageUrl: coverUrl, meta: { title: rTitle, authors: rAuthors, source: rSource, link: rLink } }) })
@@ -94,6 +117,24 @@ export function NewPostComposer() {
       {(mode === 'texto' || mode === 'duvida') && (
         <textarea value={text} onChange={e => setText(e.target.value)} maxLength={500} rows={3} autoFocus
           placeholder={mode === 'duvida' ? 'Qual é a sua dúvida? (quem responder primeiro em 30 min ganha MedCoin)' : 'Compartilhe algo com os colegas…'} className={`${inputCls} resize-none`} />
+      )}
+
+      {mode === 'midia' && (
+        <div className="space-y-2">
+          {!mediaUrl ? (
+            <label className="block cursor-pointer rounded-lg border border-dashed border-border bg-surface-2/40 px-3 py-6 text-center text-sm text-muted hover:border-primary/40">
+              Escolher foto ou vídeo da biblioteca
+              <input type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) void uploadMedia(f); e.target.value = '' }} />
+            </label>
+          ) : mediaIsVideo ? (
+            <video src={mediaUrl} controls playsInline className="block h-auto w-full max-w-full rounded-lg border border-border" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={mediaUrl} alt="" className="block h-auto w-full max-w-full rounded-lg border border-border" />
+          )}
+          {mediaUrl && <button onClick={() => { setMediaUrl(null); setMediaIsVideo(false) }} className="text-xs font-medium text-muted hover:text-ink">trocar mídia</button>}
+          <input value={mediaCaption} onChange={e => setMediaCaption(e.target.value)} maxLength={500} placeholder="Legenda (opcional)" className={inputCls} />
+        </div>
       )}
 
       {mode === 'quiz' && (

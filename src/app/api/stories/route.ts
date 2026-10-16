@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let body: { kind?: unknown; mediaUrl?: unknown; consultationId?: unknown; caption?: unknown; captionX?: unknown; captionY?: unknown }
+  let body: { kind?: unknown; mediaUrl?: unknown; consultationId?: unknown; caption?: unknown; captionX?: unknown; captionY?: unknown; captionScale?: unknown }
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid body' }, { status: 400 }) }
   const clamp01 = (v: unknown) => typeof v === 'number' && v >= 0 && v <= 1 ? v : null
   const kind = body.kind === 'image' || body.kind === 'video' || body.kind === 'card' ? body.kind : null
@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
     author_id: user.id, kind, media_url: (kind === 'image' || kind === 'video') ? mediaUrl : null,
     consultation_id: kind === 'card' ? consultationId : null, caption,
     caption_x: caption ? clamp01(body.captionX) : null, caption_y: caption ? clamp01(body.captionY) : null,
+    caption_scale: caption && typeof body.captionScale === 'number' ? Math.min(3, Math.max(0.5, body.captionScale)) : null,
   }).select('id').single()
   if (error || !data) return NextResponse.json({ error: 'Falha ao publicar story' }, { status: 500 })
   return NextResponse.json({ id: (data as { id: string }).id }, { status: 201 })

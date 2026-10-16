@@ -1,8 +1,8 @@
 import { displayIdentity } from './identity'
 import type { ProfileSocial } from './types'
 
-export type PostKind = 'card' | 'text' | 'quiz' | 'duvida' | 'resenha'
-export type ResenhaMeta = { title?: string; authors?: string; source?: string; link?: string }
+export type PostKind = 'card' | 'text' | 'quiz' | 'duvida' | 'resenha' | 'media'
+export type ResenhaMeta = { title?: string; authors?: string; source?: string; link?: string; video?: boolean }
 export type QuizView = { id: string; prompt: string; options: { key: string; text: string }[] }
 
 export type FeedPost = {

@@ -13,6 +13,7 @@ export function StoriesBar({ groups, myInitials, myAvatar }: { groups: StoryGrou
   const [draft, setDraft] = useState<Draft | null>(null)
   const [caption, setCaption] = useState('')
   const [capPos, setCapPos] = useState({ x: 0.5, y: 0.72 })
+  const [capScale, setCapScale] = useState(1)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -54,7 +55,7 @@ export function StoriesBar({ groups, myInitials, myAvatar }: { groups: StoryGrou
       const { uploadUrl, publicUrl } = await up.json()
       const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': draft.file.type, 'x-upsert': 'true' }, body: draft.file })
       if (!put.ok) { setErr('Falha no envio.'); return }
-      const res = await fetch('/api/stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: draft.isVideo ? 'video' : 'image', mediaUrl: publicUrl, caption, captionX: caption ? capPos.x : null, captionY: caption ? capPos.y : null }) })
+      const res = await fetch('/api/stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: draft.isVideo ? 'video' : 'image', mediaUrl: publicUrl, caption, captionX: caption ? capPos.x : null, captionY: caption ? capPos.y : null, captionScale: caption ? capScale : null }) })
       if (res.ok) { setDraft(null); router.refresh() } else setErr('Falha ao publicar.')
     } finally { setBusy(false) }
   }
@@ -103,9 +104,14 @@ export function StoriesBar({ groups, myInitials, myAvatar }: { groups: StoryGrou
             {caption && (
               <p
                 onPointerDown={e => { draggingRef.current = true; (e.target as HTMLElement).setPointerCapture?.(e.pointerId) }}
-                className="absolute max-w-[80%] -translate-x-1/2 -translate-y-1/2 cursor-move touch-none select-none px-2 text-center text-lg font-semibold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]"
-                style={{ left: `${capPos.x * 100}%`, top: `${capPos.y * 100}%` }}
+                className="absolute max-w-[80%] -translate-x-1/2 -translate-y-1/2 cursor-move touch-none select-none px-2 text-center font-semibold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]"
+                style={{ left: `${capPos.x * 100}%`, top: `${capPos.y * 100}%`, fontSize: `${1.125 * capScale}rem` }}
               >{caption}</p>
+            )}
+            {caption && (
+              <input type="range" min={0.6} max={2.6} step={0.1} value={capScale} onChange={e => setCapScale(Number(e.target.value))}
+                aria-label="Tamanho do texto"
+                className="absolute right-2 top-1/2 h-40 -translate-y-1/2 [writing-mode:vertical-lr] [direction:rtl] accent-primary" />
             )}
           </div>
           <div className="mx-auto mt-3 w-full max-w-md space-y-2">
