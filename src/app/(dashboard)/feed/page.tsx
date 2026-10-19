@@ -84,7 +84,7 @@ export default async function FeedPage() {
       <StoriesBar groups={storyGroups} myInitials={myId.initials} myAvatar={myId.avatarUrl} />
       {banner && <ChallengeBanner {...banner} />}
       <NewPostComposer />
-      <FeedList posts={feed} />
+      <FeedList posts={feed} viewerId={user.id} />
     </div>
   )
 }

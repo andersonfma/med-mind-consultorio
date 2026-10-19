@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { profileRoute, shareCardRoute } from '@/lib/routes'
 import { relativeTime } from '@/lib/social/time'
@@ -17,12 +18,24 @@ function safeHttpUrl(url: string | null | undefined): string | null {
   } catch { return null }
 }
 
-export function PostCard({ post }: { post: FeedPost }) {
+export function PostCard({ post, viewerId }: { post: FeedPost; viewerId: string }) {
+  const router = useRouter()
   const [liked, setLiked] = useState(post.likedByMe)
   const [count, setCount] = useState(post.likeCount)
   const [busy, setBusy] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [commentCount, setCommentCount] = useState(post.commentCount)
+  const [deleted, setDeleted] = useState(false)
+  const isMine = post.author.id === viewerId
+
+  async function remove() {
+    if (busy || !confirm('Apagar este post?')) return
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/posts/${post.id}`, { method: 'DELETE' })
+      if (res.ok) { setDeleted(true); router.refresh() }
+    } finally { setBusy(false) }
+  }
 
   async function toggleLike() {
     if (busy) return
@@ -36,6 +49,7 @@ export function PostCard({ post }: { post: FeedPost }) {
     } finally { setBusy(false) }
   }
 
+  if (deleted) return null
   return (
     <article className="rounded-xl border border-border bg-surface p-4">
       <header className="mb-3 flex items-center gap-3">
@@ -49,6 +63,9 @@ export function PostCard({ post }: { post: FeedPost }) {
           <span className="text-sm font-semibold text-ink">{post.author.name}</span>
         </Link>
         <span className="ml-auto text-xs text-muted">{relativeTime(post.createdAt)}</span>
+        {isMine && <button onClick={remove} disabled={busy} title="Apagar post" className="text-muted transition-colors hover:text-danger" aria-label="Apagar post">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
+        </button>}
       </header>
 
       {post.kind === 'duvida' && (

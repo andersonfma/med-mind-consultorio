@@ -47,6 +47,7 @@ export default async function DashboardPage() {
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{full_name}</h1>
           <p className="text-sm text-muted">Reputação: 0 pts</p>
+          <Link href="/resultados" className="text-xs font-medium text-primary hover:underline">Meus resultados →</Link>
         </div>
         {hasAvailableSlot(used_slots, total_slots) ? (
           <Link
