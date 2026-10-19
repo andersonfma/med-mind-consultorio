@@ -413,6 +413,43 @@
     border:1px solid var(--line);border-radius:999px;padding:9px 16px}
   .soc-chip b{color:var(--cyan);font-weight:600}
 
+  /* mock visual feed/story */
+  .soc-phone{max-width:380px;margin-inline:auto;background:linear-gradient(180deg,var(--surface),var(--ink-2));
+    border:1px solid var(--line);border-radius:22px;padding:15px;box-shadow:0 36px 90px -44px rgba(0,0,0,.95)}
+  .soc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+  .soc-top .t{font-family:var(--font-display);font-weight:700;font-size:16px}
+  .soc-top .t i{color:var(--cyan);font-style:normal}
+  .soc-top .bell{color:var(--muted)}
+  .soc-stories{display:flex;gap:13px;padding-bottom:13px;border-bottom:1px solid var(--line);overflow:hidden}
+  .soc-st{display:flex;flex-direction:column;align-items:center;gap:5px;width:54px;flex:none}
+  .soc-ring{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;
+    color:var(--fog);background:var(--surface-2);box-shadow:0 0 0 2px var(--cyan),0 0 0 4px var(--ink)}
+  .soc-ring.add{box-shadow:none;border:2px dashed var(--line-strong);color:var(--muted);position:relative}
+  .soc-ring.add::after{content:"+";position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;border-radius:50%;
+    background:var(--cyan);color:var(--cyan-ink);display:grid;place-items:center;font-size:12px;font-weight:700;box-shadow:0 0 0 2px var(--ink)}
+  .soc-st span{font-size:10px;color:var(--muted-2);max-width:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .soc-post{margin-top:13px;background:var(--ink-2);border:1px solid var(--line);border-radius:14px;padding:13px}
+  .soc-ph{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+  .soc-av{width:30px;height:30px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;font-size:11px;font-weight:700}
+  .soc-ph .n{font-size:13px;font-weight:600}
+  .soc-ph .tm{font-size:11px;color:var(--muted-2);margin-left:auto}
+  .soc-result{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .soc-result .r1{display:flex;justify-content:space-between;align-items:center}
+  .soc-result .lbl{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2)}
+  .soc-result .big{font-family:var(--font-display);font-size:22px;font-weight:700}
+  .soc-result .big em{font-size:12px;color:var(--muted-2);font-style:normal}
+  .soc-coin{font-family:var(--font-mono);font-size:11px;color:var(--cyan);border:1px solid rgba(34,224,230,.35);
+    border-radius:999px;padding:3px 10px;background:rgba(34,224,230,.07)}
+  .soc-track{height:7px;background:var(--surface-2);border-radius:999px;margin-top:10px;overflow:hidden}
+  .soc-track i{display:block;height:100%;width:84%;background:var(--cyan);border-radius:999px}
+  .soc-react{display:flex;gap:18px;margin-top:11px;font-size:12px;color:var(--muted)}
+  .soc-chal{margin-top:13px;display:flex;align-items:center;gap:11px;background:rgba(34,224,230,.06);
+    border:1px solid rgba(34,224,230,.22);border-radius:12px;padding:11px 13px}
+  .soc-chal .em{font-size:19px}
+  .soc-chal .n{font-size:13px;font-weight:600}
+  .soc-chal .s{font-size:11px;color:var(--muted-2)}
+  .soc-chal .go{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--cyan)}
+
   /* cta final */
   .final{position:relative;text-align:center;padding:96px 0}
   .final .wrap{position:relative;z-index:1}
@@ -803,11 +840,37 @@
   <!-- REDE SOCIAL -->
   <section class="band" id="rede">
     <div class="wrap">
-      <div class="sec-head">
-        <span class="kicker">Novo · Rede social</span>
-        <p class="eyebrow" style="margin-top:8px">Treinar sozinho ficou para trás</p>
-        <h2>Agora o Med Mind é também a <span style="color:var(--cyan)">rede social</span> dos estudantes de medicina.</h2>
-        <p>Compartilhe seus resultados, encare o desafio da semana e acompanhe a turma num feed com stories — tudo dentro do mesmo app em que você treina.</p>
+      <div class="feat" style="margin-bottom:56px">
+        <div>
+          <span class="kicker">Novo · Rede social</span>
+          <p class="eyebrow" style="margin-top:8px">Treinar sozinho ficou para trás</p>
+          <h2 style="font-size:clamp(28px,4vw,42px);margin-top:12px">Agora o Med Mind é também a <span style="color:var(--cyan)">rede social</span> dos estudantes de medicina.</h2>
+          <p style="margin-top:16px;color:var(--muted);font-size:17px;max-width:46ch">Compartilhe seus resultados, encare o desafio da semana e acompanhe a turma num feed com stories — tudo dentro do mesmo app em que você treina.</p>
+          <div class="hero-cta" style="margin-top:28px"><a class="btn btn-primary" href="https://app.medmindedu.com.br/register">Entrar na rede →</a></div>
+        </div>
+
+        <div class="soc-phone" role="img" aria-label="Prévia do feed e dos stories da rede Med Mind">
+          <div class="soc-top"><span class="t">Feed<i>.</i></span><svg class="bell" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+          <div class="soc-stories">
+            <div class="soc-st"><span class="soc-ring add"></span><span>Seu story</span></div>
+            <div class="soc-st"><span class="soc-ring" style="box-shadow:0 0 0 2px var(--coral),0 0 0 4px var(--ink)">FC</span><span>Fernanda</span></div>
+            <div class="soc-st"><span class="soc-ring" style="box-shadow:0 0 0 2px var(--amber),0 0 0 4px var(--ink)">LR</span><span>Lucas</span></div>
+            <div class="soc-st"><span class="soc-ring">MA</span><span>Marina</span></div>
+          </div>
+          <div class="soc-post">
+            <div class="soc-ph"><span class="soc-av">AC</span><span class="n">Ana Costa</span><span class="tm">há 12 min</span></div>
+            <div class="soc-result">
+              <div class="r1"><div><div class="lbl">Raciocínio</div><div class="big">8.4<em>/10</em></div></div><span class="soc-coin">+25 MedCoin</span></div>
+              <div class="soc-track"><i></i></div>
+            </div>
+            <div class="soc-react"><span>♥ 12</span><span>💬 3</span><span style="margin-left:auto;color:var(--cyan)">↗ Compartilhar</span></div>
+          </div>
+          <div class="soc-chal">
+            <span class="em">🎯</span>
+            <div><div class="n">Desafio de hoje · Anamnese</div><div class="s">Aposte seus MedCoins no palpite</div></div>
+            <span class="go">responder →</span>
+          </div>
+        </div>
       </div>
 
       <div class="aud">
@@ -833,10 +896,6 @@
         <span class="soc-chip"><b>Ranking</b> semanal e geral entre os estudantes</span>
         <span class="soc-chip"><b>Responda dúvidas</b> em até 30 min e ganhe MedCoins</span>
         <span class="soc-chip"><b>Notificações</b> em tempo real, no app e no celular</span>
-      </div>
-
-      <div class="hero-cta" style="margin-top:34px">
-        <a class="btn btn-primary" href="https://app.medmindedu.com.br/register">Entrar na rede →</a>
       </div>
     </div>
   </section>
