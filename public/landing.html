@@ -407,6 +407,12 @@
   .aud .card h3{font-size:18px;margin:10px 0 8px}
   .aud .card p{font-size:14.5px;color:var(--muted)}
 
+  /* chips da rede social */
+  .soc-chips{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
+  .soc-chip{font-size:13.5px;color:var(--muted);background:var(--surface);
+    border:1px solid var(--line);border-radius:999px;padding:9px 16px}
+  .soc-chip b{color:var(--cyan);font-weight:600}
+
   /* cta final */
   .final{position:relative;text-align:center;padding:96px 0}
   .final .wrap{position:relative;z-index:1}
@@ -479,6 +485,7 @@
     </a>
     <nav class="nav-links">
       <a class="link" href="#como">Como funciona</a>
+      <a class="link" href="#rede" style="color:var(--cyan)">Rede social</a>
       <a class="link" href="#ab4">Método AB4</a>
       <a class="link" href="#avaliacao">Avaliação</a>
       <a class="link" href="#especialidades">Especialidades</a>
@@ -487,8 +494,8 @@
       <a class="link" href="#contato">Contato</a>
     </nav>
     <div class="nav-cta">
-      <a class="link" href="https://med-mind-simulador.wijukr.easypanel.host/login" style="font-size:14px;color:var(--muted)">Entrar</a>
-      <a class="btn btn-primary" href="https://med-mind-simulador.wijukr.easypanel.host/register">Criar conta</a>
+      <a class="link" href="https://app.medmindedu.com.br/login" style="font-size:14px;color:var(--muted)">Entrar</a>
+      <a class="btn btn-primary" href="https://app.medmindedu.com.br/register">Criar conta</a>
     </div>
   </div>
 </header>
@@ -504,7 +511,7 @@
         <p class="lead reveal d3">Atenda pacientes virtuais com IA, conduza a consulta do início ao fim
           e receba uma avaliação do seu raciocínio diagnóstico e da sua comunicação — em nove especialidades.</p>
         <div class="hero-cta reveal d4">
-          <a class="btn btn-primary" href="https://med-mind-simulador.wijukr.easypanel.host/register">Criar conta grátis →</a>
+          <a class="btn btn-primary" href="https://app.medmindedu.com.br/register">Criar conta grátis →</a>
           <a class="btn btn-ghost" href="#como">Ver como funciona</a>
         </div>
         <div class="facts reveal d4">
@@ -793,6 +800,47 @@
     </div>
   </section>
 
+  <!-- REDE SOCIAL -->
+  <section class="band" id="rede">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">Novo · Rede social</span>
+        <p class="eyebrow" style="margin-top:8px">Treinar sozinho ficou para trás</p>
+        <h2>Agora o Med Mind é também a <span style="color:var(--cyan)">rede social</span> dos estudantes de medicina.</h2>
+        <p>Compartilhe seus resultados, encare o desafio da semana e acompanhe a turma num feed com stories — tudo dentro do mesmo app em que você treina.</p>
+      </div>
+
+      <div class="aud">
+        <div class="card">
+          <div class="k" style="color:var(--cyan)">🔗 Compartilhar</div>
+          <h3>Seus resultados viram convite</h3>
+          <p>Terminou uma consulta? Gere um card do seu desempenho e mande no WhatsApp ou Instagram. Quem recebe abre uma página pública bonita e cria a conta em um clique.</p>
+        </div>
+        <div class="card">
+          <div class="k" style="color:var(--amber)">🎯 Desafio da semana</div>
+          <h3>Um caso clínico por semana, um quiz por dia</h3>
+          <p>Clínica Médica em 5 dias — da anamnese à conduta. Responda o quiz do dia, <b style="color:var(--fog)">aposte seus MedCoins</b> no palpite e dispute o ranking. Na sexta, a conclusão e a revisão do caso.</p>
+        </div>
+        <div class="card">
+          <div class="k" style="color:var(--coral)">⚡ Feed &amp; Stories</div>
+          <h3>A turma toda num só lugar</h3>
+          <p>Poste casos, dúvidas e resenhas de artigo; publique stories de 24h com foto ou vídeo. Curta, comente e siga colegas — e receba notificações do que acontece com você.</p>
+        </div>
+      </div>
+
+      <div class="soc-chips">
+        <span class="soc-chip"><b>MedCoin</b> — moeda única: ganhe treinando e acertando o desafio</span>
+        <span class="soc-chip"><b>Ranking</b> semanal e geral entre os estudantes</span>
+        <span class="soc-chip"><b>Responda dúvidas</b> em até 30 min e ganhe MedCoins</span>
+        <span class="soc-chip"><b>Notificações</b> em tempo real, no app e no celular</span>
+      </div>
+
+      <div class="hero-cta" style="margin-top:34px">
+        <a class="btn btn-primary" href="https://app.medmindedu.com.br/register">Entrar na rede →</a>
+      </div>
+    </div>
+  </section>
+
   <!-- PÚBLICO -->
   <section class="band" id="publico">
     <div class="wrap">
@@ -898,7 +946,7 @@
       <span class="kicker">Comece hoje</span>
       <h2 style="margin-top:14px">Seu próximo paciente já está esperando.</h2>
       <p>Crie sua conta e atenda o primeiro caso agora. Sem instalação, direto no navegador.</p>
-      <a class="btn btn-primary" href="https://med-mind-simulador.wijukr.easypanel.host/register" style="font-size:16px;padding:1em 1.7em">Criar conta grátis →</a>
+      <a class="btn btn-primary" href="https://app.medmindedu.com.br/register" style="font-size:16px;padding:1em 1.7em">Criar conta grátis →</a>
     </div>
   </section>
 </main>
