@@ -428,11 +428,11 @@
   .soc-rg{width:56px;height:56px;border-radius:50%;padding:2.5px;
     background:conic-gradient(from 150deg,#22E0E6,#5AF0F4,#FFC24D,#FF6E86,#22E0E6)}
   .soc-rg.seen{background:var(--line-strong)}
-  .soc-rg.add{background:none;border:2px dashed var(--line-strong);padding:0;position:relative;display:grid;place-items:center;color:var(--muted)}
-  .soc-rg.add::after{content:"+";position:absolute;right:-1px;bottom:-1px;width:21px;height:21px;border-radius:50%;
-    background:var(--cyan);color:var(--cyan-ink);display:grid;place-items:center;font-size:14px;font-weight:700;box-shadow:0 0 0 3px #101B24}
-  .soc-rg>i{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;border:2.5px solid #0F1922;
-    color:#07141b;font-size:15px;font-weight:800;font-style:normal}
+  .soc-rg.own{background:none;padding:0;position:relative}
+  .soc-rg.own img{border:2px solid var(--line-strong)}
+  .soc-rg .addbadge{position:absolute;right:-3px;bottom:-3px;width:21px;height:21px;border-radius:50%;
+    background:var(--cyan);color:var(--cyan-ink);display:grid;place-items:center;font-size:14px;font-weight:800;box-shadow:0 0 0 3px #101B24}
+  .soc-rg img{width:100%;height:100%;border-radius:50%;object-fit:cover;border:2.5px solid #0F1922;display:block}
   .soc-st span{font-size:10.5px;color:var(--muted);max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .soc-post{margin-top:14px}
   .soc-ph{display:flex;align-items:center;gap:10px;margin-bottom:11px}
@@ -457,6 +457,15 @@
   .soc-cap{margin-top:11px;font-size:13px;color:var(--fog)}
   .soc-react{display:flex;align-items:center;gap:18px;margin-top:11px;font-size:12.5px;color:var(--muted)}
   .soc-react .sh{margin-left:auto;color:var(--cyan)}
+  .soc-react .hot{color:var(--coral)}
+  /* post de foto + comentário */
+  .soc-pimg{width:100%;border-radius:13px;display:block;aspect-ratio:1.5/1;object-fit:cover;border:1px solid var(--line)}
+  .soc-cmt{margin-top:10px;display:flex;align-items:flex-start;gap:8px}
+  .soc-cmt img{width:24px;height:24px;border-radius:50%;object-fit:cover;flex:none}
+  .soc-cmt .cb{font-size:12.5px;color:var(--fog);line-height:1.4}
+  .soc-cmt .cb b{font-weight:600}
+  .soc-cmt .cl{margin-left:auto;display:flex;align-items:center;gap:3px;font-size:11px;color:var(--muted-2);white-space:nowrap}
+  .soc-sep{height:1px;background:var(--line);margin:15px 0}
   .soc-chal{margin-top:14px;display:flex;align-items:center;gap:12px;
     background:linear-gradient(90deg,rgba(34,224,230,.10),rgba(34,224,230,.03));
     border:1px solid rgba(34,224,230,.26);border-radius:14px;padding:12px 14px}
@@ -871,15 +880,15 @@
             <svg class="soc-bell" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
           </div>
           <div class="soc-stories">
-            <div class="soc-st"><span class="soc-rg add"></span><span>Seu story</span></div>
-            <div class="soc-st"><span class="soc-rg"><i style="background:linear-gradient(140deg,#FF6E86,#FFC24D)">FC</i></span><span>Fernanda</span></div>
-            <div class="soc-st"><span class="soc-rg"><i style="background:linear-gradient(140deg,#5AF0F4,#22E0E6)">LR</i></span><span>Lucas</span></div>
-            <div class="soc-st"><span class="soc-rg"><i style="background:linear-gradient(140deg,#34E5A0,#22E0E6)">MA</i></span><span>Marina</span></div>
-            <div class="soc-st"><span class="soc-rg seen"><i style="background:linear-gradient(140deg,#8B7CF6,#FF6E86)">PH</i></span><span>Pedro</span></div>
+            <div class="soc-st"><span class="soc-rg own"><img src="https://i.pravatar.cc/112?img=5" alt=""><b class="addbadge">+</b></span><span>Seu story</span></div>
+            <div class="soc-st"><span class="soc-rg"><img src="https://i.pravatar.cc/112?img=47" alt=""></span><span>Fernanda</span></div>
+            <div class="soc-st"><span class="soc-rg"><img src="https://i.pravatar.cc/112?img=12" alt=""></span><span>Lucas</span></div>
+            <div class="soc-st"><span class="soc-rg"><img src="https://i.pravatar.cc/112?img=32" alt=""></span><span>Marina</span></div>
+            <div class="soc-st"><span class="soc-rg seen"><img src="https://i.pravatar.cc/112?img=68" alt=""></span><span>Pedro</span></div>
           </div>
           <div class="soc-post">
             <div class="soc-ph">
-              <span class="soc-av" style="background:linear-gradient(140deg,#22E0E6,#34E5A0)">AC</span>
+              <img class="soc-av" src="https://i.pravatar.cc/80?img=47" alt="">
               <div><div class="n">Ana Costa</div><div class="h">@ana.costa · Cardiologia</div></div>
               <span class="tm">há 12 min</span>
             </div>
@@ -893,8 +902,27 @@
               </div>
             </div>
             <p class="soc-cap">Fechei o caso! Que diagnóstico traiçoeiro 🫀🔥</p>
-            <div class="soc-react"><span>♥ 24</span><span>💬 6</span><span class="sh">↗ Compartilhar</span></div>
+            <div class="soc-react"><span class="hot">♥ 24</span><span>💬 6</span><span class="sh">↗ Compartilhar</span></div>
           </div>
+
+          <div class="soc-sep"></div>
+
+          <div class="soc-post">
+            <div class="soc-ph">
+              <img class="soc-av" src="https://i.pravatar.cc/80?img=12" alt="">
+              <div><div class="n">Lucas Ribeiro</div><div class="h">@lucas.rib · 5º período</div></div>
+              <span class="tm">há 40 min</span>
+            </div>
+            <img class="soc-pimg" src="https://images.unsplash.com/photo-1631815588090-d4bfec5b1ccb?auto=format&fit=crop&w=600&q=70" alt="ECG">
+            <p class="soc-cap">Alguém arrisca esse ECG? Caí numa dessas no plantão 👀</p>
+            <div class="soc-react"><span class="hot">♥ 31</span><span>💬 9</span><span class="sh">↗ Compartilhar</span></div>
+            <div class="soc-cmt">
+              <img src="https://i.pravatar.cc/60?img=32" alt="">
+              <span class="cb"><b>Marina Alves</b> Supra em parede inferior, clássico! 👏</span>
+              <span class="cl">♥ 7</span>
+            </div>
+          </div>
+
           <div class="soc-chal">
             <span class="em">🎯</span>
             <div><div class="n">Desafio de hoje · Anamnese</div><div class="s">Aposte seus MedCoins no palpite</div></div>
