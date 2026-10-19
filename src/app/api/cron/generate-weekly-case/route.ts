@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { generateAndPersistNextWeek } from '@/lib/challenge/generate'
+import { generateAndPersistForWeek, thisMonday } from '@/lib/challenge/generate'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +9,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 401 })
   }
   const admin = createAdminClient()
-  const r = await generateAndPersistNextWeek(admin, new Date())
+  // Gera o caso da SEMANA CORRENTE. A Action roda segunda 01:00 UTC → cria o caso que começa
+  // naquela segunda (dia 1 abre no mesmo dia). nextMonday deixava a semana atual vazia.
+  const r = await generateAndPersistForWeek(admin, thisMonday(new Date()))
   if (r.status === 'skipped') return NextResponse.json({ skipped: true, week_start: r.weekStart }, { status: 200 })
   if (r.status === 'genfail') return NextResponse.json({ error: 'generation failed' }, { status: 502 })
   if (r.status === 'persistfail') return NextResponse.json({ error: 'persist failed' }, { status: 500 })
