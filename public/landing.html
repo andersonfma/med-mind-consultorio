@@ -428,10 +428,10 @@
   .soc-rg{width:56px;height:56px;border-radius:50%;padding:2.5px;
     background:conic-gradient(from 150deg,#22E0E6,#5AF0F4,#FFC24D,#FF6E86,#22E0E6)}
   .soc-rg.seen{background:var(--line-strong)}
-  .soc-rg.own{background:none;padding:0;position:relative}
+  .soc-rg.own{background:none;padding:0;position:relative;overflow:visible}
   .soc-rg.own img{border:2px solid var(--line-strong)}
-  .soc-rg .addbadge{position:absolute;right:-3px;bottom:-3px;width:21px;height:21px;border-radius:50%;
-    background:var(--cyan);color:var(--cyan-ink);display:grid;place-items:center;font-size:14px;font-weight:800;box-shadow:0 0 0 3px #101B24}
+  .soc-rg .addbadge{position:absolute;right:-4px;bottom:-4px;z-index:3;width:22px;height:22px;border-radius:50%;
+    background:var(--cyan);color:var(--cyan-ink);display:grid;place-items:center;font-size:15px;font-weight:800;line-height:1;box-shadow:0 0 0 3px #101B24}
   .soc-rg img{width:100%;height:100%;border-radius:50%;object-fit:cover;border:2.5px solid #0F1922;display:block}
   .soc-st span{font-size:10.5px;color:var(--muted);max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .soc-post{margin-top:14px}
@@ -460,6 +460,11 @@
   .soc-react .hot{color:var(--coral)}
   /* post de foto + comentário */
   .soc-pimg{width:100%;border-radius:13px;display:block;aspect-ratio:1.5/1;object-fit:cover;border:1px solid var(--line)}
+  .soc-ecg{width:100%;aspect-ratio:1.7/1;border-radius:13px;border:1px solid var(--line);overflow:hidden;
+    background:repeating-linear-gradient(0deg,rgba(255,110,134,.09) 0 1px,transparent 1px 13px),
+      repeating-linear-gradient(90deg,rgba(255,110,134,.09) 0 1px,transparent 1px 13px),#0A0D11}
+  .soc-ecg svg{width:100%;height:100%;display:block}
+  .soc-ecg .tag{position:absolute;left:10px;bottom:8px;font-family:var(--font-mono);font-size:10px;color:var(--coral);opacity:.8}
   .soc-cmt{margin-top:10px;display:flex;align-items:flex-start;gap:8px}
   .soc-cmt img{width:24px;height:24px;border-radius:50%;object-fit:cover;flex:none}
   .soc-cmt .cb{font-size:12.5px;color:var(--fog);line-height:1.4}
@@ -913,8 +918,14 @@
               <div><div class="n">Lucas Ribeiro</div><div class="h">@lucas.rib · 5º período</div></div>
               <span class="tm">há 40 min</span>
             </div>
-            <img class="soc-pimg" src="https://images.unsplash.com/photo-1559757175-0eb30cd8c063?auto=format&fit=crop&w=600&q=70" alt="Traçado de ECG">
-            <p class="soc-cap">Alguém arrisca esse ECG? Caí numa dessas no plantão 👀</p>
+            <div class="soc-ecg" style="position:relative" role="img" aria-label="Traçado de ECG com fibrilação atrial">
+              <svg viewBox="0 0 300 150" preserveAspectRatio="none">
+                <polyline fill="none" stroke="#FF6E86" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"
+                  points="0,96 6,95 12,98 18,96 21,96 22,104 24,44 26,108 28,96 34,95 40,98 46,96 52,95 58,98 59,96 60,104 61,44 62,108 63,96 69,95 75,98 81,96 82,96 83,105 84,45 85,108 86,96 92,95 98,98 104,96 110,95 116,98 122,96 128,96 129,104 130,43 131,108 132,96 138,95 144,98 150,96 151,105 152,45 153,108 154,96 160,95 166,98 172,96 178,95 184,98 190,96 196,96 197,104 198,44 199,108 200,96 206,95 212,98 218,96 224,95 230,98 234,96 235,104 236,44 237,108 238,96 244,95 250,98 256,96 262,95 268,98 272,96 273,105 274,45 275,108 276,96 282,96 288,95 294,98 300,96"/>
+              </svg>
+              <span class="tag">ECG · 25 mm/s</span>
+            </div>
+            <p class="soc-cap">ECG de paciente com palpitação e pulso irregular — qual a conduta? 🤔</p>
             <div class="soc-react"><span class="hot">♥ 31</span><span>💬 9</span><span class="sh">↗ Compartilhar</span></div>
             <div class="soc-cmt">
               <img src="https://i.pravatar.cc/60?img=32" alt="">
