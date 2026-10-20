@@ -125,7 +125,26 @@ Independe de ser simulador, rede ou os dois — é uma **camada** sobre o produt
 - Gatilho de início do B2B (que métrica de tração destrava a fase 2).
 - Nome/posicionamento do plano pago (ex.: "Med Mind Pro") e do selo.
 
-## 9. Próximo passo acordado
+## 9. Visão futura (roadmap) — Modo Gestor da clínica
+
+Ideia registrada para **fase futura**, não para construir agora. Um modo de gestão estilo
+tycoon / "FIFA Manager" em que o médico administra a clínica como negócio: **caixa da clínica**,
+**despesas recorrentes** (secretária, aluguel de sala, marketing), **classificados** para
+contratar secretárias e um **mercado de salas** (alugar/comprar) para atender. A economia é movida
+pelo desempenho real no simulador — **preço das consultas e reputação do médico geram receita**;
+a reputação destrava salas melhores e pacientes mais exigentes.
+
+- **Potencial estratégico:** vira o **meta-jogo** que dá propósito econômico às consultas e
+  **unifica o MedCoin** (hoje restrito à aposta no quiz); pode ser um motor premium mais rico que
+  um selo.
+- **Requisitos antes de construir:** (1) spec próprio com **economia balanceada**
+  (receita/custos/progressão, evitar grind e evitar trivial); (2) preservar a regra
+  **anti-pay-to-win** — dinheiro real nunca compra reputação, ranking ou vantagem competitiva, só
+  conveniência/cosmético; (3) só após **validar a conversão premium** do loop atual.
+- **Gatilho para iniciar:** premium validado + tração de retenção. Quando chegar a hora, passa
+  pelo brainstorming → spec antes de qualquer código.
+
+## 10. Próximo passo acordado
 Revisar este plano. Em seguida, implementar o **selo premium manual** (flag `is_premium` + botão
 no /admin), **sem cobrança e sem gate de vídeo por ora** — apenas para marcar quem é premium e
 validar a demanda. O gate de vídeo no feed fica adiado (fundador tirou do escopo imediato). Só
