@@ -58,7 +58,7 @@ compartilhamento (viralidade), DAU/retorno D1 (hábito), e taxa grátis→pago (
 ### 4.2 O que o Premium vende (profundidade e conveniência, "acima" da linha grátis)
 O premium **não** cobra acesso básico; cobra por tirar limites e aprofundar:
 - **Consultas ilimitadas** no simulador (acima do teto do grátis) + histórico longitudinal completo.
-- **Vídeo no feed** (post de vídeo) — gate premium (story de vídeo permanece livre; já decidido).
+- **Vídeo no feed** (post de vídeo) — gate premium candidato, **adiado** (story de vídeo livre).
 - **Recursos avançados candidatos** (a validar): relatórios de evolução (radar AB4 ao longo do
   tempo, pontos fracos), modos/especialidades extras ou casos "hard" ilimitados, flashcards/
   banco de estudo dirigido, destaque de perfil, **selo ✦ Premium**.
@@ -126,6 +126,7 @@ Independe de ser simulador, rede ou os dois — é uma **camada** sobre o produt
 - Nome/posicionamento do plano pago (ex.: "Med Mind Pro") e do selo.
 
 ## 9. Próximo passo acordado
-Revisar este plano. Em seguida, implementar o **selo premium manual + gate de vídeo no feed**
-(story de vídeo livre) — sem cobrança —, e só depois desenhar a fatia de pagamento já alinhada a
-esta estratégia.
+Revisar este plano. Em seguida, implementar o **selo premium manual** (flag `is_premium` + botão
+no /admin), **sem cobrança e sem gate de vídeo por ora** — apenas para marcar quem é premium e
+validar a demanda. O gate de vídeo no feed fica adiado (fundador tirou do escopo imediato). Só
+depois desenhar a fatia de pagamento já alinhada a esta estratégia.
