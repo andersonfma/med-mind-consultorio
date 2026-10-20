@@ -23,14 +23,23 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
   }
   const action = (body as Record<string, unknown>)?.action
+  const { id } = await params
+  const admin = createAdminClient()
+
+  // Selo premium manual (sem cobrança): liga/desliga profiles.is_premium.
+  if (action === 'premium' || action === 'unpremium') {
+    const is_premium = action === 'premium'
+    const { error } = await admin.from('profiles').update({ is_premium } as never).eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, is_premium })
+  }
+
   if (action !== 'block' && action !== 'unblock')
     return NextResponse.json({ error: 'Ação inválida' }, { status: 400 })
 
-  const { id } = await params
   if (id === user.id)
     return NextResponse.json({ error: 'Você não pode bloquear a si mesmo' }, { status: 400 })
 
-  const admin = createAdminClient()
   // '876000h' ≈ 100 anos (bloqueio efetivo); 'none' remove o ban.
   const ban_duration = action === 'block' ? '876000h' : 'none'
   const { error } = await admin.auth.admin.updateUserById(id, { ban_duration } as { ban_duration: string })

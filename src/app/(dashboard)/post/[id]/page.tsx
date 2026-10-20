@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { LOGIN_ROUTE, shareCardRoute } from '@/lib/routes'
 import { displayIdentity } from '@/lib/social/identity'
+import { PremiumBadge } from '@/components/social/PremiumBadge'
 import { relativeTime } from '@/lib/social/time'
 import type { ProfileSocial } from '@/lib/social/types'
 import { CommentComposer } from './CommentComposer'
@@ -24,8 +25,9 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   if (!p) notFound()
 
   const admin = createAdminClient()
-  const { data: authorRow } = await admin.from('profiles').select('id, identity_mode, handle, display_name, avatar_url, bio, is_private, leaderboard_alias, full_name').eq('id', p.author_id).single()
-  const authorId = displayIdentity(authorRow as ProfileSocial)
+  const { data: authorRow } = await admin.from('profiles').select('id, identity_mode, handle, display_name, avatar_url, bio, is_private, leaderboard_alias, full_name, is_premium').eq('id', p.author_id).single()
+  const authorProfile = authorRow as ProfileSocial
+  const authorId = displayIdentity(authorProfile)
 
   const { data: rawComments } = await db.from('comments').select('id, author_id, body, created_at').eq('post_id', id).is('hidden_at', null).order('created_at', { ascending: true })
   const comments = (rawComments ?? []) as Array<{ id: string; author_id: string; body: string; created_at: string }>
@@ -37,7 +39,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
     <div className="mx-auto max-w-xl space-y-5">
       <article className="rounded-xl border border-border bg-surface p-4">
         <header className="mb-3 flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-ink">{authorId.name}</span>
+          <span className="flex items-center gap-1 text-sm font-semibold text-ink">{authorId.name}{authorProfile.is_premium && <PremiumBadge />}</span>
           <span className="ml-auto text-xs text-muted">{relativeTime(p.created_at)}</span>
           <ReportMenu targetType="post" targetId={p.id} />
         </header>

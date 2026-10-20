@@ -30,7 +30,7 @@ export default async function FeedPage() {
   const ids = posts.map(p => p.id)
 
   const [{ data: profs }, { data: likes }, { data: myLikes }, { data: comments }] = await Promise.all([
-    admin.from('profiles').select('id, identity_mode, handle, display_name, avatar_url, bio, is_private, leaderboard_alias, full_name').in('id', authorIds.length ? authorIds : ['_']),
+    admin.from('profiles').select('id, identity_mode, handle, display_name, avatar_url, bio, is_private, leaderboard_alias, full_name, is_premium').in('id', authorIds.length ? authorIds : ['_']),
     admin.from('post_reactions').select('post_id').in('post_id', ids.length ? ids : ['_']),
     db.from('post_reactions').select('post_id').eq('user_id', user.id).in('post_id', ids.length ? ids : ['_']),
     admin.from('comments').select('post_id').is('hidden_at', null).in('post_id', ids.length ? ids : ['_']),

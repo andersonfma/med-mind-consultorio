@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { LOGIN_ROUTE, postRoute, shareCardRoute } from '@/lib/routes'
 import { displayIdentity } from '@/lib/social/identity'
+import { PremiumBadge } from '@/components/social/PremiumBadge'
 import type { ProfileSocial } from '@/lib/social/types'
 import { FollowButton } from './FollowButton'
 import { ProfileActions } from './ProfileActions'
@@ -19,7 +20,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
 
   const admin = createAdminClient()
   const { data: prof } = await admin.from('profiles')
-    .select('id, identity_mode, handle, display_name, avatar_url, bio, is_private, leaderboard_alias, full_name')
+    .select('id, identity_mode, handle, display_name, avatar_url, bio, is_private, leaderboard_alias, full_name, is_premium')
     .eq('handle', handle).single()
   const profile = prof as ProfileSocial | null
   if (!profile) notFound()
@@ -46,7 +47,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
             ? <img src={id.avatarUrl} alt="" className="h-full w-full object-cover" /> : id.initials}
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="font-display text-xl font-bold text-ink">{id.name}</h1>
+          <h1 className="flex items-center gap-1.5 font-display text-xl font-bold text-ink">{id.name}{profile.is_premium && <PremiumBadge />}</h1>
           {profile.handle && <p className="text-sm text-muted">@{profile.handle}</p>}
           {profile.bio && <p className="mt-1 text-sm text-ink">{profile.bio}</p>}
           <p className="mt-1 text-xs text-muted tabular-nums">{followers ?? 0} seguidores · {following ?? 0} seguindo</p>

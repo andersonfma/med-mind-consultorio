@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { PremiumBadge } from '@/components/social/PremiumBadge'
 import { profileRoute, shareCardRoute } from '@/lib/routes'
 import { relativeTime } from '@/lib/social/time'
 import type { FeedPost } from '@/lib/social/feed'
@@ -60,7 +61,7 @@ export function PostCard({ post, viewerId }: { post: FeedPost; viewerId: string 
               ? <img src={post.author.avatarUrl} alt="" className="h-full w-full object-cover" />
               : post.author.initials}
           </span>
-          <span className="text-sm font-semibold text-ink">{post.author.name}</span>
+          <span className="flex items-center gap-1 text-sm font-semibold text-ink">{post.author.name}{post.author.isPremium && <PremiumBadge />}</span>
         </Link>
         <span className="ml-auto text-xs text-muted">{relativeTime(post.createdAt)}</span>
         {isMine && <button onClick={remove} disabled={busy} title="Apagar post" className="text-muted transition-colors hover:text-danger" aria-label="Apagar post">

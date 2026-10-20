@@ -9,6 +9,8 @@ import { ab4Averages, commAverages, ab4Of, commOf, type ConsultRow } from '@/lib
 import { AxisBars } from '@/components/admin/AxisBars'
 import { DistBars } from '@/components/admin/DistBars'
 import { BlockButton } from '@/components/admin/BlockButton'
+import { PremiumButton } from '@/components/admin/PremiumButton'
+import { PremiumBadge } from '@/components/social/PremiumBadge'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +32,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
 
   const [target, profileRes, patientsRes, consultationsRes, examsRes, rxRes] = await Promise.all([
     admin.auth.admin.getUserById(id),
-    admin.from('profiles').select('full_name, ai_calls_used, ai_calls_limit, ai_period_start').eq('id', id).single(),
+    admin.from('profiles').select('full_name, ai_calls_used, ai_calls_limit, ai_period_start, is_premium').eq('id', id).single(),
     admin.from('patients').select('id, name, specialty, diagnosis_status').eq('user_id', id),
     admin
       .from('consultations')
@@ -46,7 +48,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
     | undefined
   if (!au) notFound()
 
-  const prof = (profileRes.data ?? null) as { full_name: string | null; ai_calls_used: number | null; ai_calls_limit: number | null } | null
+  const prof = (profileRes.data ?? null) as { full_name: string | null; ai_calls_used: number | null; ai_calls_limit: number | null; is_premium: boolean | null } | null
   const patients = (patientsRes.data ?? []) as Array<{ id: string; name: string; specialty: string; diagnosis_status: string }>
   const consultations = (consultationsRes.data ?? []) as (ConsultRow & { patient_id: string })[]
   const exams = (examsRes.data ?? []) as Array<{ status: string; exam_name: string; attempts: number | null }>
@@ -107,6 +109,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
         <div>
           <div className="flex items-center gap-3">
             <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{prof?.full_name ?? '—'}</h1>
+            {prof?.is_premium && <PremiumBadge label />}
             {blocked ? (
               <span className="rounded-full border border-danger/40 bg-danger/10 px-2.5 py-0.5 text-xs font-semibold text-danger">Bloqueado</span>
             ) : (
@@ -118,7 +121,10 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
             Cadastro {fmt(au.created_at)} · último acesso {fmt(au.last_sign_in_at)} · IA {prof?.ai_calls_used ?? 0}/{prof?.ai_calls_limit ?? 0}
           </p>
         </div>
-        <BlockButton userId={au.id} blocked={blocked} variant="md" />
+        <div className="flex flex-col items-end gap-2">
+          <PremiumButton userId={au.id} premium={!!prof?.is_premium} />
+          <BlockButton userId={au.id} blocked={blocked} variant="md" />
+        </div>
       </header>
 
       {/* Resumo */}

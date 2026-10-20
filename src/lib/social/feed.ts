@@ -7,7 +7,7 @@ export type QuizView = { id: string; prompt: string; options: { key: string; tex
 
 export type FeedPost = {
   id: string
-  author: { id: string; handle: string | null; name: string; initials: string; avatarUrl: string | null }
+  author: { id: string; handle: string | null; name: string; initials: string; avatarUrl: string | null; isPremium: boolean }
   kind: PostKind
   consultationId: string | null
   rankingSnapshot: unknown
@@ -39,7 +39,7 @@ export function buildFeedPosts(
     const id = p ? displayIdentity(p) : { name: 'Aluno', avatarUrl: null, initials: 'A' }
     return {
       id: r.id,
-      author: { id: r.author_id, handle: p?.handle ?? null, name: id.name, initials: id.initials, avatarUrl: id.avatarUrl },
+      author: { id: r.author_id, handle: p?.handle ?? null, name: id.name, initials: id.initials, avatarUrl: id.avatarUrl, isPremium: !!p?.is_premium },
       kind: r.kind,
       consultationId: r.consultation_id,
       rankingSnapshot: r.ranking_snapshot,

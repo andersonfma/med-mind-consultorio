@@ -8,6 +8,7 @@ export type ProfileSocial = {
   is_private: boolean
   leaderboard_alias: string | null
   full_name: string | null
+  is_premium?: boolean | null
 }
 
 export type PostKind = 'card' | 'text'
