@@ -117,6 +117,16 @@ export async function POST(request: NextRequest) {
   if (rpcError) {
     if (rpcError.code === 'US001')
       return NextResponse.json({ error: 'No slots available' }, { status: 409 }) // Fix 5: 403 → 409
+    if (rpcError.code === 'US011')
+      return NextResponse.json(
+        { error: 'free_case_limit', message: 'Você atingiu o limite de 5 casos por mês do plano grátis. Assine o premium para casos ilimitados.' },
+        { status: 403 },
+      )
+    if (rpcError.code === 'US012')
+      return NextResponse.json(
+        { error: 'specialty_locked', message: 'Esta especialidade não está no seu plano grátis (até 2). Troque suas especialidades no perfil ou assine o premium para liberar todas.' },
+        { status: 403 },
+      )
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 

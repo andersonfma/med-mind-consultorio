@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { SPECIALTIES } from '@/lib/patients/specialties'
 import type { Specialty, Difficulty } from '@/lib/patients/specialties'
 import { diseaseSuggestions } from '@/lib/patients/diseases'
@@ -8,8 +9,22 @@ import { patientDetailRoute } from '@/lib/routes'
 
 type Mode = 'specialty' | 'disease'
 
-export function NewPatientForm() {
+export function NewPatientForm({
+  isPremium = true,
+  freeSpecialties = [],
+  monthlyUsed = 0,
+  monthlyCap = 5,
+}: {
+  isPremium?: boolean
+  freeSpecialties?: string[]
+  monthlyUsed?: number
+  monthlyCap?: number
+}) {
   const router = useRouter()
+  // Grátis com 2 especialidades já definidas → as demais ficam travadas (premium libera todas).
+  const setLocked = !isPremium && freeSpecialties.length >= 2
+  const isLocked = (s: string) => setLocked && !freeSpecialties.includes(s)
+  const atCap = !isPremium && monthlyUsed >= monthlyCap
   const [mode, setMode] = useState<Mode>('specialty')
   const [specialty, setSpecialty] = useState<Specialty | ''>('')
   const [difficulty, setDifficulty] = useState<Difficulty | ''>('')
@@ -19,7 +34,7 @@ export function NewPatientForm() {
   const [loading, setLoading] = useState(false)
 
   const suggestions = specialty ? diseaseSuggestions(specialty as Specialty, disease) : []
-  const canSubmit = !!specialty && !!difficulty && (mode === 'specialty' || !!disease.trim())
+  const canSubmit = !!specialty && !!difficulty && !isLocked(specialty) && !atCap && (mode === 'specialty' || !!disease.trim())
 
   async function handleSubmit() {
     if (!canSubmit || loading) return
@@ -63,7 +78,27 @@ export function NewPatientForm() {
 
   return (
     <div className="p-6 max-w-md mx-auto">
-      <h1 className="font-display text-xl font-bold text-ink mb-5">Novo paciente</h1>
+      <h1 className="font-display text-xl font-bold text-ink mb-2">Novo paciente</h1>
+
+      {isPremium ? (
+        <p className="mb-5 text-xs font-medium" style={{ color: '#E7B23A' }}>✦ Premium · todas as especialidades, casos ilimitados</p>
+      ) : (
+        <div className="mb-5 space-y-1">
+          <p className={`text-xs font-medium ${atCap ? 'text-danger' : 'text-muted'}`}>
+            Plano grátis · casos este mês: {monthlyUsed}/{monthlyCap}
+          </p>
+          <p className="text-xs text-muted">
+            {freeSpecialties.length >= 2
+              ? <>Suas especialidades: {freeSpecialties.join(' · ')}. <Link href="/perfil/editar" className="text-primary hover:underline">Trocar</Link></>
+              : <>Você pode usar até 2 especialidades no grátis.</>}
+          </p>
+          {atCap && (
+            <p className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
+              Limite mensal atingido. Assine o premium para casos ilimitados.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Modo */}
       <div className="flex gap-2 mb-5">
@@ -81,8 +116,13 @@ export function NewPatientForm() {
             className="w-full bg-surface-2 text-ink border border-border rounded-md p-2 text-sm focus:outline-none focus:border-primary"
           >
             <option value="">Selecione...</option>
-            {SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}
+            {SPECIALTIES.map((s) => (
+              <option key={s} value={s} disabled={isLocked(s)}>{s}{isLocked(s) ? ' 🔒 Premium' : ''}</option>
+            ))}
           </select>
+          {specialty && isLocked(specialty) && (
+            <p className="mt-1 text-xs text-danger">Especialidade premium. Troque suas 2 no perfil ou assine o premium.</p>
+          )}
         </div>
 
         {mode === 'disease' && (

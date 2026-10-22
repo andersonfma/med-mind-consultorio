@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { withClockSkewRetry } from '@/lib/supabase/retry'
 import { LOGIN_ROUTE, patientDetailRoute } from '@/lib/routes'
-import { hasAvailableSlot } from '@/lib/patients/slots'
 import { BondBar } from '@/components/ui/BondBar'
 import { VolumeChart } from '@/components/charts/VolumeChart'
 import { ScoresChart } from '@/components/charts/ScoresChart'
@@ -21,7 +20,7 @@ export default async function DashboardPage() {
       supabase.from('patients').select('*', { count: 'exact' }).order('created_at', { ascending: false }),
     ),
     withClockSkewRetry(() =>
-      supabase.from('profiles').select('total_slots, full_name').eq('id', user.id).single(),
+      supabase.from('profiles').select('is_premium, full_name').eq('id', user.id).single(),
     ),
   ])
 
@@ -33,8 +32,11 @@ export default async function DashboardPage() {
   }
 
   const patients = patientsResult.data ?? []
-  const { total_slots, full_name } = profileResult.data
-  const used_slots = patientsResult.count ?? patients.length
+  const { is_premium, full_name } = profileResult.data as unknown as { is_premium: boolean | null; full_name: string | null }
+  const MONTHLY_CAP = 5
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
+  const monthlyUsed = patients.filter((p) => Date.parse(p.created_at) >= cutoff).length
+  const canCreate = !!is_premium || monthlyUsed < MONTHLY_CAP
 
   const [radar, charts] = await Promise.all([
     getRadarData(supabase, user.id),
@@ -49,7 +51,7 @@ export default async function DashboardPage() {
           <p className="text-sm text-muted">Reputação: 0 pts</p>
           <Link href="/resultados" className="text-xs font-medium text-primary hover:underline">Meus resultados →</Link>
         </div>
-        {hasAvailableSlot(used_slots, total_slots) ? (
+        {canCreate ? (
           <Link
             href="/patients/new"
             className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-glow-primary)] transition-colors hover:bg-primary-hover"
@@ -59,7 +61,7 @@ export default async function DashboardPage() {
         ) : (
           <button
             disabled
-            title="Aumente sua reputação para desbloquear novos pacientes"
+            title="Limite mensal do plano grátis atingido. Assine o premium para casos ilimitados."
             className="inline-flex cursor-not-allowed items-center rounded-md border border-border bg-surface-2 px-4 py-2 text-sm font-semibold text-muted"
           >
             Novo paciente
@@ -70,7 +72,9 @@ export default async function DashboardPage() {
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="w-full lg:w-2/5">
           <p className="text-sm text-muted mb-3">
-            {used_slots} / {total_slots} slots utilizados
+            {is_premium
+              ? <span style={{ color: '#E7B23A' }}>✦ Premium · casos ilimitados</span>
+              : <>Casos este mês: {monthlyUsed} / {MONTHLY_CAP}</>}
           </p>
           {patients.length === 0 ? (
             <p className="text-muted text-sm">Nenhum paciente ainda.</p>

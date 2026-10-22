@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { LOGIN_ROUTE, DASHBOARD_ROUTE } from '@/lib/routes'
+import { LOGIN_ROUTE } from '@/lib/routes'
 import { NewPatientForm } from './NewPatientForm'
 
 export default async function Page() {
@@ -8,19 +8,24 @@ export default async function Page() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(LOGIN_ROUTE)
 
-  const [patientsCount, profileResult] = await Promise.all([
-    supabase.from('patients').select('*', { count: 'exact', head: true }),
-    supabase.from('profiles').select('total_slots').eq('id', user.id).single(),
+  const MONTHLY_CAP = 5
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const [monthly, profileResult] = await Promise.all([
+    supabase.from('patients').select('*', { count: 'exact', head: true }).gte('created_at', since),
+    supabase.from('profiles').select('is_premium, free_specialties').eq('id', user.id).single(),
   ])
 
   if (profileResult.error) throw profileResult.error
   if (!profileResult.data) throw new Error('Profile not found')
 
-  const count = patientsCount.count ?? 0
+  const prof = profileResult.data as unknown as { is_premium: boolean | null; free_specialties: string[] | null }
 
-  if (count >= profileResult.data.total_slots) {
-    redirect(DASHBOARD_ROUTE)
-  }
-
-  return <NewPatientForm />
+  return (
+    <NewPatientForm
+      isPremium={!!prof.is_premium}
+      freeSpecialties={prof.free_specialties ?? []}
+      monthlyUsed={monthly.count ?? 0}
+      monthlyCap={MONTHLY_CAP}
+    />
+  )
 }

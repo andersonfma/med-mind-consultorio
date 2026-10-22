@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isValidHandle } from '@/lib/social/identity'
+import { SPECIALTIES } from '@/lib/patients/specialties'
 
 export async function PATCH(request: NextRequest) {
   const supabase = await createClient()
@@ -20,6 +21,11 @@ export async function PATCH(request: NextRequest) {
     const h = body.handle.trim().toLowerCase()
     if (!isValidHandle(h)) return NextResponse.json({ error: 'Invalid handle' }, { status: 422 })
     patch.handle = h
+  }
+  if (Array.isArray(body.free_specialties)) {
+    const valid = (SPECIALTIES as readonly string[])
+    const set = [...new Set((body.free_specialties as unknown[]).filter((s): s is string => typeof s === 'string' && valid.includes(s)))].slice(0, 2)
+    patch.free_specialties = set
   }
   if (Object.keys(patch).length === 0) return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
 
