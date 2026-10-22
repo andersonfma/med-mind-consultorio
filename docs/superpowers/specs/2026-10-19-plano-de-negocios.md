@@ -62,6 +62,11 @@ O premium **não** cobra acesso básico; cobra por tirar limites e aprofundar:
 - **Recursos avançados candidatos** (a validar): relatórios de evolução (radar AB4 ao longo do
   tempo, pontos fracos), modos/especialidades extras ou casos "hard" ilimitados, flashcards/
   banco de estudo dirigido, destaque de perfil, **selo ✦ Premium**.
+- **Simulados ENAMED/ENARE por IA** (recurso do ecossistema, premium): simulados gerados por IA
+  "nos moldes" das provas (análise de estrutura/temas → questões ORIGINAIS) + **relatório de
+  tendências**. Diferencial = fidelidade à estrutura real da prova. SEM reprodução de questões
+  reais verbatim (direito autoral do INEP/ENARE) — provas reais só como insumo de análise.
+  Requer design curto + entender o formato real das provas antes de codar.
 - **Regra anti-pay-to-win:** o premium NÃO compra posição no ranking nem MedCoin de aposta —
   ranking e desafio seguem meritocráticos. Premium é profundidade pedagógica + conveniência +
   status, nunca vantagem competitiva no jogo.
