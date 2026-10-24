@@ -65,9 +65,9 @@ export default async function FeedPage() {
 
   // Resumo do desafio de hoje para o banner
   const challenge = await getChallengeToday(admin, user.id, new Date().toISOString().slice(0, 10))
-  const todayDay = challenge.days.find(d => d.dayIndex === challenge.todayDayIndex) ?? null
+  const todayDay = challenge.days.find(d => d.dayIndex === challenge.todayDayIndex) ?? challenge.days[challenge.days.length - 1] ?? null
   const banner = challenge.case && todayDay
-    ? { title: challenge.case.title, stage: todayDay.stage, answered: !!todayDay.answered, streak: challenge.streak }
+    ? { title: challenge.case.title, stage: todayDay.stage, answered: !!todayDay.answered, streak: challenge.streak, isToday: challenge.todayDayIndex != null }
     : null
 
   // Stories ativos + identidade do próprio (para o botão "seu story")

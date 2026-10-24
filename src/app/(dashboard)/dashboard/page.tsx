@@ -47,9 +47,10 @@ export default async function DashboardPage() {
     getDashboardCharts(supabase, user.id),
     getChallengeToday(admin, user.id, new Date().toISOString().slice(0, 10)),
   ])
-  const todayDay = challenge.days.find((d) => d.dayIndex === challenge.todayDayIndex) ?? null
+  // Dia de hoje; no fim de semana / entre-casos, cai no último dia revelado (revisar) em vez de sumir.
+  const todayDay = challenge.days.find((d) => d.dayIndex === challenge.todayDayIndex) ?? challenge.days[challenge.days.length - 1] ?? null
   const challengeBanner = challenge.case && todayDay
-    ? { title: challenge.case.title, stage: todayDay.stage, answered: !!todayDay.answered, streak: challenge.streak }
+    ? { title: challenge.case.title, stage: todayDay.stage, answered: !!todayDay.answered, streak: challenge.streak, isToday: challenge.todayDayIndex != null }
     : null
 
   return (

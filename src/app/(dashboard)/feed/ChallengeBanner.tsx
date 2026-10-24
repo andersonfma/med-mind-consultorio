@@ -6,7 +6,7 @@ const STAGE_LABEL: Record<string, string> = {
   conduta: 'Conduta', conclusao: 'Conclusão',
 }
 
-export function ChallengeBanner({ title, stage, answered, streak }: { title: string; stage: string; answered: boolean; streak: number }) {
+export function ChallengeBanner({ title, stage, answered, streak, isToday = true }: { title: string; stage: string; answered: boolean; streak: number; isToday?: boolean }) {
   return (
     <Link
       href={CHALLENGE_ROUTE}
@@ -14,11 +14,11 @@ export function ChallengeBanner({ title, stage, answered, streak }: { title: str
     >
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/15 text-lg">🎯</span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-ink">Desafio de hoje · {STAGE_LABEL[stage] ?? stage}</p>
+        <p className="text-sm font-semibold text-ink">{isToday ? 'Desafio de hoje' : 'Caso da semana'} · {STAGE_LABEL[stage] ?? stage}</p>
         <p className="truncate text-xs text-muted">{title}</p>
       </div>
       <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${answered ? 'bg-success/15 text-success' : 'bg-primary text-primary-ink'}`}>
-        {answered ? `✓ feito · 🔥${streak}` : 'Responder'}
+        {answered ? `✓ feito · 🔥${streak}` : (isToday ? 'Responder' : 'Revisar')}
       </span>
     </Link>
   )
