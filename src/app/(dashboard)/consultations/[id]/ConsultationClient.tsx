@@ -5,6 +5,7 @@ import { ConsultationChat } from './ConsultationChat'
 import { AnamnesisPanel } from './AnamnesisPanel'
 import { ClinicalReasoningField } from './ClinicalReasoningField'
 import { FinishModal } from './FinishModal'
+import { ConsultationGuide } from './ConsultationGuide'
 import { PhysicalExamPanel } from './PhysicalExamPanel'
 import { ExamRequestPanel } from './ExamRequestPanel'
 import { PrescriptionPanel } from './PrescriptionPanel'
@@ -143,6 +144,17 @@ export function ConsultationClient({ consultation, patient, previousExamResults,
           Finalizar<span className="hidden sm:inline"> consulta</span>
         </button>
       </div>
+
+      {/* Guia de conclusão (onboarding) */}
+      <ConsultationGuide
+        steps={[
+          { label: 'Converse com o paciente', done: anamneseHas || messages.length > 1 },
+          { label: 'Exame físico', done: exameHas },
+          { label: 'Peça exames', done: examesCount > 0 },
+          { label: 'Defina a conduta', done: condutaCount > 0 },
+          ...(diagnosisClosed ? [] : [{ label: 'Escreva seu raciocínio', done: reasoningHas }]),
+        ]}
+      />
 
       {/* Corpo: mobile = um painel por vez; md+ = dois painéis */}
       <div className="flex-1 min-h-0 flex md:grid md:grid-cols-[minmax(340px,400px)_1fr]">
