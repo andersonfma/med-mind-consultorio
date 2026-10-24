@@ -1,0 +1,12 @@
+name: Push diário do desafio
+on:
+  schedule:
+    - cron: "0 12 * * 1-5"
+  workflow_dispatch:
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar push do desafio
+        run: |
+          curl -fsS -X POST "${{ secrets.APP_URL }}/api/cron/daily-challenge-push" -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
