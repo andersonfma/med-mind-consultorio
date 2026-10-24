@@ -54,20 +54,23 @@ export default async function AdminPage() {
 
   const admin = createAdminClient()
 
-  const [usersRes, profilesRes, patientsRes, consultationsRes, examsRes, rxRes] = await Promise.all([
+  const [usersRes, profilesRes, patientsRes, consultationsRes, examsRes, rxRes, interestRes] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
-    admin.from('profiles').select('id, full_name, ai_calls_used, ai_calls_limit'),
+    admin.from('profiles').select('id, full_name, ai_calls_used, ai_calls_limit, is_premium'),
     admin.from('patients').select('user_id, specialty, created_at, diagnosis_status'),
     admin.from('consultations').select('user_id, status, created_at, finished_at, ab4_score, communication_score'),
     admin.from('exam_requests').select('user_id, status, exam_name, attempts'),
     admin.from('prescriptions').select('user_id, adequacy'),
+    admin.from('premium_interest').select('user_id', { count: 'exact', head: true }),
   ])
 
   type AuthUser = { id: string; email?: string; created_at?: string; last_sign_in_at?: string | null; banned_until?: string | null }
   const authUsers = (usersRes.data?.users ?? []) as AuthUser[]
   const profiles = (profilesRes.data ?? []) as Array<{
-    id: string; full_name: string | null; ai_calls_used: number | null; ai_calls_limit: number | null
+    id: string; full_name: string | null; ai_calls_used: number | null; ai_calls_limit: number | null; is_premium: boolean | null
   }>
+  const premiumCount = profiles.filter((p) => p.is_premium).length
+  const interestCount = interestRes.count ?? 0
   const patients = (patientsRes.data ?? []) as Array<{ user_id: string; specialty: string; created_at: string; diagnosis_status: string }>
   const consultations = (consultationsRes.data ?? []) as ConsultRow[]
   const exams = (examsRes.data ?? []) as Array<{ user_id: string; status: string; exam_name: string; attempts: number | null }>
@@ -181,6 +184,9 @@ export default async function AdminPage() {
         <StatCard label="Pacientes criados" value={totalPatients} />
         <StatCard label="Consultas" value={totalConsults} sub={`${finished} finalizadas`} />
         <StatCard label="Taxa de conclusão" value={`${completion}%`} sub="consultas finalizadas" />
+        <StatCard label="Premium (selo)" value={premiumCount} sub={`${pct(premiumCount, totalUsers)}% dos alunos`} />
+        <StatCard label="Interesse no Premium" value={interestCount} sub="clicaram em 'Tenho interesse'" accent />
+        <StatCard label="Potencial de conversão" value={`${pct(interestCount, totalUsers)}%`} sub="interessados / alunos" />
       </div>
 
       {/* Moderação — fila de denúncias */}

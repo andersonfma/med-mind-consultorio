@@ -94,7 +94,7 @@ export function NewPatientForm({
           </p>
           {atCap && (
             <p className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
-              Limite mensal atingido. Assine o premium para casos ilimitados.
+              Limite mensal atingido. <Link href="/premium" className="font-semibold underline">Seja Premium ✦</Link> para casos ilimitados.
             </p>
           )}
         </div>
@@ -121,7 +121,7 @@ export function NewPatientForm({
             ))}
           </select>
           {specialty && isLocked(specialty) && (
-            <p className="mt-1 text-xs text-danger">Especialidade premium. Troque suas 2 no perfil ou assine o premium.</p>
+            <p className="mt-1 text-xs text-danger">Especialidade premium. Troque suas 2 no <Link href="/perfil/editar" className="underline">perfil</Link> ou <Link href="/premium" className="font-semibold underline">seja Premium ✦</Link>.</p>
           )}
         </div>
 

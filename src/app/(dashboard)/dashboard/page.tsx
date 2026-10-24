@@ -74,7 +74,7 @@ export default async function DashboardPage() {
           <p className="text-sm text-muted mb-3">
             {is_premium
               ? <span style={{ color: '#E7B23A' }}>✦ Premium · casos ilimitados</span>
-              : <>Casos este mês: {monthlyUsed} / {MONTHLY_CAP}</>}
+              : <>Casos este mês: {monthlyUsed} / {MONTHLY_CAP} · <Link href="/premium" className="font-medium" style={{ color: '#E7B23A' }}>Seja Premium ✦</Link></>}
           </p>
           {patients.length === 0 ? (
             <p className="text-muted text-sm">Nenhum paciente ainda.</p>

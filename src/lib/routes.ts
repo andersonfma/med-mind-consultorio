@@ -10,6 +10,7 @@ export const CHALLENGE_ROUTE       = '/desafio'
 export const EDIT_PROFILE_ROUTE    = '/perfil/editar'
 export const REQUESTS_ROUTE        = '/solicitacoes'
 export const RESULTS_ROUTE         = '/resultados'
+export const PREMIUM_ROUTE         = '/premium'
 
 export const profileRoute          = (handle: string) => `/u/${handle}`
 export const postRoute             = (id: string) => `/post/${id}`
