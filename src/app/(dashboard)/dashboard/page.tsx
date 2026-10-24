@@ -1,8 +1,11 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { withClockSkewRetry } from '@/lib/supabase/retry'
 import { LOGIN_ROUTE, patientDetailRoute } from '@/lib/routes'
+import { getChallengeToday } from '@/lib/challenge/today'
+import { ChallengeBanner } from '../feed/ChallengeBanner'
 import { BondBar } from '@/components/ui/BondBar'
 import { VolumeChart } from '@/components/charts/VolumeChart'
 import { ScoresChart } from '@/components/charts/ScoresChart'
@@ -38,13 +41,20 @@ export default async function DashboardPage() {
   const monthlyUsed = patients.filter((p) => Date.parse(p.created_at) >= cutoff).length
   const canCreate = !!is_premium || monthlyUsed < MONTHLY_CAP
 
-  const [radar, charts] = await Promise.all([
+  const admin = createAdminClient()
+  const [radar, charts, challenge] = await Promise.all([
     getRadarData(supabase, user.id),
     getDashboardCharts(supabase, user.id),
+    getChallengeToday(admin, user.id, new Date().toISOString().slice(0, 10)),
   ])
+  const todayDay = challenge.days.find((d) => d.dayIndex === challenge.todayDayIndex) ?? null
+  const challengeBanner = challenge.case && todayDay
+    ? { title: challenge.case.title, stage: todayDay.stage, answered: !!todayDay.answered, streak: challenge.streak }
+    : null
 
   return (
     <div className="p-6">
+      {challengeBanner && <div className="mb-6"><ChallengeBanner {...challengeBanner} /></div>}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{full_name}</h1>
