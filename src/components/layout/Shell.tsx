@@ -18,7 +18,7 @@ export function Shell({ children, isAdmin = false }: ShellProps) {
       <MedMindStripes className="mm-fixed mm-static opacity-60" />
       <header className="sticky top-0 z-20 bg-surface/85 backdrop-blur-md border-b border-border px-4 py-3 sm:px-6 sm:py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link href="/dashboard" className="group flex items-center gap-3.5">
+          <Link href="/inicio" className="group flex items-center gap-3.5">
             <MedMindMark className="h-14 w-14 rounded-xl shadow-[var(--shadow-glow-primary)] transition-transform group-hover:scale-105" />
             <span className="font-display text-3xl font-bold tracking-tight text-ink leading-none">
               Med<span className="text-primary">Mind</span>
@@ -27,6 +27,7 @@ export function Shell({ children, isAdmin = false }: ShellProps) {
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Links de navegação: só no desktop; no mobile ficam na barra inferior */}
             <div className="hidden items-center gap-3 sm:flex">
+              <Link href="/inicio" className="text-xs font-medium text-muted transition-colors hover:text-primary">Início</Link>
               <Link href="/dashboard" className="text-xs font-medium text-muted transition-colors hover:text-primary">Consultório</Link>
               <Link href="/feed" className="text-xs font-medium text-muted transition-colors hover:text-primary">Feed</Link>
               <Link href="/desafio" className="text-xs font-medium text-muted transition-colors hover:text-primary">Desafio</Link>

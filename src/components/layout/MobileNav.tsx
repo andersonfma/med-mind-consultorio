@@ -2,10 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FEED_ROUTE, CHALLENGE_ROUTE, RANKING_ROUTE, EDIT_PROFILE_ROUTE, DASHBOARD_ROUTE } from '@/lib/routes'
+import { FEED_ROUTE, CHALLENGE_ROUTE, RANKING_ROUTE, EDIT_PROFILE_ROUTE, HOME_ROUTE } from '@/lib/routes'
 
 const ITEMS = [
-  { href: DASHBOARD_ROUTE, label: 'Consultório', icon: 'M9 3v2a3 3 0 0 0 6 0V3M6 5a3 3 0 0 0-3 3v3a6 6 0 0 0 12 0V8a3 3 0 0 0-3-3M15 14v2a4 4 0 0 1-8 0M19 15a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z' },
+  { href: HOME_ROUTE, label: 'Início', icon: 'M3 10.5 12 3l9 7.5M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5' },
   { href: FEED_ROUTE, label: 'Feed', icon: 'M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5Z' },
   { href: CHALLENGE_ROUTE, label: 'Desafio', icon: 'M12 2v4M12 18v4M2 12h4M18 12h4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z' },
   { href: RANKING_ROUTE, label: 'Ranking', icon: 'M6 20V10M12 20V4M18 20v-7' },

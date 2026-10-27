@@ -1,4 +1,4 @@
-import { LOGIN_ROUTE, DASHBOARD_ROUTE } from '../routes'
+import { LOGIN_ROUTE, HOME_ROUTE } from '../routes'
 
 const AUTH_ROUTES = ['/login', '/register', '/reset-password']
 
@@ -28,6 +28,6 @@ export function getRedirectPath(
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route))
 
   if (!isAuthenticated && !isAuthRoute) return LOGIN_ROUTE
-  if (isAuthenticated && isAuthRoute) return DASHBOARD_ROUTE
+  if (isAuthenticated && isAuthRoute) return HOME_ROUTE
   return null
 }
