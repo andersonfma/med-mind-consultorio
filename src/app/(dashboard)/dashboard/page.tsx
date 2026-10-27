@@ -54,20 +54,22 @@ export default async function DashboardPage() {
     : null
 
   return (
-    <div className="p-6">
+    <div className="relative p-6">
+      <div className="mm-aura" aria-hidden />
+      <div className="relative">
       {challengeBanner && <div className="mb-6"><ChallengeBanner {...challengeBanner} /></div>}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{full_name}</h1>
-          <p className="text-sm text-muted">Reputação: 0 pts</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">Consultório</p>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-ink">{full_name}</h1>
           <Link href="/resultados" className="text-xs font-medium text-primary hover:underline">Meus resultados →</Link>
         </div>
         {canCreate ? (
           <Link
             href="/patients/new"
-            className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-glow-primary)] transition-colors hover:bg-primary-hover"
+            className="btn-electric inline-flex items-center rounded-xl px-5 py-2.5 text-sm font-semibold"
           >
-            Novo paciente
+            + Novo paciente
           </Link>
         ) : (
           <button
@@ -114,6 +116,7 @@ export default async function DashboardPage() {
           <ScoresChart data={charts.scores} />
           <VolumeChart data={charts.volume} total={charts.totalFinished} />
         </div>
+      </div>
       </div>
     </div>
   )

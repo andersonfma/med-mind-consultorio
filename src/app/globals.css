@@ -169,3 +169,31 @@ body {
    sem batimento — mantém a referência sem cansar a vista. */
 .mm-static .mm-cols span { animation: none; opacity: .18; }
 .mm-static .mm-sweep { display: none; }
+
+/* ───────── Polimento "pôster": aura + CTA elétrico ─────────
+   Aura = brilho ciano suave de fundo (profundidade, como no pôster/landing).
+   .btn-electric = CTA com gradiente ciano + glow (vs. botão chapado). */
+.mm-aura { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.mm-aura::before {
+  content: ""; position: absolute; top: -190px; right: -150px;
+  width: 480px; height: 480px; border-radius: 9999px;
+  background: radial-gradient(circle, rgba(34, 224, 230, 0.15), transparent 62%);
+  filter: blur(10px);
+}
+.mm-aura::after {
+  content: ""; position: absolute; bottom: -220px; left: -160px;
+  width: 420px; height: 420px; border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 122, 102, 0.06), transparent 64%);
+  filter: blur(12px);
+}
+:root[data-theme="light"] .mm-aura::before { background: radial-gradient(circle, rgba(10, 107, 111, 0.09), transparent 62%); }
+:root[data-theme="light"] .mm-aura::after  { background: radial-gradient(circle, rgba(194, 74, 50, 0.05), transparent 64%); }
+
+.btn-electric {
+  background: linear-gradient(135deg, var(--color-primary-hover), var(--color-primary));
+  color: var(--color-primary-ink);
+  box-shadow: var(--shadow-glow-primary);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.btn-electric:hover { transform: translateY(-1px); box-shadow: 0 12px 32px -8px rgba(34, 224, 230, 0.6); filter: saturate(1.05); }
+@media (prefers-reduced-motion: reduce) { .btn-electric:hover { transform: none; } }

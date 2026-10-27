@@ -10,7 +10,7 @@ export function ChallengeBanner({ title, stage, answered, streak, isToday = true
   return (
     <Link
       href={CHALLENGE_ROUTE}
-      className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10"
+      className="flex items-center gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-transparent p-4 shadow-[var(--shadow-glow-primary)] transition-all hover:border-primary/50 hover:to-primary/5"
     >
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/15 text-lg">🎯</span>
       <div className="min-w-0 flex-1">
