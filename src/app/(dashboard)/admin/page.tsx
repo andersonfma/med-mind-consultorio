@@ -12,6 +12,7 @@ import { DistBars } from '@/components/admin/DistBars'
 import { BlockButton } from '@/components/admin/BlockButton'
 import { GenerateCaseButton } from './GenerateCaseButton'
 import { ReportsQueue } from './ReportsQueue'
+import { EmailBroadcast } from './EmailBroadcast'
 
 export const dynamic = 'force-dynamic'
 
@@ -188,6 +189,11 @@ export default async function AdminPage() {
         <StatCard label="Interesse no Premium" value={interestCount} sub="clicaram em 'Tenho interesse'" accent />
         <StatCard label="Potencial de conversão" value={`${pct(interestCount, totalUsers)}%`} sub="interessados / alunos" />
       </div>
+
+      {/* Email de onboarding */}
+      <Panel title="Email — como funciona (onboarding)" hint="explicativo + a aposta">
+        <EmailBroadcast totalUsers={totalUsers} />
+      </Panel>
 
       {/* Moderação — fila de denúncias */}
       <Panel title="Denúncias" hint="conteúdo reportado pela rede">
