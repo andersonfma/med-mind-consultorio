@@ -1,0 +1,12 @@
+name: Email semanal do desafio
+on:
+  schedule:
+    - cron: "0 11 * * 1"
+  workflow_dispatch:
+jobs:
+  email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar email semanal do desafio
+        run: |
+          curl -fsS -X POST "${{ secrets.APP_URL }}/api/cron/weekly-challenge-email" -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
