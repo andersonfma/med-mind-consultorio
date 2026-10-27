@@ -13,6 +13,7 @@ export async function sendEmail(params: {
   to: string
   subject: string
   html: string
+  text?: string
   listUnsubscribe?: string
 }): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY
@@ -28,7 +29,7 @@ export async function sendEmail(params: {
     const res = await fetch(RESEND_URL, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: FROM, to: params.to, subject: params.subject, html: params.html, headers }),
+      body: JSON.stringify({ from: FROM, to: params.to, subject: params.subject, html: params.html, text: params.text, headers }),
     })
     const j = await res.json().catch(() => ({}))
     if (!res.ok) return { ok: false, error: (j as { message?: string }).message ?? `HTTP ${res.status}` }

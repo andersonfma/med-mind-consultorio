@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
     if (!user.email) return NextResponse.json({ error: 'Admin sem email' }, { status: 400 })
     const { data: prof } = await admin.from('profiles').select('full_name').eq('id', user.id).maybeSingle()
     const name = (prof as { full_name?: string } | null)?.full_name ?? ''
-    const { subject, html } = explainerEmail({ name, unsubUrl: unsubUrl(user.id) })
-    const r = await sendEmail({ to: user.email, subject, html, listUnsubscribe: unsubUrl(user.id) })
+    const { subject, html, text } = explainerEmail({ name, unsubUrl: unsubUrl(user.id) })
+    const r = await sendEmail({ to: user.email, subject, html, text, listUnsubscribe: unsubUrl(user.id) })
     return NextResponse.json(r, { status: r.ok ? 200 : 502 })
   }
 
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
     let sent = 0, failed = 0
     for (const u of targets) {
       const name = byId.get(u.id)?.full_name ?? ''
-      const { subject, html } = explainerEmail({ name, unsubUrl: unsubUrl(u.id) })
-      const r = await sendEmail({ to: u.email as string, subject, html, listUnsubscribe: unsubUrl(u.id) })
+      const { subject, html, text } = explainerEmail({ name, unsubUrl: unsubUrl(u.id) })
+      const r = await sendEmail({ to: u.email as string, subject, html, text, listUnsubscribe: unsubUrl(u.id) })
       if (r.ok) sent++; else failed++
     }
     return NextResponse.json({ sent, failed, skipped: users.length - targets.length, total: users.length }, { status: 200 })

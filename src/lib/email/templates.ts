@@ -27,7 +27,7 @@ function btn(label: string, href: string): string {
 }
 
 /** Email de onboarding: o que é, como funciona, e a aposta do desafio. */
-export function explainerEmail(params: { name: string; unsubUrl: string }): { subject: string; html: string } {
+export function explainerEmail(params: { name: string; unsubUrl: string }): { subject: string; html: string; text: string } {
   const name = params.name?.trim() || 'futuro doutor(a)'
   const inner = `
     <h1 style="font-size:20px;margin:0 0 10px;">Oi, ${name}! Bem-vindo(a) ao Med Mind 🩺</h1>
@@ -48,5 +48,19 @@ export function explainerEmail(params: { name: string; unsubUrl: string }): { su
     <div style="text-align:center;margin:22px 0 6px;">${btn('Treinar agora →', APP_URL)}</div>
     <p style="font-size:12px;color:${MUTED};text-align:center;margin:8px 0 0;">Seu primeiro paciente leva menos de um minuto pra começar.</p>
   `
-  return { subject: 'Como o Med Mind funciona (e a aposta do desafio) 🩺', html: layout(inner, params.unsubUrl) }
+  const text = `Oi, ${name}! Bem-vindo(a) ao Med Mind.
+
+O Med Mind é onde você treina a consulta clínica com pacientes virtuais e recebe uma avaliação do seu raciocínio por IA — e ainda compete com colegas. Em 2 minutos você entende tudo:
+
+1. Atenda um paciente: converse, peça exames, defina a conduta e feche o diagnóstico. Ao Finalizar, você recebe sua nota de raciocínio, um radar de desempenho e um card pra compartilhar.
+
+2. Desafio da semana: um caso clínico por semana, um quiz por dia (seg a sex), da anamnese à conduta.
+
+3. Aposte seus MedCoins: no quiz do dia você pode apostar MedCoins no seu palpite — acertou, ganha; errou, perde. Na sexta (conclusão) o acerto paga em dobro.
+
+Treinar agora: ${APP_URL}
+
+Para não receber mais estes emails: ${params.unsubUrl}`
+
+  return { subject: 'Como o Med Mind funciona — e a aposta do desafio da semana', html: layout(inner, params.unsubUrl), text }
 }
