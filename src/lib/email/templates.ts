@@ -64,3 +64,29 @@ Para não receber mais estes emails: ${params.unsubUrl}`
 
   return { subject: 'Como o Med Mind funciona — e a aposta do desafio da semana', html: layout(inner, params.unsubUrl), text }
 }
+
+/** Email semanal (segunda): anuncia o novo Caso da Semana + chama pro quiz. */
+export function weeklyChallengeEmail(params: { name: string; caseTitle: string; unsubUrl: string }): { subject: string; html: string; text: string } {
+  const name = params.name?.trim() || 'futuro doutor(a)'
+  const caseTitle = (params.caseTitle || 'Caso da Semana').replace(/^Caso da Semana:\s*/i, '')
+  const url = `${APP_URL}/desafio`
+  const inner = `
+    <p style="font-size:13px;color:${MUTED};margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em;">Novo caso da semana</p>
+    <h1 style="font-size:20px;margin:0 0 10px;">${caseTitle}</h1>
+    <p style="font-size:14px;color:${MUTED};line-height:1.6;margin:0 0 16px;">
+      Oi, ${name}! Começou um novo <b style="color:${INK}">Caso da Semana</b>. São <b style="color:${INK}">5 dias</b> (seg a sex),
+      <b style="color:${INK}">um quiz por dia</b> — da anamnese à conduta. E você pode <b style="color:${INK}">apostar seus MedCoins</b> no palpite:
+      acertou, ganha; errou, perde; na sexta o acerto paga em dobro. Resolva o de hoje em 1 minuto:
+    </p>
+    <div style="text-align:center;margin:20px 0 6px;">${btn('Resolver o desafio de hoje →', url)}</div>
+    <p style="font-size:12px;color:${MUTED};text-align:center;margin:8px 0 0;">Resolvendo todo dia você mantém o streak 🔥 e sobe no ranking.</p>
+  `
+  const text = `Novo Caso da Semana: ${caseTitle}
+
+Oi, ${name}! Começou um novo Caso da Semana — 5 dias (seg a sex), um quiz por dia, da anamnese à conduta. Você pode apostar seus MedCoins no palpite: acertou, ganha; errou, perde; na sexta o acerto paga em dobro.
+
+Resolver o desafio de hoje: ${url}
+
+Para não receber mais estes emails: ${params.unsubUrl}`
+  return { subject: `Novo caso da semana: ${caseTitle}`, html: layout(inner, params.unsubUrl), text }
+}
