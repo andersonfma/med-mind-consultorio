@@ -69,29 +69,38 @@ export function ChallengeQuiz({ quizId, prompt, options, answerable, answered, r
       </div>
 
       {answerable && !result && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-[11px] text-muted">Apostar:</span>
-          {STAKE_TIERS.map(t => {
-            const affordable = t <= 10 || t <= balance
-            return (
-              <button
-                key={t}
-                disabled={!affordable}
-                onClick={() => setStake(t)}
-                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors disabled:opacity-40 ${stake === t ? 'bg-primary text-primary-ink' : 'border border-border text-muted'}`}
-              >
-                {t === 0 ? 'Sem aposta' : `${t} MC`}
-              </button>
-            )
-          })}
+        <div className="mt-3 space-y-2">
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-ink">💰 Aposte seus MedCoins <span className="font-normal text-muted">(opcional)</span></span>
+              <span className="text-[11px] text-muted">Saldo: <b className="text-ink tabular-nums">{balance} MC</b></span>
+            </div>
+            <p className="mt-1 text-[11px] text-muted">
+              Acertou, ganha o que apostou; errou, perde. {isConclusion && <b className="text-primary">Hoje (conclusão) o acerto paga em DOBRO.</b>}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {STAKE_TIERS.map(t => {
+                const affordable = t <= 10 || t <= balance
+                return (
+                  <button
+                    key={t}
+                    disabled={!affordable}
+                    onClick={() => setStake(t)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 ${stake === t ? 'bg-primary text-primary-ink shadow-[var(--shadow-glow-primary)]' : 'border border-border text-muted hover:border-primary/40 hover:text-ink'}`}
+                  >
+                    {t === 0 ? 'Sem aposta' : `${t} MC`}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
           <button
             onClick={submit}
             disabled={busy || !choice}
-            className="ml-auto rounded-md bg-primary px-4 py-1.5 text-xs font-semibold text-primary-ink disabled:opacity-50"
+            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-ink shadow-[var(--shadow-glow-primary)] disabled:opacity-50"
           >
-            {busy ? 'Enviando…' : 'Responder'}
+            {busy ? 'Enviando…' : !choice ? 'Escolha uma alternativa' : stake > 0 ? `Responder · apostando ${stake} MC` : 'Responder sem apostar'}
           </button>
-          {isConclusion && <span className="w-full text-[11px] text-muted">Dia da conclusão: acerto paga em dobro.</span>}
         </div>
       )}
 
