@@ -12,15 +12,32 @@ import { ChallengeBanner } from '../feed/ChallengeBanner'
 export const dynamic = 'force-dynamic'
 
 // Hub do ecossistema: a 1ª tela após o login. Cada quadrado leva direto à sua seção.
+// Ícones de traço próprios (não emoji) — na cor de cada seção.
 const TILES = [
-  { href: DASHBOARD_ROUTE, icon: '🩺', title: 'Consultório', desc: 'Atenda pacientes virtuais e veja sua avaliação por IA.',
-    tone: { bg: 'rgba(34,224,230,.1)', bd: 'rgba(34,224,230,.3)' } },
-  { href: FEED_ROUTE, icon: '⚡', title: 'Feed & Stories', desc: 'Casos, dúvidas e stories da comunidade.',
-    tone: { bg: 'rgba(255,110,134,.1)', bd: 'rgba(255,110,134,.3)' } },
-  { href: CHALLENGE_ROUTE, icon: '🎯', title: 'Desafio da Semana', desc: 'Um quiz por dia e aposte seus MedCoins.',
-    tone: { bg: 'rgba(255,194,77,.11)', bd: 'rgba(255,194,77,.32)' } },
-  { href: RANKING_ROUTE, icon: '🏆', title: 'Ranking & MedCoin', desc: 'Dispute o topo entre os colegas.',
-    tone: { bg: 'rgba(52,229,160,.1)', bd: 'rgba(52,229,160,.3)' } },
+  {
+    href: DASHBOARD_ROUTE, title: 'Consultório', desc: 'Atenda pacientes virtuais e veja sua avaliação por IA.',
+    color: '#22E0E6', bg: 'rgba(34,224,230,.1)', bd: 'rgba(34,224,230,.3)',
+    // Balão de consulta com traçado de ECG (o clínico), em vez do estetoscópio clichê.
+    paths: ['M4 5.5h16a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H10l-4 3v-3H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z', 'M6.5 10.5h2l1.2-2.5 2 5 1.3-2.5H17.5'],
+  },
+  {
+    href: FEED_ROUTE, title: 'Feed & Stories', desc: 'Casos, dúvidas e stories da comunidade.',
+    color: '#FF6E86', bg: 'rgba(255,110,134,.1)', bd: 'rgba(255,110,134,.3)',
+    // Cartões sobrepostos (posts/stories).
+    paths: ['M8 4h11a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z', 'M4 7v11a1 1 0 0 0 1 1h11', 'M10.5 8.5h6M10.5 11.5h4'],
+  },
+  {
+    href: CHALLENGE_ROUTE, title: 'Desafio da Semana', desc: 'Um quiz por dia e aposte seus MedCoins.',
+    color: '#FFC24D', bg: 'rgba(255,194,77,.11)', bd: 'rgba(255,194,77,.32)',
+    // Bandeira (um desafio a cumprir), em vez do alvo.
+    paths: ['M6 21V4', 'M6 4h11l-2.2 3.3L17 11H6'],
+  },
+  {
+    href: RANKING_ROUTE, title: 'Ranking & MedCoin', desc: 'Dispute o topo entre os colegas.',
+    color: '#34E5A0', bg: 'rgba(52,229,160,.1)', bd: 'rgba(52,229,160,.3)',
+    // Pódio de 3 colunas (a do meio mais alta).
+    paths: ['M3 21h18', 'M4.5 21v-4.5h4V21', 'M10 21V9h4v12', 'M15.5 21v-7h4v7'],
+  },
 ]
 
 export default async function HomePage() {
@@ -64,10 +81,12 @@ export default async function HomePage() {
               className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-glow-primary)]"
             >
               <span
-                className="mb-3 grid h-12 w-12 place-items-center rounded-xl text-2xl"
-                style={{ background: t.tone.bg, border: `1px solid ${t.tone.bd}` }}
+                className="mb-3 grid h-12 w-12 place-items-center rounded-xl"
+                style={{ background: t.bg, border: `1px solid ${t.bd}` }}
               >
-                {t.icon}
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={t.color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  {t.paths.map((d, i) => <path key={i} d={d} />)}
+                </svg>
               </span>
               <h2 className="font-display text-lg font-bold tracking-tight text-ink">{t.title}</h2>
               <p className="mt-1 text-sm text-muted">{t.desc}</p>
