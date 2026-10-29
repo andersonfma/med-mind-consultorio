@@ -64,11 +64,18 @@ export default async function HomePage() {
               {/* barra-coluna lateral (motivo do logo), na cor da seção */}
               <span className="absolute left-0 top-0 h-full w-[3px]" aria-hidden
                 style={{ background: `linear-gradient(to bottom, ${t.color}, transparent 85%)` }} />
-              {/* índice grande, marca-d'água */}
-              <span className="pointer-events-none absolute right-4 top-2 font-display text-[56px] font-bold leading-none tracking-tight"
-                aria-hidden style={{ color: t.color, opacity: 0.12 }}>{t.n}</span>
+              {/* marca d'água: o símbolo do logo (coluna/pilar), tingido na cor da seção */}
+              <svg className="pointer-events-none absolute -bottom-5 -right-3 h-[150px] w-[150px]" viewBox="0 0 32 32"
+                fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                aria-hidden style={{ color: t.color, opacity: 0.09 }}>
+                <line x1="7.5" y1="8.5" x2="24.5" y2="8.5" />
+                <line x1="9.3" y1="11.2" x2="22.7" y2="11.2" />
+                <line x1="10.8" y1="11.2" x2="10.8" y2="22.6" />
+                <line x1="21.2" y1="11.2" x2="21.2" y2="22.6" />
+                <path d="M12.2 11.2 L16 18.8 L19.8 11.2" />
+              </svg>
 
-              <p className="font-mono text-[10.5px] uppercase tracking-[0.18em]" style={{ color: t.color }}>{t.label}</p>
+              <p className="relative font-mono text-[10.5px] uppercase tracking-[0.18em]" style={{ color: t.color }}>{t.label}</p>
               <h2 className="mt-1.5 font-display text-xl font-bold tracking-tight text-ink">{t.title}</h2>
               <p className="mt-1.5 max-w-[32ch] text-sm text-muted">{t.desc}</p>
               <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold transition-all group-hover:gap-2"
