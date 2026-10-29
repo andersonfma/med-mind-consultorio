@@ -11,33 +11,14 @@ import { ChallengeBanner } from '../feed/ChallengeBanner'
 
 export const dynamic = 'force-dynamic'
 
-// Hub do ecossistema: a 1ª tela após o login. Cada quadrado leva direto à sua seção.
-// Ícones de traço próprios (não emoji) — na cor de cada seção.
+// Hub do ecossistema: a 1ª tela após o login. Cada bloco leva direto à sua seção.
+// Direção editorial/tipográfica: índice + nome em display + barra de cor lateral
+// (a barra referencia a colunata do logo). Sem pictogramas.
 const TILES = [
-  {
-    href: DASHBOARD_ROUTE, title: 'Consultório', desc: 'Atenda pacientes virtuais e veja sua avaliação por IA.',
-    color: '#22E0E6', bg: 'rgba(34,224,230,.1)', bd: 'rgba(34,224,230,.3)',
-    // Balão de consulta com traçado de ECG (o clínico), em vez do estetoscópio clichê.
-    paths: ['M4 5.5h16a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H10l-4 3v-3H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z', 'M6.5 10.5h2l1.2-2.5 2 5 1.3-2.5H17.5'],
-  },
-  {
-    href: FEED_ROUTE, title: 'Feed & Stories', desc: 'Casos, dúvidas e stories da comunidade.',
-    color: '#FF6E86', bg: 'rgba(255,110,134,.1)', bd: 'rgba(255,110,134,.3)',
-    // Cartões sobrepostos (posts/stories).
-    paths: ['M8 4h11a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z', 'M4 7v11a1 1 0 0 0 1 1h11', 'M10.5 8.5h6M10.5 11.5h4'],
-  },
-  {
-    href: CHALLENGE_ROUTE, title: 'Desafio da Semana', desc: 'Um quiz por dia e aposte seus MedCoins.',
-    color: '#FFC24D', bg: 'rgba(255,194,77,.11)', bd: 'rgba(255,194,77,.32)',
-    // Bandeira (um desafio a cumprir), em vez do alvo.
-    paths: ['M6 21V4', 'M6 4h11l-2.2 3.3L17 11H6'],
-  },
-  {
-    href: RANKING_ROUTE, title: 'Ranking & MedCoin', desc: 'Dispute o topo entre os colegas.',
-    color: '#34E5A0', bg: 'rgba(52,229,160,.1)', bd: 'rgba(52,229,160,.3)',
-    // Pódio de 3 colunas (a do meio mais alta).
-    paths: ['M3 21h18', 'M4.5 21v-4.5h4V21', 'M10 21V9h4v12', 'M15.5 21v-7h4v7'],
-  },
+  { href: DASHBOARD_ROUTE, n: '01', label: 'Simulador', title: 'Consultório', desc: 'Atenda pacientes virtuais e receba a avaliação do seu raciocínio por IA.', color: '#22E0E6' },
+  { href: FEED_ROUTE,      n: '02', label: 'Comunidade', title: 'Feed & Stories', desc: 'Poste casos e dúvidas, siga colegas e acompanhe os stories.', color: '#FF6E86' },
+  { href: CHALLENGE_ROUTE, n: '03', label: 'Hábito diário', title: 'Desafio da Semana', desc: 'Um quiz por dia — e aposte seus MedCoins no palpite.', color: '#FFC24D' },
+  { href: RANKING_ROUTE,   n: '04', label: 'Disputa', title: 'Ranking & MedCoin', desc: 'Suba no ranking e junte moedas treinando com a turma.', color: '#34E5A0' },
 ]
 
 export default async function HomePage() {
@@ -78,21 +59,20 @@ export default async function HomePage() {
             <Link
               key={t.href}
               href={t.href}
-              className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-glow-primary)]"
+              className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 pl-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-glow-primary)]"
             >
-              <span
-                className="mb-3 grid h-12 w-12 place-items-center rounded-xl"
-                style={{ background: t.bg, border: `1px solid ${t.bd}` }}
-              >
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={t.color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  {t.paths.map((d, i) => <path key={i} d={d} />)}
-                </svg>
-              </span>
-              <h2 className="font-display text-lg font-bold tracking-tight text-ink">{t.title}</h2>
-              <p className="mt-1 text-sm text-muted">{t.desc}</p>
-              <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                Entrar →
-              </span>
+              {/* barra-coluna lateral (motivo do logo), na cor da seção */}
+              <span className="absolute left-0 top-0 h-full w-[3px]" aria-hidden
+                style={{ background: `linear-gradient(to bottom, ${t.color}, transparent 85%)` }} />
+              {/* índice grande, marca-d'água */}
+              <span className="pointer-events-none absolute right-4 top-2 font-display text-[56px] font-bold leading-none tracking-tight"
+                aria-hidden style={{ color: t.color, opacity: 0.12 }}>{t.n}</span>
+
+              <p className="font-mono text-[10.5px] uppercase tracking-[0.18em]" style={{ color: t.color }}>{t.label}</p>
+              <h2 className="mt-1.5 font-display text-xl font-bold tracking-tight text-ink">{t.title}</h2>
+              <p className="mt-1.5 max-w-[32ch] text-sm text-muted">{t.desc}</p>
+              <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold transition-all group-hover:gap-2"
+                style={{ color: t.color }}>Entrar <span aria-hidden>→</span></span>
             </Link>
           ))}
         </div>
