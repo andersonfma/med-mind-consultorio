@@ -3,7 +3,7 @@ import { CHALLENGE_ROUTE } from '@/lib/routes'
 
 const STAGE_LABEL: Record<string, string> = {
   anamnese: 'Anamnese', exame: 'Exame físico', complementares: 'Exames complementares',
-  conduta: 'Conduta', conclusao: 'Conclusão',
+  sintese: 'Síntese diagnóstica', conduta: 'Conduta', complicacoes: 'Complicações', conclusao: 'Conclusão',
 }
 
 export function ChallengeBanner({ title, stage, answered, streak, isToday = true }: { title: string; stage: string; answered: boolean; streak: number; isToday?: boolean }) {

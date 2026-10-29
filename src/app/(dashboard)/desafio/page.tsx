@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 const STAGE_LABEL: Record<string, string> = {
   anamnese: 'Anamnese', exame: 'Exame físico', complementares: 'Exames complementares',
-  conduta: 'Conduta', conclusao: 'Conclusão',
+  sintese: 'Síntese diagnóstica', conduta: 'Conduta', complicacoes: 'Complicações', conclusao: 'Conclusão',
 }
 
 function todayISO() { return new Date().toISOString().slice(0, 10) }

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 const STAGE_LABEL: Record<string, string> = {
   anamnese: 'Anamnese', exame: 'Exame físico', complementares: 'Exames complementares',
-  conduta: 'Conduta', conclusao: 'Conclusão',
+  sintese: 'Síntese diagnóstica', conduta: 'Conduta', complicacoes: 'Complicações', conclusao: 'Conclusão',
 }
 
 // Push diário do desafio: avisa os inscritos quando o quiz do dia abre (seg→sex).

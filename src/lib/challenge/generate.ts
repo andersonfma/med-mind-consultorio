@@ -4,7 +4,7 @@ import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
 import { buildWeeklyCasePrompt, parseWeeklyCase, type GeneratedWeek } from './prompts'
 
-/** Gera o caso da semana + 5 quizzes coerentes (Clínica Médica). null em falha. */
+/** Gera o caso da semana + 7 quizzes coerentes (Clínica Médica). null em falha. */
 export async function generateWeeklyCase(): Promise<GeneratedWeek | null> {
   const completion = await openai.chat.completions.create({
     model: MODELS.generation,

@@ -4,7 +4,7 @@ export const DOUBT_REWARD = 15
 export const DOUBT_WINDOW_MIN = 30
 const STREAK_CAP = 2.0
 
-export type Stage = 'anamnese' | 'exame' | 'complementares' | 'conduta' | 'conclusao'
+export type Stage = 'anamnese' | 'exame' | 'complementares' | 'sintese' | 'conduta' | 'complicacoes' | 'conclusao'
 
 export function dayFactor(stage: Stage): number {
   return stage === 'conclusao' ? 2 : 1
