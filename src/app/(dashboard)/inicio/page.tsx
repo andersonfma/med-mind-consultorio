@@ -4,7 +4,7 @@ import { type SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
-  LOGIN_ROUTE, DASHBOARD_ROUTE, FEED_ROUTE, CHALLENGE_ROUTE, RANKING_ROUTE, PREMIUM_ROUTE,
+  LOGIN_ROUTE, DASHBOARD_ROUTE, FEED_ROUTE, CHALLENGE_ROUTE, RANKING_ROUTE, PREMIUM_ROUTE, EXAMS_ROUTE,
 } from '@/lib/routes'
 import { getChallengeToday } from '@/lib/challenge/today'
 import { ChallengeBanner } from '../feed/ChallengeBanner'
@@ -83,6 +83,16 @@ export default async function HomePage() {
             </Link>
           ))}
         </div>
+
+        {/* Bloco premium: Simulados ENARE/ENAMED */}
+        <Link href={EXAMS_ROUTE} className="group relative block overflow-hidden rounded-2xl border p-5 transition-all hover:-translate-y-0.5"
+          style={{ borderColor: 'rgba(231,178,58,.4)', background: 'linear-gradient(90deg, rgba(231,178,58,.1), rgba(231,178,58,.02))' }}>
+          <span className="absolute left-0 top-0 h-full w-[3px]" aria-hidden style={{ background: 'linear-gradient(to bottom,#E7B23A,transparent 85%)' }} />
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.18em]" style={{ color: '#E7B23A' }}>Premium ✦ · Novo</p>
+          <h2 className="mt-1.5 font-display text-xl font-bold tracking-tight text-ink">Simulado ENARE / ENAMED</h2>
+          <p className="mt-1.5 max-w-[46ch] text-sm text-muted">Questões por IA nos moldes das provas, por área, com gabarito comentado.</p>
+          <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold transition-all group-hover:gap-2" style={{ color: '#E7B23A' }}>Abrir <span aria-hidden>→</span></span>
+        </Link>
 
         {!p?.is_premium && (
           <Link href={PREMIUM_ROUTE} className="block rounded-xl border px-4 py-3 text-center text-sm font-medium"
