@@ -3,8 +3,10 @@ import { useState } from 'react'
 
 type Q = { prompt: string; options: { key: string; text: string }[]; correct_key: string; explanation: string; topic: string }
 type Area = { key: string; label: string }
+type ExamT = { key: string; label: string; note: string }
 
-export function ExamRunner({ areas }: { areas: Area[] }) {
+export function ExamRunner({ areas, exams }: { areas: Area[]; exams: ExamT[] }) {
+  const [exam, setExam] = useState<string>(exams[0]?.key ?? 'enare')
   const [area, setArea] = useState<string>(areas[0]?.key ?? 'clinica')
   const [step, setStep] = useState<'pick' | 'run' | 'done'>('pick')
   const [loading, setLoading] = useState(false)
@@ -18,7 +20,7 @@ export function ExamRunner({ areas }: { areas: Area[] }) {
     try {
       const res = await fetch('/api/exam/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ area }),
+        body: JSON.stringify({ exam, area }),
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) { setError(j.message ?? j.error ?? 'Erro ao gerar'); return }
@@ -32,10 +34,22 @@ export function ExamRunner({ areas }: { areas: Area[] }) {
 
   if (step === 'pick') {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
+        <div>
+          <p className="text-sm font-medium text-ink">Escolha o exame</p>
+          <div className="mt-2 flex gap-2">
+            {exams.map((e) => (
+              <button key={e.key} onClick={() => setExam(e.key)}
+                className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${exam === e.key ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-surface text-ink hover:border-border-strong'}`}>
+                {e.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[11px] text-muted">{exams.find((e) => e.key === exam)?.note}</p>
+        </div>
         <div>
           <p className="text-sm font-medium text-ink">Escolha a área</p>
-          <p className="text-xs text-muted">10 questões originais nos moldes do ENARE/ENAMED, com gabarito comentado.</p>
+          <p className="text-xs text-muted">10 questões originais nos moldes da prova, com gabarito comentado.</p>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {areas.map((a) => (
@@ -61,7 +75,7 @@ export function ExamRunner({ areas }: { areas: Area[] }) {
       {showResult && (
         <div className="rounded-2xl border p-5 text-center" style={{ borderColor: 'rgba(34,224,230,.3)', background: 'rgba(34,224,230,.06)' }}>
           <p className="font-display text-3xl font-bold text-ink">{score}<span className="text-lg text-muted">/{qs.length}</span></p>
-          <p className="mt-1 text-sm text-muted">{Math.round((score / qs.length) * 100)}% de acerto · {areas.find(a => a.key === area)?.label}</p>
+          <p className="mt-1 text-sm text-muted">{Math.round((score / qs.length) * 100)}% de acerto · {exams.find(e => e.key === exam)?.label} · {areas.find(a => a.key === area)?.label}</p>
         </div>
       )}
 
