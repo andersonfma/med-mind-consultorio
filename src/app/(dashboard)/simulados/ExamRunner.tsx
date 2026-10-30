@@ -70,7 +70,7 @@ export function ExamRunner({ areas }: { areas: Area[] }) {
         return (
           <div key={i} className="rounded-xl border border-border bg-surface p-4">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-muted">Questão {i + 1} · {q.topic}</span>
+              <span className="font-mono text-[11px] uppercase tracking-wider text-muted">Questão {i + 1}{showResult ? ` · ${q.topic}` : ''}</span>
             </div>
             <p className="mb-3 whitespace-pre-wrap text-sm text-ink">{q.prompt}</p>
             <div className="space-y-1.5">
