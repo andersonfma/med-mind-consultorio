@@ -149,6 +149,22 @@ a reputação destrava salas melhores e pacientes mais exigentes.
 - **Gatilho para iniciar:** premium validado + tração de retenção. Quando chegar a hora, passa
   pelo brainstorming → spec antes de qualquer código.
 
+## 9b. Visão futura (roadmap) — Classificados médicos / "Tinder de vagas"
+
+Pilar novo e grande (não "mais uma funcionalidade"), registrado para fase futura. Marketplace de
+oportunidades médicas (plantões, CLT, substituições, residência) conectando dois lados:
+- **Médico** cadastra formação, especialidade, interesses, localização e pretensão; **empregador**
+  publica vaga; o sistema faz **matching** e o "curtir/aceitar" mútuo gera a conexão.
+- **Potencial:** 2ª fonte de receita (empregador paga por publicar/destacar; ou premium p/ o médico);
+  encaixa no ecossistema que já reúne médicos engajados com perfil.
+- **Requisitos antes de construir (por isso precisa de spec próprio):** (1) dois perfis distintos +
+  onboarding do empregador; (2) matching e consentimento mútuo; (3) **verificação/confiança** (CRM
+  do médico, validação da instituição — risco de vaga falsa); (4) **LGPD** (pretensão, contato,
+  dados sensíveis); (5) moderação; (6) monetização desde cedo (senão vira spam de vaga).
+- **Caminho sugerido:** validar com MVP enxuto (vitrine de vagas + demonstração de interesse) antes
+  do "Tinder" completo. Passa por brainstorming → spec.
+- **Sequenciamento:** depois da revisão das interfaces admin (seção abaixo). É uma 3ª frente grande.
+
 ## 10. Próximo passo acordado
 Revisar este plano. Em seguida, implementar o **selo premium manual** (flag `is_premium` + botão
 no /admin), **sem cobrança e sem gate de vídeo por ora** — apenas para marcar quem é premium e
