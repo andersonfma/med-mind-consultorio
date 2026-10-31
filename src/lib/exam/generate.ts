@@ -43,6 +43,21 @@ export function buildExamPrompt(exam: ExamType, areaLabel: string, topics: strin
   ].join('\n')
 }
 
+// A IA tende a colocar a alternativa correta sempre na letra A. Reembaralhamos as
+// alternativas e reatribuímos as letras, para que o gabarito se distribua (A..E).
+function shuffleOptions(q: ExamQuestion, nOpt: number): ExamQuestion {
+  // marca a correta por referência (robusto a textos iguais) antes de embaralhar
+  const tagged = q.options.map((op) => ({ text: op.text, correct: op.key === q.correct_key }))
+  for (let i = tagged.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[tagged[i], tagged[j]] = [tagged[j], tagged[i]]
+  }
+  const sliced = tagged.slice(0, nOpt)
+  const options = sliced.map((t, i) => ({ key: KEYS[i], text: t.text }))
+  const idx = sliced.findIndex((t) => t.correct)
+  return { ...q, options, correct_key: KEYS[idx >= 0 ? idx : 0] }
+}
+
 export function parseExam(raw: string, n: number, nOpt: number): ExamQuestion[] | null {
   try {
     const o = JSON.parse(raw) as { questions?: ExamQuestion[] }
@@ -52,7 +67,8 @@ export function parseExam(raw: string, n: number, nOpt: number): ExamQuestion[] 
       (q) => q?.prompt && Array.isArray(q.options) && q.options.length === nOpt
         && q.options.some((op) => op.key === q.correct_key) && typeof q.explanation === 'string' && q.explanation,
     )
-    return clean.length ? clean.slice(0, n) : null
+    if (!clean.length) return null
+    return clean.slice(0, n).map((q) => shuffleOptions(q, nOpt))
   } catch {
     return null
   }
