@@ -116,7 +116,12 @@ export function ExamRunner({ areas, exams }: { areas: Area[]; exams: ExamT[] }) 
       })}
 
       {!showResult ? (
-        <button onClick={() => { setStep('done'); window.scrollTo({ top: 0 }) }} disabled={!answeredAll}
+        <button onClick={() => {
+            setStep('done'); window.scrollTo({ top: 0 })
+            // registra o resultado (métricas) — best-effort
+            void fetch('/api/exam/attempt', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ exam, area, score, total: qs.length }) }).catch(() => {})
+          }} disabled={!answeredAll}
           className="btn-electric w-full rounded-xl px-5 py-3 text-sm font-semibold disabled:opacity-50">
           {answeredAll ? 'Corrigir simulado' : `Responda todas (${Object.keys(answers).length}/${qs.length})`}
         </button>

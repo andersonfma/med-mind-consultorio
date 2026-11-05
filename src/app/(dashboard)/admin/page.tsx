@@ -13,6 +13,7 @@ import { BlockButton } from '@/components/admin/BlockButton'
 import { GenerateCaseButton } from './GenerateCaseButton'
 import { ReportsQueue } from './ReportsQueue'
 import { EmailBroadcast } from './EmailBroadcast'
+import { InstitutionsPanel } from './InstitutionsPanel'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,6 +46,15 @@ function Panel({ title, children, hint }: { title: string; children: ReactNode; 
   )
 }
 
+function SectionTitle({ children, hint }: { children: ReactNode; hint?: string }) {
+  return (
+    <div className="flex items-baseline gap-3 border-b border-border pb-1.5 pt-2">
+      <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">{children}</h2>
+      {hint && <span className="text-[11px] text-muted">{hint}</span>}
+    </div>
+  )
+}
+
 export default async function AdminPage() {
   const supabase = await createClient()
   const {
@@ -55,7 +65,7 @@ export default async function AdminPage() {
 
   const admin = createAdminClient()
 
-  const [usersRes, profilesRes, patientsRes, consultationsRes, examsRes, rxRes, interestRes] = await Promise.all([
+  const [usersRes, profilesRes, patientsRes, consultationsRes, examsRes, rxRes, interestRes, quizAnsRes, examAttRes, instRes] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     admin.from('profiles').select('id, full_name, ai_calls_used, ai_calls_limit, is_premium'),
     admin.from('patients').select('user_id, specialty, created_at, diagnosis_status'),
@@ -63,13 +73,20 @@ export default async function AdminPage() {
     admin.from('exam_requests').select('user_id, status, exam_name, attempts'),
     admin.from('prescriptions').select('user_id, adequacy'),
     admin.from('premium_interest').select('user_id', { count: 'exact', head: true }),
+    admin.from('quiz_answers').select('user_id, is_correct'),
+    admin.from('exam_attempts').select('user_id, exam, area, score, total'),
+    admin.from('institutions').select('id, name, invite_code, created_at'),
   ])
 
   type AuthUser = { id: string; email?: string; created_at?: string; last_sign_in_at?: string | null; banned_until?: string | null }
   const authUsers = (usersRes.data?.users ?? []) as AuthUser[]
-  const profiles = (profilesRes.data ?? []) as Array<{
+  const profilesBase = (profilesRes.data ?? []) as Array<{
     id: string; full_name: string | null; ai_calls_used: number | null; ai_calls_limit: number | null; is_premium: boolean | null
   }>
+  // institution_id em query separada e guardada (coluna pode não existir antes da migration).
+  const { data: instLinks } = await admin.from('profiles').select('id, institution_id')
+  const instByUser = new Map(((instLinks ?? []) as Array<{ id: string; institution_id: string | null }>).map((r) => [r.id, r.institution_id]))
+  const profiles = profilesBase.map((p) => ({ ...p, institution_id: instByUser.get(p.id) ?? null }))
   const premiumCount = profiles.filter((p) => p.is_premium).length
   const interestCount = interestRes.count ?? 0
   const patients = (patientsRes.data ?? []) as Array<{ user_id: string; specialty: string; created_at: string; diagnosis_status: string }>
@@ -98,15 +115,38 @@ export default async function AdminPage() {
   const dxRevealed = patients.filter((p) => p.diagnosis_status === 'revealed').length
   const dxClosed = dxAchieved + dxRevealed
 
+  const quizAns = (quizAnsRes.data ?? []) as Array<{ user_id: string; is_correct: boolean }>
+  const examAtt = (examAttRes.data ?? []) as Array<{ user_id: string; exam: string; area: string; score: number; total: number }>
+  const institutions = (instRes.data ?? []) as Array<{ id: string; name: string; invite_code: string; created_at: string }>
+
   const profileById = new Map(profiles.map((p) => [p.id, p]))
   const isBlocked = (u: AuthUser) => !!u.banned_until && Date.parse(u.banned_until) > Date.now()
 
   const now = new Date()
   const since7 = new Date(now.getTime() - 7 * 86_400_000)
+  const since30 = new Date(now.getTime() - 30 * 86_400_000)
 
   const totalUsers = authUsers.length
   const new7 = authUsers.filter((u) => u.created_at && new Date(u.created_at) >= since7).length
+  const new30 = authUsers.filter((u) => u.created_at && new Date(u.created_at) >= since30).length
   const active7 = authUsers.filter((u) => u.last_sign_in_at && new Date(u.last_sign_in_at) >= since7).length
+  const active30 = authUsers.filter((u) => u.last_sign_in_at && new Date(u.last_sign_in_at) >= since30).length
+  // Retenção (proxy): voltou ao menos uma vez depois de ~1 dia do cadastro.
+  const returned = authUsers.filter((u) => u.created_at && u.last_sign_in_at
+    && Date.parse(u.last_sign_in_at) - Date.parse(u.created_at) > 20 * 3_600_000).length
+
+  // Desafio diário
+  const challengePlayers = new Set(quizAns.map((q) => q.user_id)).size
+  const quizCorrectPct = quizAns.length ? pct(quizAns.filter((q) => q.is_correct).length, quizAns.length) : 0
+
+  // Simulados ENARE/ENAMED
+  const simUsers = new Set(examAtt.map((e) => e.user_id)).size
+  const simCount = examAtt.length
+  const simAvg = simCount ? Math.round(examAtt.reduce((s, e) => s + (e.total ? e.score / e.total : 0), 0) / simCount * 100) : 0
+
+  // Instituições (B2B): nº de alunos por instituição
+  const studentsByInst = new Map<string, number>()
+  for (const p of profiles) if (p.institution_id) studentsByInst.set(p.institution_id, (studentsByInst.get(p.institution_id) ?? 0) + 1)
   const blockedCount = authUsers.filter(isBlocked).length
   const totalPatients = patients.length
   const totalConsults = consultations.length
@@ -147,6 +187,7 @@ export default async function AdminPage() {
     else consByUser.set(c.user_id, [c])
   }
 
+  const instNameById = new Map(institutions.map((i) => [i.id, i.name]))
   const rows = authUsers
     .map((u) => {
       const prof = profileById.get(u.id)
@@ -155,6 +196,7 @@ export default async function AdminPage() {
         id: u.id,
         email: u.email ?? '—',
         name: prof?.full_name ?? '—',
+        institution: prof?.institution_id ? (instNameById.get(prof.institution_id) ?? null) : null,
         lastSignIn: u.last_sign_in_at,
         blocked: isBlocked(u),
         patients: patientCount.get(u.id) ?? 0,
@@ -177,30 +219,41 @@ export default async function AdminPage() {
         <GenerateCaseButton />
       </header>
 
-      {/* KPIs */}
+      {/* ───────── VISÃO GERAL ───────── */}
+      <SectionTitle>Visão geral</SectionTitle>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-        <StatCard label="Alunos" value={totalUsers} sub={new7 > 0 ? `+${new7} nos últimos 7 dias` : 'nenhum novo em 7 dias'} accent />
-        <StatCard label="Ativos (7 dias)" value={active7} sub={`${pct(active7, totalUsers)}% do total`} />
-        <StatCard label="Bloqueados" value={blockedCount} sub={blockedCount ? 'sem acesso' : 'nenhum'} />
+        <StatCard label="Alunos" value={totalUsers} sub={new7 > 0 ? `+${new7} em 7 dias · +${new30} em 30` : `+${new30} em 30 dias`} accent />
+        <StatCard label="Ativos (7 dias)" value={active7} sub={`${pct(active7, totalUsers)}% · ${active30} em 30 dias`} />
+        <StatCard label="Retenção" value={`${pct(returned, totalUsers)}%`} sub={`${returned} voltaram após o 1º dia`} accent />
         <StatCard label="Pacientes criados" value={totalPatients} />
-        <StatCard label="Consultas" value={totalConsults} sub={`${finished} finalizadas`} />
-        <StatCard label="Taxa de conclusão" value={`${completion}%`} sub="consultas finalizadas" />
+        <StatCard label="Consultas" value={totalConsults} sub={`${finished} finalizadas · ${completion}%`} />
+        <StatCard label="Bloqueados" value={blockedCount} sub={blockedCount ? 'sem acesso' : 'nenhum'} />
         <StatCard label="Premium (selo)" value={premiumCount} sub={`${pct(premiumCount, totalUsers)}% dos alunos`} />
         <StatCard label="Interesse no Premium" value={interestCount} sub="clicaram em 'Tenho interesse'" accent />
         <StatCard label="Potencial de conversão" value={`${pct(interestCount, totalUsers)}%`} sub="interessados / alunos" />
       </div>
 
-      {/* Email de onboarding */}
-      <Panel title="Email — como funciona (onboarding)" hint="explicativo + a aposta">
-        <EmailBroadcast totalUsers={totalUsers} />
-      </Panel>
+      {/* ───────── ENGAJAMENTO ───────── */}
+      <SectionTitle>Engajamento no ecossistema</SectionTitle>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Desafio da semana" hint="quiz diário + aposta">
+          <div className="mb-3 flex items-baseline gap-2">
+            <span className="font-display text-3xl font-bold tabular-nums text-ink">{challengePlayers}</span>
+            <span className="text-sm text-muted">alunos participaram · {pct(challengePlayers, totalUsers)}%</span>
+          </div>
+          <p className="text-xs text-muted">{quizAns.length} respostas · {quizCorrectPct}% de acerto</p>
+        </Panel>
+        <Panel title="Simulados ENARE/ENAMED" hint="recurso premium">
+          <div className="mb-3 flex items-baseline gap-2">
+            <span className="font-display text-3xl font-bold tabular-nums text-ink">{simCount}</span>
+            <span className="text-sm text-muted">simulados feitos · {simUsers} alunos</span>
+          </div>
+          <p className="text-xs text-muted">{simCount ? `${simAvg}% de acerto médio` : 'Nenhum simulado ainda.'}</p>
+        </Panel>
+      </div>
 
-      {/* Moderação — fila de denúncias */}
-      <Panel title="Denúncias" hint="conteúdo reportado pela rede">
-        <ReportsQueue />
-      </Panel>
-
-      {/* Diagnóstico da turma — critérios objetivos */}
+      {/* ───────── QUALIDADE PEDAGÓGICA ───────── */}
+      <SectionTitle hint="diagnóstico da turma no simulador">Qualidade pedagógica</SectionTitle>
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Raciocínio clínico — média da turma" hint={`${cohortAb4.n} consultas avaliadas`}>
           <div className="mb-3 flex items-baseline gap-2">
@@ -339,13 +392,32 @@ export default async function AdminPage() {
         </Panel>
       </div>
 
-      {/* Alunos */}
+      {/* ───────── INSTITUIÇÕES (B2B) ───────── */}
+      <SectionTitle hint="faculdades e turmas">Instituições</SectionTitle>
+      <Panel title="Faculdades / turmas" hint={`${institutions.length} cadastradas`}>
+        <InstitutionsPanel
+          institutions={institutions.map((i) => ({ id: i.id, name: i.name, code: i.invite_code, students: studentsByInst.get(i.id) ?? 0 }))}
+        />
+      </Panel>
+
+      {/* ───────── OPERAÇÃO ───────── */}
+      <SectionTitle>Operação</SectionTitle>
+      <Panel title="Email — como funciona (onboarding)" hint="explicativo + a aposta">
+        <EmailBroadcast totalUsers={totalUsers} />
+      </Panel>
+      <Panel title="Denúncias" hint="conteúdo reportado pela rede">
+        <ReportsQueue />
+      </Panel>
+
+      {/* ───────── ALUNOS ───────── */}
+      <SectionTitle>Alunos</SectionTitle>
       <Panel title="Alunos" hint="clique no nome para o diagnóstico individual">
         <div className="-mx-1 overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-muted">
                 <th className="px-3 py-2 font-medium">Aluno</th>
+                <th className="px-3 py-2 font-medium">Instituição</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Último acesso</th>
                 <th className="px-3 py-2 text-right font-medium">Pac.</th>
@@ -358,7 +430,7 @@ export default async function AdminPage() {
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-muted">Nenhum aluno ainda.</td>
+                  <td colSpan={9} className="px-3 py-8 text-center text-muted">Nenhum aluno ainda.</td>
                 </tr>
               )}
               {rows.map((r) => (
@@ -367,6 +439,7 @@ export default async function AdminPage() {
                     <Link href={`/admin/${r.id}`} className="font-medium text-ink hover:text-primary">{r.name}</Link>
                     <div className="text-xs text-muted">{r.email}</div>
                   </td>
+                  <td className="px-3 py-2.5 text-xs text-muted">{r.institution ?? '—'}</td>
                   <td className="px-3 py-2.5">
                     {r.blocked ? (
                       <span className="rounded-full border border-danger/40 bg-danger/10 px-2 py-0.5 text-[11px] font-semibold text-danger">Bloqueado</span>

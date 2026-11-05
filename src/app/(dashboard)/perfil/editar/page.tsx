@@ -6,6 +6,7 @@ import { suggestHandle } from '@/lib/social/identity'
 import type { ProfileSocial } from '@/lib/social/types'
 import { EditProfileForm } from './EditProfileForm'
 import { FreeSpecialtiesPicker } from './FreeSpecialtiesPicker'
+import { InstitutionField } from './InstitutionField'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,16 @@ export default async function EditProfilePage() {
   const admin = createAdminClient()
   const { data } = await admin.from('profiles').select('id, identity_mode, handle, display_name, avatar_url, bio, is_private, leaderboard_alias, full_name, is_premium, free_specialties').eq('id', user.id).single()
   const p = data as ProfileSocial & { is_premium: boolean | null; free_specialties: string[] | null }
+
+  // Instituição atual (guardado: tabela pode não existir antes da migration).
+  let institutionName: string | null = null
+  const { data: instLink } = await admin.from('profiles').select('institution_id').eq('id', user.id).maybeSingle()
+  const instId = (instLink as { institution_id?: string | null } | null)?.institution_id ?? null
+  if (instId) {
+    const { data: inst } = await admin.from('institutions').select('name').eq('id', instId).maybeSingle()
+    institutionName = (inst as { name?: string } | null)?.name ?? null
+  }
+
   return (
     <div className="mx-auto max-w-md space-y-5">
       <h1 className="font-display text-2xl font-bold text-ink">Editar perfil</h1>
@@ -26,6 +37,7 @@ export default async function EditProfilePage() {
         }}
       />
       <FreeSpecialtiesPicker isPremium={!!p.is_premium} initial={p.free_specialties ?? []} />
+      <InstitutionField current={institutionName} />
     </div>
   )
 }
