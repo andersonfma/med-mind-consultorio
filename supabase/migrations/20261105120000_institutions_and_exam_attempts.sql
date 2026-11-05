@@ -36,10 +36,10 @@ ALTER TABLE exam_attempts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY exam_attempts_ins ON exam_attempts FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 CREATE POLICY exam_attempts_sel ON exam_attempts FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
--- RLS das instituições: leitura liberada (nome/código são usados no fluxo de convite);
--- escrita só service role (API valida). Managers: service role gerencia.
+-- RLS das instituições: SEM leitura direta por authenticated — o código de convite é um
+-- segredo compartilhado e expô-lo a qualquer usuário permitiria entrar em qualquer turma.
+-- Todo acesso (criar, listar, validar código no join) passa pelo service role no servidor.
 ALTER TABLE institutions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY institutions_sel ON institutions FOR SELECT TO authenticated USING (true);
 
 ALTER TABLE institution_managers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY institution_managers_sel ON institution_managers FOR SELECT TO authenticated USING (auth.uid() = user_id);

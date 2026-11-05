@@ -2,14 +2,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin/access'
+import { randomInt } from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
-// Código de convite legível (sem 0/O/1/I para evitar confusão).
+// Código de convite legível (sem 0/O/1/I para evitar confusão). randomInt = CSPRNG.
 function genCode(): string {
   const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   let s = ''
-  for (let i = 0; i < 6; i++) s += A[Math.floor(Math.random() * A.length)]
+  for (let i = 0; i < 6; i++) s += A[randomInt(A.length)]
   return s
 }
 
