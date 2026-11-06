@@ -71,11 +71,30 @@ O premium **não** cobra acesso básico; cobra por tirar limites e aprofundar:
   ranking e desafio seguem meritocráticos. Premium é profundidade pedagógica + conveniência +
   status, nunca vantagem competitiva no jogo.
 
-### 4.3 Preço (hipótese a validar, não fixada)
-- Mensal e **anual com desconto** (ancora retenção e caixa).
-- Faixa de referência do segmento estudantil BR: assinatura mensal de "preço de um lanche"
-  (validar com pesquisa/teste de preço). Oferecer plano anual ~2 meses grátis.
-- **Trial** ou "primeiro mês promocional" para reduzir atrito de conversão.
+### 4.3 Preço (definido 2026-11-06, com benchmark de mercado)
+
+**Benchmark (BR, nov/2026):**
+- *Cursões de residência* (curso completo — NÃO somos isso): Estratégia MED R$4,5k–13k (vitalícia
+  ~R$12,9k); Medway R$10k–15k; Medcel R$2k–18k; Sanar Residência ~R$1,1k/2 anos.
+- *Apps de estudante* (nosso comparável real): **SanarFlix R$64,90/mês (mensal), R$41,57 (anual),
+  R$38,57 (bienal)**, trial 7 dias, biblioteca ampla; **Jaleko** = freemium (plano grátis + add-ons
+  R$10–30).
+
+**Posicionamento:** camada de **treino ativo + comunidade + simulados por IA**, complementar aos
+cursões (não vendemos biblioteca de conteúdo). Preço fica **abaixo do SanarFlix** — ganhamos por
+acessibilidade + valor único, não por tamanho de acervo. O freemium generoso é a arma de aquisição
+(comunidade como motor viral).
+
+**Preço definido:**
+- **Premium mensal: R$ 29/mês.**
+- **Premium anual: ~R$ 229/ano (≈ R$ 19/mês, ~34% de desconto)** — o plano em DESTAQUE (retenção +
+  caixa adiantado, como SanarFlix/cursões fazem). Mensal existe, mas o anual é o empurrado.
+- **Membros Fundadores:** os 50 primeiros usuários ativos (5 consultas + desafio em 5 dias) ganham
+  **1 ano de Premium grátis** (campanha de lançamento).
+- **Trial/promo** de entrada a avaliar na implementação do pagamento.
+
+**B2B (fase 2, a definir):** licença por turma/semestre (faculdade/liga/cursinho) sobre o painel do
+coordenador — ancorar por aluno/semestre quando for construir.
 
 ## 5. Frente B2B — Fase 2 (futuro, pós-tração B2C)
 
