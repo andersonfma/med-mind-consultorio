@@ -16,6 +16,7 @@ const PUBLIC_FILE_ROUTES = [
   '/manifest',
   '/landing',
   '/c/',              // página pública do card compartilhável (sem login)
+  '/fundador',        // campanha de fundadores: página e imagem do card de link
   '/sw.js',           // service worker do Web Push
 ]
 

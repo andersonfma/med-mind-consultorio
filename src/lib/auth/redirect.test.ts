@@ -34,4 +34,12 @@ describe('getRedirectPath', () => {
   it('permite usuário autenticado no dashboard', () => {
     expect(getRedirectPath('/dashboard', true)).toBeNull()
   })
+
+  it('permite visitante sem login na página da campanha de fundadores', () => {
+    expect(getRedirectPath('/fundador', false)).toBeNull()
+  })
+
+  it('permite scraper sem login buscar a imagem do card de fundadores', () => {
+    expect(getRedirectPath('/fundador/opengraph-image.jpg', false)).toBeNull()
+  })
 })

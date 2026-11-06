@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { LOGIN_ROUTE } from '@/lib/routes'
 import { getChallengeToday } from '@/lib/challenge/today'
 import { ChallengeQuiz } from './ChallengeQuiz'
+import { StudyCard } from './StudyCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,12 +76,14 @@ export default async function DesafioPage() {
       </ol>
 
       {data.conclusion && (
-        <section className="rounded-xl border border-success/30 bg-success/10 p-4">
-          <h2 className="text-sm font-semibold text-success">Diagnóstico do caso</h2>
-          <p className="mt-1 font-medium text-ink">{data.conclusion.trueDiagnosis}</p>
-          <h3 className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted">Revisão</h3>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{data.conclusion.review}</p>
-        </section>
+        <StudyCard
+          title={data.case.title.replace(/^Caso da Semana:\s*/i, '')}
+          diagnosis={data.conclusion.trueDiagnosis}
+          review={data.conclusion.review}
+          points={data.days
+            .filter((d) => d.reveal?.explanation && d.stage !== 'conclusao')
+            .map((d) => ({ stage: STAGE_LABEL[d.stage] ?? d.stage, text: (d.reveal!.explanation as string).trim() }))}
+        />
       )}
     </div>
   )
