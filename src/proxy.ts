@@ -3,12 +3,24 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { getRedirectPath } from '@/lib/auth/redirect'
 
 export async function proxy(request: NextRequest) {
-  // Domínio de marketing (raiz medmindedu.com.br): serve a landing estática
-  // pública, sem auth. O app continua em app.medmindedu.com.br.
+  // Domínio de marketing (raiz medmindedu.com.br): site estático multipágina,
+  // público e SEM auth. O app continua em app.medmindedu.com.br.
   const host = request.headers.get('host') ?? ''
   const isMarketing = host === 'medmindedu.com.br' || host === 'www.medmindedu.com.br'
-  if (isMarketing && (request.nextUrl.pathname === '/' || request.nextUrl.pathname === '')) {
-    return NextResponse.rewrite(new URL('/landing.html', request.url))
+  if (isMarketing) {
+    const p = request.nextUrl.pathname
+    const SITE: Record<string, string> = {
+      '/': '/landing.html',
+      '': '/landing.html',
+      '/simulador': '/site/simulador.html',
+      '/comunidade': '/site/comunidade.html',
+      '/simulados': '/site/simulados.html',
+      '/faculdades': '/site/faculdades.html',
+    }
+    if (SITE[p]) return NextResponse.rewrite(new URL(SITE[p], request.url))
+    // Qualquer outro caminho no domínio de marketing (site.css, imagens, .html
+    // diretos) é servido estaticamente, sem passar pela lógica de auth do app.
+    return NextResponse.next()
   }
 
   let supabaseResponse = NextResponse.next({ request })
