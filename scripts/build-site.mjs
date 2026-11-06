@@ -138,6 +138,113 @@ const CHATMOCK = `<div class="hero-visual reveal d3">
   </div>
 </div>`
 
+// mock do feed/rede social (→ comunidade)
+const SOC_PHONE = `<div class="hero-visual reveal d3">
+  <div class="soc-phone" role="img" aria-label="Prévia do feed e dos stories da comunidade Med Mind">
+    <div class="soc-grip"></div>
+    <div class="soc-top"><span class="t">Feed<i>.</i></span>
+      <svg class="soc-bell" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+    </div>
+    <div class="soc-stories">
+      <div class="soc-st"><span class="soc-rg own"><img src="https://i.pravatar.cc/112?img=5" alt=""><b class="addbadge">+</b></span><span>Seu story</span></div>
+      <div class="soc-st"><span class="soc-rg"><img src="https://i.pravatar.cc/112?img=47" alt=""></span><span>Fernanda</span></div>
+      <div class="soc-st"><span class="soc-rg"><img src="https://i.pravatar.cc/112?img=12" alt=""></span><span>Lucas</span></div>
+      <div class="soc-st"><span class="soc-rg"><img src="https://i.pravatar.cc/112?img=32" alt=""></span><span>Marina</span></div>
+      <div class="soc-st"><span class="soc-rg seen"><img src="https://i.pravatar.cc/112?img=68" alt=""></span><span>Pedro</span></div>
+    </div>
+    <div class="soc-post">
+      <div class="soc-ph"><img class="soc-av" src="https://i.pravatar.cc/80?img=47" alt=""><div><div class="n">Ana Costa</div><div class="h">@ana.costa · Cardiologia</div></div><span class="tm">há 12 min</span></div>
+      <div class="soc-card">
+        <div class="soc-card-top"><svg class="mk" viewBox="0 0 32 32"><use href="#mm"/></svg><span class="wm">Med<b>Mind</b></span><span class="soc-badge">Caso concluído</span></div>
+        <div class="soc-dx">Amiloidose cardíaca</div>
+        <div class="soc-stats"><div class="soc-stat"><div class="l">Raciocínio</div><div class="v">8.4<em>/10</em></div></div><div class="soc-stat"><div class="l">Dificuldade</div><div class="v">Difícil</div></div><div class="soc-stat"><div class="l">MedCoin</div><div class="v" style="color:var(--cyan)">+25</div></div></div>
+      </div>
+      <p class="soc-cap">Fechei o caso! Que diagnóstico traiçoeiro</p>
+      <div class="soc-react"><span class="hot">♥ 24</span><span>💬 6</span><span class="sh">↗ Compartilhar</span></div>
+    </div>
+    <div class="soc-sep"></div>
+    <div class="soc-post">
+      <div class="soc-ph"><img class="soc-av" src="https://i.pravatar.cc/80?img=12" alt=""><div><div class="n">Lucas Ribeiro</div><div class="h">@lucas.rib · 5º período</div></div><span class="tm">há 40 min</span></div>
+      <div class="soc-ecg" style="position:relative" role="img" aria-label="Traçado de ECG">
+        <svg viewBox="0 0 300 150" preserveAspectRatio="none"><polyline fill="none" stroke="#FF6E86" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" points="0,96 6,95 12,98 18,96 21,96 22,104 24,44 26,108 28,96 34,95 40,98 46,96 52,95 58,98 59,96 60,104 61,44 62,108 63,96 69,95 75,98 81,96 82,96 83,105 84,45 85,108 86,96 92,95 98,98 104,96 110,95 116,98 122,96 128,96 129,104 130,43 131,108 132,96 138,95 144,98 150,96 151,105 152,45 153,108 154,96 160,95 166,98 172,96 178,95 184,98 190,96 196,96 197,104 198,44 199,108 200,96 206,95 212,98 218,96 224,95 230,98 234,96 235,104 236,44 237,108 238,96 244,95 250,98 256,96 262,95 268,98 272,96 273,105 274,45 275,108 276,96 282,96 288,95 294,98 300,96"/></svg>
+        <span class="tag">ECG · 25 mm/s</span>
+      </div>
+      <p class="soc-cap">Qual a conduta nesse ECG? Pulso irregular</p>
+      <div class="soc-react"><span class="hot">♥ 31</span><span>💬 9</span><span class="sh">↗ Compartilhar</span></div>
+      <div class="soc-cmt"><img src="https://i.pravatar.cc/60?img=32" alt=""><span class="cb"><b>Marina Alves</b> FA! Avalia estabilidade e anticoagulação</span><span class="cl">♥ 7</span></div>
+    </div>
+    <div class="soc-chal"><span class="em">🎯</span><div><div class="n">Desafio de hoje · Síntese</div><div class="s">Aposte seus MedCoins no palpite</div></div><span class="go">responder</span></div>
+  </div>
+</div>`
+
+// painel do coordenador (→ faculdades)
+const COORD_DASH = `<div class="coord-dash" aria-label="Prévia do painel do coordenador">
+  <div class="cd-h"><span class="cd-t">Painel do coordenador</span><span class="cd-badge">turma 2026.1 · 42 alunos</span></div>
+  <div class="cd-kpis">
+    <div class="cd-kpi"><div class="k">Alunos</div><div class="v">42</div></div>
+    <div class="cd-kpi"><div class="k">Ativos 7d</div><div class="v">34</div></div>
+    <div class="cd-kpi"><div class="k">Pacientes</div><div class="v">120</div></div>
+    <div class="cd-kpi"><div class="k">Consultas</div><div class="v">168</div></div>
+    <div class="cd-kpi"><div class="k">Conclusão</div><div class="v">85%</div></div>
+    <div class="cd-kpi"><div class="k">Simulados</div><div class="v">76</div></div>
+  </div>
+  <div class="cd-grid2">
+    <div class="cd-panel">
+      <div class="cd-pt"><span class="t">Raciocínio — média da turma</span><span class="n">4.9<s>/10</s></span></div>
+      <div class="cd-row"><span class="l">Hipóteses</span><div class="cd-track"><div class="cd-fill" style="width:47%;background:var(--green)"></div></div><span class="cd-val">4.7</span></div>
+      <div class="cd-row"><span class="l">Plausibilidade</span><div class="cd-track"><div class="cd-fill" style="width:57%;background:var(--green)"></div></div><span class="cd-val">5.7</span></div>
+      <div class="cd-row"><span class="l">Diferencial</span><div class="cd-track"><div class="cd-fill" style="width:41%;background:var(--amber)"></div></div><span class="cd-val">4.1</span></div>
+      <div class="cd-row"><span class="l">Fechamento</span><div class="cd-track"><div class="cd-fill" style="width:42%;background:var(--amber)"></div></div><span class="cd-val">4.2</span></div>
+    </div>
+    <div class="cd-panel">
+      <div class="cd-pt"><span class="t">Comunicação — média da turma</span><span class="n">4.8<s>/10</s></span></div>
+      <div class="cd-row"><span class="l">Clareza</span><div class="cd-track"><div class="cd-fill" style="width:54%;background:var(--coral)"></div></div><span class="cd-val">5.4</span></div>
+      <div class="cd-row"><span class="l">Empatia</span><div class="cd-track"><div class="cd-fill" style="width:46%;background:var(--coral)"></div></div><span class="cd-val">4.6</span></div>
+      <div class="cd-row"><span class="l">Condução</span><div class="cd-track"><div class="cd-fill" style="width:43%;background:var(--coral)"></div></div><span class="cd-val">4.3</span></div>
+    </div>
+  </div>
+  <div class="cd-grid3">
+    <div class="cd-ind"><div class="big" style="color:var(--coral)">17%</div><div class="lbl">Exames recusados por incoerência</div></div>
+    <div class="cd-ind"><div class="big" style="color:var(--coral)">17%</div><div class="lbl">Condutas inadequadas</div></div>
+    <div class="cd-ind"><div class="big" style="color:var(--amber)">32%</div><div class="lbl">Chegaram ao diagnóstico</div></div>
+  </div>
+  <div class="cd-actions"><span class="cd-btn primary">↓ Relatório da turma</span><span class="cd-btn ghost">↓ Relatórios individuais</span></div>
+</div>`
+
+// card de avaliação AB4 (→ simulador)
+const SCORECARD = `<div class="scorecard" role="img" aria-label="Prévia da avaliação de uma consulta">
+  <div class="sc-head"><div><div class="sc-name">Marília, 54 · Hepatologia</div><div class="sc-sub">Consulta finalizada</div></div><span class="pill">avaliação</span></div>
+  <div class="sc-block"><h4>Raciocínio clínico — AB4</h4>
+    <div class="bar-row"><span class="bar-lbl">Anamnese</span><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div><span class="bar-val">8.2</span></div>
+    <div class="bar-row"><span class="bar-lbl">Exame &amp; evid.</span><div class="bar-track"><div class="bar-fill" style="width:74%"></div></div><span class="bar-val">7.4</span></div>
+    <div class="bar-row"><span class="bar-lbl">Base dx</span><div class="bar-track"><div class="bar-fill" style="width:68%"></div></div><span class="bar-val">6.8</span></div>
+    <div class="bar-row"><span class="bar-lbl">Conduta</span><div class="bar-track"><div class="bar-fill" style="width:79%"></div></div><span class="bar-val">7.9</span></div>
+  </div>
+  <div class="sc-block"><h4>Comunicação</h4>
+    <div class="bar-row"><span class="bar-lbl">Clareza</span><div class="bar-track"><div class="bar-fill coral" style="width:85%"></div></div><span class="bar-val">8.5</span></div>
+    <div class="bar-row"><span class="bar-lbl">Empatia</span><div class="bar-track"><div class="bar-fill coral" style="width:76%"></div></div><span class="bar-val">7.6</span></div>
+  </div>
+  <div class="sc-overall"><span class="n">7.6</span><span class="d">/10 geral</span></div>
+</div>`
+
+// mock de questão de simulado (→ simulados)
+const SIM_MOCK = `<div class="hero-visual reveal d3">
+  <div style="max-width:430px;margin-inline:auto;background:linear-gradient(185deg,#15222D,#0B1219);border:1px solid var(--line-strong);border-radius:22px;padding:18px;box-shadow:0 36px 90px -44px #000">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
+      <span style="font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#E7B23A;border:1px solid rgba(231,178,58,.4);border-radius:999px;padding:3px 9px">ENARE · Clínica Médica</span>
+      <span style="font-size:11px;color:var(--muted-2)">Questão 3 / 10</span>
+    </div>
+    <p style="font-size:13px;color:var(--fog);line-height:1.55;margin:0 0 13px">Homem, 62 anos, com dispneia progressiva e edema de membros. Exame: turgência jugular, B3 e estertores bibasais; ECG com bloqueio de ramo esquerdo. Qual a conduta inicial mais apropriada?</p>
+    <div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px">
+      <div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--muted)"><b style="color:var(--fog)">A.</b> Betabloqueador IV em dose plena</div>
+      <div style="border:1px solid var(--green);background:rgba(52,229,160,.1);border-radius:10px;padding:10px 12px;color:var(--fog)"><b>B.</b> Diurético de alça + IECA e investigação da IC</div>
+      <div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--muted)"><b style="color:var(--fog)">C.</b> Reposição volêmica agressiva</div>
+      <div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--muted)"><b style="color:var(--fog)">D.</b> Alta com retorno ambulatorial</div>
+    </div>
+    <p style="margin:12px 0 0;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:11.5px;color:var(--muted);line-height:1.5"><b style="color:var(--fog)">Gabarito (B).</b> Insuficiência cardíaca descompensada — o diurético alivia a congestão; betabloqueador IV é contraindicado na descompensação (distrator clássico).</p>
+  </div>
+</div>`
+
 const ECO = [
   { href: '/simulador', k: 'Treino', h: 'Simulador clínico', p: 'Atenda pacientes virtuais com IA e receba a avaliação do seu raciocínio e da sua comunicação.' },
   { href: '/comunidade', k: 'Comunidade', h: 'Feed, desafio e ranking', p: 'Troque casos e dúvidas, encare o desafio diário com aposta de MedCoins e dispute o ranking.' },
@@ -257,6 +364,20 @@ const simulador = page({
     </div>
   </section>
 
+  <section class="band">
+    <div class="wrap">
+      <div class="feat">
+        <div>
+          <span class="kicker">O resultado</span>
+          <h2 style="font-size:clamp(26px,3.6vw,36px);margin-top:12px">Uma avaliação clara ao fim de cada consulta.</h2>
+          <p style="color:var(--muted);font-size:16px;margin-top:14px;max-width:44ch">Notas por critério, um radar de desempenho e um card para compartilhar. Você vê exatamente onde evoluiu e o que fortalecer.</p>
+          <div class="hero-cta" style="margin-top:22px"><a class="btn btn-ghost" href="${REGISTER}">Ver a minha avaliação →</a></div>
+        </div>
+        ${SCORECARD}
+      </div>
+    </div>
+  </section>
+
   <section class="band" id="especialidades">
     <div class="wrap">
       <div class="sec-head"><span class="kicker">Alcance</span><h2>Nove especialidades clínicas.</h2></div>
@@ -276,13 +397,14 @@ const comunidade = page({
   active: '/comunidade',
   body: `<section class="hero">
     <div class="stripes"></div>
-    <div class="wrap" style="grid-template-columns:1fr">
-      <div class="hero-copy" style="max-width:720px">
+    <div class="wrap">
+      <div class="hero-copy">
         <p class="eyebrow reveal d1">A comunidade</p>
         <h1 class="reveal d2">Estudar medicina deixou de ser <span class="hl">solitário</span>.</h1>
-        <p class="lead reveal d3" style="max-width:52ch">Um feed para trocar casos e dúvidas, stories, um desafio clínico todo dia e um ranking para disputar com a turma.</p>
+        <p class="lead reveal d3">Um feed para trocar casos e dúvidas, stories, um desafio clínico todo dia e um ranking para disputar com a turma.</p>
         <div class="hero-cta reveal d4"><a class="btn btn-primary" href="${REGISTER}">Entrar na comunidade →</a></div>
       </div>
+      ${SOC_PHONE}
     </div>
   </section>
 
@@ -314,13 +436,14 @@ const simulados = page({
   active: '/simulados',
   body: `<section class="hero">
     <div class="stripes"></div>
-    <div class="wrap" style="grid-template-columns:1fr">
-      <div class="hero-copy" style="max-width:720px">
+    <div class="wrap">
+      <div class="hero-copy">
         <p class="eyebrow reveal d1" style="color:#E7B23A">Premium · Estudo de prova</p>
         <h1 class="reveal d2">Simulados de <span class="hl">ENARE e ENAMED</span>, por IA.</h1>
-        <p class="lead reveal d3" style="max-width:54ch">Questões originais geradas por IA <b style="color:var(--fog)">nos moldes das provas</b> — vinheta clínica, dificuldade de residência e gabarito comentado. Por área, quantas quiser.</p>
+        <p class="lead reveal d3">Questões originais geradas por IA <b style="color:var(--fog)">nos moldes das provas</b> — vinheta clínica, dificuldade de residência e gabarito comentado. Por área, quantas quiser.</p>
         <div class="hero-cta reveal d4"><a class="btn btn-primary" href="${REGISTER}">Começar a treinar →</a></div>
       </div>
+      ${SIM_MOCK}
     </div>
   </section>
 
@@ -364,7 +487,13 @@ const faculdades = page({
     </div>
   </section>
 
-  <section class="band">
+  <section class="band" style="padding-top:0">
+    <div class="wrap">
+      ${COORD_DASH}
+    </div>
+  </section>
+
+  <section class="band" style="padding-top:0">
     <div class="wrap">
       <div class="coord-points">
         ${CPT.map(([ic, b, p]) => `<div class="cpt"><span class="ic">${ic}</span><b>${b}</b><p>${p}</p></div>`).join('\n        ')}
