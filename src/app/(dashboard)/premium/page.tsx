@@ -34,6 +34,17 @@ export default async function PremiumPage() {
   const isPremium = !!(prof as { is_premium?: boolean } | null)?.is_premium
   const registered = !!interest
 
+  // Links de checkout da Hotmart (configuráveis por env); e-mail pré-preenchido
+  // para o webhook casar o comprador. Enquanto não houver link, cai no "interesse".
+  const withEmail = (url: string) => {
+    if (!user.email) return url
+    return url + (url.includes('?') ? '&' : '?') + 'email=' + encodeURIComponent(user.email)
+  }
+  const checkout = [
+    process.env.HOTMART_CHECKOUT_ANNUAL_URL && { label: 'Assinar anual · R$229/ano', href: withEmail(process.env.HOTMART_CHECKOUT_ANNUAL_URL), primary: true },
+    process.env.HOTMART_CHECKOUT_MONTHLY_URL && { label: 'Mensal · R$29/mês', href: withEmail(process.env.HOTMART_CHECKOUT_MONTHLY_URL), primary: false },
+  ].filter(Boolean) as Array<{ label: string; href: string; primary: boolean }>
+
   const { PremiumInterestButton } = await import('./PremiumInterestButton')
 
   return (
@@ -103,6 +114,20 @@ export default async function PremiumPage() {
             <p className="font-display text-xl font-bold" style={{ color: GOLD }}>Você já é Premium ✦</p>
             <p className="mt-1 text-sm text-muted">Todos os recursos acima estão liberados para você. Bom treino!</p>
             <Link href={DASHBOARD_ROUTE} className="mt-3 inline-block text-sm font-medium text-primary hover:underline">Ir para o consultório →</Link>
+          </div>
+        ) : checkout.length > 0 ? (
+          <div className="space-y-3">
+            <p className="text-center text-sm text-muted">Assine e libere tudo agora.</p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {checkout.map((c) => (
+                <a key={c.label} href={c.href} target="_blank" rel="noopener"
+                  className="flex-1 rounded-xl px-5 py-3 text-center text-sm font-bold text-[#1a1203]"
+                  style={{ background: c.primary ? 'linear-gradient(140deg,#F5C84B,#E7B23A)' : 'transparent', color: c.primary ? '#1a1203' : GOLD, border: c.primary ? 'none' : `1px solid ${GOLD}66` }}>
+                  {c.label}
+                </a>
+              ))}
+            </div>
+            <p className="text-center text-[11px] text-muted">Pagamento seguro via Hotmart · Pix, cartão ou boleto</p>
           </div>
         ) : (
           <>
