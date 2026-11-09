@@ -184,6 +184,21 @@ oportunidades médicas (plantões, CLT, substituições, residência) conectando
   do "Tinder" completo. Passa por brainstorming → spec.
 - **Sequenciamento:** depois da revisão das interfaces admin (seção abaixo). É uma 3ª frente grande.
 
+## 9c. Visão futura (roadmap) — Biblioteca virtual do aluno
+
+Pilar novo registrado para fase futura (une-se à "apostila" para NÃO duplicar). Uma biblioteca
+pessoal onde o aluno coleciona e estuda o conteúdo do ecossistema:
+- **Coleção** dos cards que o sistema já gera: cards de estudo do desafio, cards de resultado das
+  consultas, **flashcards de diagnóstico** (`diagnosis_flashcard` já existe), simulados feitos —
+  organizados por **especialidade / doença / alfabético**.
+- **Notas/docs próprios** do aluno (editor + grifo) — é aqui que mora a antiga "apostila"; NÃO
+  construir as duas separadas. Compartilháveis na rede (reusa feed/resenha).
+- **Outros recursos** (a escopar): busca, favoritos, resumos por IA.
+- **Free vs premium:** a biblioteca (coleção + notas) é majoritariamente GRÁTIS (é o conteúdo do
+  próprio aluno; retém); premium = exportar PDF/apostila, resumos por IA, notas ilimitadas.
+- **Sequenciamento:** depois do pagamento (Hotmart) e das fatias já na fila. Passa por
+  brainstorming → spec. MVP possível = só a coleção/filtro dos cards que já existem.
+
 ## 10. Próximo passo acordado
 Revisar este plano. Em seguida, implementar o **selo premium manual** (flag `is_premium` + botão
 no /admin), **sem cobrança e sem gate de vídeo por ora** — apenas para marcar quem é premium e
