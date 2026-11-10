@@ -1,0 +1,12 @@
+name: Expirar premium vencido
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+jobs:
+  expire:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Expirar premium
+        run: |
+          curl -fsS -X POST "${{ secrets.APP_URL }}/api/cron/expire-premium" -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
