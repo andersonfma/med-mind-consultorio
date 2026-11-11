@@ -50,6 +50,7 @@ export default async function PremiumPage() {
   ] as Array<{ label: string; href: string; primary: boolean }>
 
   const { PremiumInterestButton } = await import('./PremiumInterestButton')
+  const { RedeemFounderCode } = await import('./RedeemFounderCode')
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 py-2">
@@ -140,6 +141,13 @@ export default async function PremiumPage() {
           </>
         )}
       </div>
+
+      {/* Resgate de código de fundador (ações presenciais, ex.: aulas) */}
+      {!isPremium && (
+        <div className="rounded-xl border border-border bg-surface p-4">
+          <RedeemFounderCode />
+        </div>
+      )}
     </div>
   )
 }
