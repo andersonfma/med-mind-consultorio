@@ -40,10 +40,14 @@ export default async function PremiumPage() {
     if (!user.email) return url
     return url + (url.includes('?') ? '&' : '?') + 'email=' + encodeURIComponent(user.email)
   }
+  // Checkout da Hotmart (produto Med Mind Premium, ID 8937171). O link base
+  // apresenta os dois planos (Anual R$229 / Mensal R$29) para o comprador escolher.
+  // As env vars sobrescrevem caso um dia criemos links deep por plano.
+  const HOTMART_CHECKOUT = 'https://pay.hotmart.com/I108431179E'
   const checkout = [
-    process.env.HOTMART_CHECKOUT_ANNUAL_URL && { label: 'Assinar anual · R$229/ano', href: withEmail(process.env.HOTMART_CHECKOUT_ANNUAL_URL), primary: true },
-    process.env.HOTMART_CHECKOUT_MONTHLY_URL && { label: 'Mensal · R$29/mês', href: withEmail(process.env.HOTMART_CHECKOUT_MONTHLY_URL), primary: false },
-  ].filter(Boolean) as Array<{ label: string; href: string; primary: boolean }>
+    { label: 'Assinar anual · R$229/ano', href: withEmail(process.env.HOTMART_CHECKOUT_ANNUAL_URL || HOTMART_CHECKOUT), primary: true },
+    { label: 'Mensal · R$29/mês', href: withEmail(process.env.HOTMART_CHECKOUT_MONTHLY_URL || HOTMART_CHECKOUT), primary: false },
+  ] as Array<{ label: string; href: string; primary: boolean }>
 
   const { PremiumInterestButton } = await import('./PremiumInterestButton')
 
