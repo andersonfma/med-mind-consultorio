@@ -48,7 +48,10 @@ export function RedeemFounderCode() {
   if (done) {
     return (
       <div className="rounded-xl border px-5 py-4 text-center" style={{ borderColor: `${GOLD}66`, background: 'rgba(231,178,58,.08)' }}>
-        <p className="font-display text-lg font-bold" style={{ color: GOLD }}>Premium de fundador ativado! ✦</p>
+        <p className="inline-flex items-center justify-center gap-1.5 font-display text-lg font-bold" style={{ color: GOLD }}>
+          Premium de fundador ativado!
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2.4l2.63 5.56 6.07.86-4.4 4.2 1.06 6.04L12 16.9l-5.43 2.16 1.06-6.04-4.4-4.2 6.07-.86L12 2.4z" /></svg>
+        </p>
         <p className="mt-1 text-sm text-muted">Seu acesso Premium está liberado por 1 ano. Bom treino!</p>
       </div>
     )

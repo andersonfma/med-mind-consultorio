@@ -34,6 +34,7 @@ export function Shell({ children, isAdmin = false }: ShellProps) {
               <Link href="/resultados" className="text-xs font-medium text-muted transition-colors hover:text-primary">Resultados</Link>
               <Link href="/ranking" className="text-xs font-medium text-muted transition-colors hover:text-primary">Ranking</Link>
               <Link href="/perfil/editar" className="text-xs font-medium text-muted transition-colors hover:text-primary">Perfil</Link>
+              <Link href="/premium" className="text-xs font-semibold transition-colors hover:opacity-80" style={{ color: '#E7B23A' }}>Premium</Link>
               {isAdmin && (
                 <Link href="/admin" className="text-xs font-medium text-muted transition-colors hover:text-primary">Admin</Link>
               )}
