@@ -18,5 +18,12 @@ export default async function DashboardLayout({
     redirect(LOGIN_ROUTE)
   }
 
-  return <Shell isAdmin={isAdminEmail(user.email)}>{children}</Shell>
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('is_premium')
+    .eq('id', user.id)
+    .maybeSingle()
+  const isPremium = !!(prof as { is_premium?: boolean } | null)?.is_premium
+
+  return <Shell isAdmin={isAdminEmail(user.email)} isPremium={isPremium}>{children}</Shell>
 }

@@ -24,6 +24,7 @@ const NAV = [
   { href: '/simulador', label: 'Simulador' },
   { href: '/comunidade', label: 'Comunidade' },
   { href: '/simulados', label: 'Simulados' },
+  { href: '/planos', label: 'Planos' },
   { href: '/faculdades', label: 'Para faculdades' },
 ]
 
@@ -76,6 +77,7 @@ const FOOTER = `<footer>
       <a class="link" href="/simulador" style="font-size:13px">Simulador</a>
       <a class="link" href="/comunidade" style="font-size:13px">Comunidade</a>
       <a class="link" href="/simulados" style="font-size:13px">Simulados</a>
+      <a class="link" href="/planos" style="font-size:13px">Planos</a>
       <a class="link" href="/faculdades" style="font-size:13px">Para faculdades</a>
     </nav>
   </div>
@@ -522,11 +524,89 @@ const faculdades = page({
   ${finalCta('Traga sua turma para o Med Mind.', 'Fale com a gente e libere o painel do coordenador para a sua instituição.', 'Falar com a gente →', 'mailto:contato@medmindedu.com.br')}`
 })
 
+// ─────────────────────────── PLANOS ───────────────────────────
+const CHECK = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`
+const feats = (items) => `<ul style="list-style:none;margin:20px 0 0;padding:0;display:flex;flex-direction:column;gap:11px">${items.map(t => `<li style="display:flex;gap:10px;font-size:14.5px;color:var(--muted);line-height:1.5"><span style="color:var(--cyan)">${CHECK}</span><span>${t}</span></li>`).join('')}</ul>`
+
+function plan({ name, tagline, price, sub, items, cta, href, featured = false, accent = 'var(--cyan)' }) {
+  return `<div class="card" style="display:flex;flex-direction:column;${featured ? `border-color:${accent};box-shadow:0 30px 70px -40px ${accent}66;position:relative` : ''}">
+    ${featured ? `<span style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:${accent};color:#04191A;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:4px 12px">Mais escolhido</span>` : ''}
+    <div class="k" style="${featured ? `color:${accent}` : ''}">${name}</div>
+    <h3 style="font-size:19px;margin:2px 0 0">${tagline}</h3>
+    <div style="margin-top:16px;display:flex;align-items:baseline;gap:7px">
+      <span style="font-family:var(--font-display,inherit);font-size:38px;font-weight:700;color:var(--fog);line-height:1">${price}</span>
+      ${sub ? `<span style="font-size:14px;color:var(--muted)">${sub}</span>` : ''}
+    </div>
+    ${feats(items)}
+    <div style="flex:1"></div>
+    <a class="btn ${featured ? 'btn-primary' : 'btn-ghost'}" href="${href}" style="margin-top:24px;width:100%;text-align:center;justify-content:center">${cta}</a>
+  </div>`
+}
+
+const planos = page({
+  title: 'Med Mind — Planos e preços',
+  desc: 'Comece grátis. O Premium libera casos e especialidades ilimitados, consultas de IA sem limite e os simulados de ENARE/ENAMED. Mensal R$ 29 ou anual R$ 229.',
+  active: '/planos',
+  body: `<section class="hero">
+    <div class="stripes"></div>
+    <div class="wrap" style="grid-template-columns:1fr">
+      <div class="hero-copy" style="max-width:720px;text-align:center;margin-inline:auto">
+        <p class="eyebrow reveal d1">Planos</p>
+        <h1 class="reveal d2">Comece grátis. <span class="hl">Evolua</span> quando quiser.</h1>
+        <p class="lead reveal d3" style="margin-inline:auto">O essencial do Med Mind é gratuito para sempre. O Premium tira os limites e libera os simulados de ENARE e ENAMED.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" style="padding-top:0">
+    <div class="wrap">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:18px;align-items:stretch;max-width:960px;margin-inline:auto">
+        ${plan({
+          name: 'Grátis', tagline: 'Para começar', price: 'R$ 0', sub: 'para sempre',
+          items: ['Comunidade completa: feed, stories e ranking', 'Desafio da semana com quiz e MedCoins', '5 casos por mês em 2 especialidades'],
+          cta: 'Criar conta grátis →', href: REGISTER,
+        })}
+        ${plan({
+          name: 'Premium', tagline: 'Para treinar sem limites', price: 'R$ 29', sub: '/mês',
+          items: ['Todas as 9 especialidades clínicas', 'Casos e consultas de IA ilimitados', 'Simulados de ENARE e ENAMED por IA', 'Selo Premium no seu perfil', 'Tudo do plano grátis'],
+          cta: 'Assinar Premium →', href: REGISTER, featured: true,
+        })}
+        ${plan({
+          name: 'Fundador', tagline: 'Para os primeiros e para turmas', price: '1 ano', sub: 'grátis',
+          items: ['Tudo do Premium, por 12 meses', 'Para os 50 primeiros usuários ativos', 'Ou com código de fundador (aulas e ligas)'],
+          cta: 'Garantir minha vaga →', href: REGISTER, accent: '#E7B23A',
+        })}
+      </div>
+      <div style="max-width:960px;margin:22px auto 0;text-align:center">
+        <p style="font-size:14px;color:var(--muted)"><b style="color:var(--fog)">Anual: R$ 229/ano</b> — economize R$ 119 (mais de 3 meses grátis). A assinatura é feita dentro do app, com o checkout seguro da Hotmart.</p>
+        <p style="font-size:12.5px;color:var(--muted-2);margin-top:10px">Pix, cartão ou boleto · cancele quando quiser · 7 dias de garantia.
+          <a class="link" href="${LOGIN}" style="font-size:12.5px">Já tem conta? Entrar e assinar</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" style="padding-top:0">
+    <div class="wrap" style="max-width:820px">
+      <div class="sec-head"><span class="kicker">Perguntas frequentes</span><h2>Dúvidas comuns.</h2></div>
+      <div class="aud" style="grid-template-columns:1fr 1fr">
+        <div class="card"><h3>O plano grátis expira?</h3><p>Não. A comunidade, o desafio diário e os 5 casos mensais são gratuitos para sempre.</p></div>
+        <div class="card"><h3>Posso cancelar quando quiser?</h3><p>Sim. O Premium é uma assinatura sem fidelidade — cancele a qualquer momento e mantenha o acesso até o fim do período.</p></div>
+        <div class="card"><h3>Como funcionam os simulados?</h3><p>Questões originais geradas por IA nos moldes do ENARE e do ENAMED, por área, com gabarito comentado. Incluídas no Premium.</p></div>
+        <div class="card"><h3>O que é ser Membro Fundador?</h3><p>Os primeiros usuários ativos — e turmas de aulas e ligas com um código — ganham 1 ano de Premium gratuito.</p></div>
+      </div>
+    </div>
+  </section>
+
+  ${finalCta('Comece agora — é grátis.', 'Crie sua conta em um minuto. O Premium está a um clique quando você quiser.')}`
+})
+
 // ─────────────────────────── escrever ───────────────────────────
 mkdirSync('public/site', { recursive: true })
 writeFileSync('public/landing.html', home, 'utf8')
 writeFileSync('public/site/simulador.html', simulador, 'utf8')
 writeFileSync('public/site/comunidade.html', comunidade, 'utf8')
 writeFileSync('public/site/simulados.html', simulados, 'utf8')
+writeFileSync('public/site/planos.html', planos, 'utf8')
 writeFileSync('public/site/faculdades.html', faculdades, 'utf8')
-console.log('site gerado: landing.html + site/{simulador,comunidade,simulados,faculdades}.html')
+console.log('site gerado: landing.html + site/{simulador,comunidade,simulados,planos,faculdades}.html')

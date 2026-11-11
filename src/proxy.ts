@@ -15,6 +15,7 @@ export async function proxy(request: NextRequest) {
       '/simulador': '/site/simulador.html',
       '/comunidade': '/site/comunidade.html',
       '/simulados': '/site/simulados.html',
+      '/planos': '/site/planos.html',
       '/faculdades': '/site/faculdades.html',
     }
     if (SITE[p]) return NextResponse.rewrite(new URL(SITE[p], request.url))
