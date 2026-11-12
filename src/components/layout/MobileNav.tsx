@@ -9,6 +9,7 @@ const ITEMS = [
   { href: FEED_ROUTE, label: 'Feed', icon: 'M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5Z' },
   { href: CHALLENGE_ROUTE, label: 'Desafio', icon: 'M12 2v4M12 18v4M2 12h4M18 12h4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z' },
   { href: RANKING_ROUTE, label: 'Ranking', icon: 'M6 20V10M12 20V4M18 20v-7' },
+  { href: '/mapa', label: 'Mapa', icon: 'M9 20 3 17V4l6 3 6-3 6 3v13l-6-3-6 3ZM9 7v13M15 4v13' },
   { href: EDIT_PROFILE_ROUTE, label: 'Perfil', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 20a8 8 0 0 1 16 0' },
 ]
 

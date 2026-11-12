@@ -33,6 +33,7 @@ export function Shell({ children, isAdmin = false, isPremium = false }: ShellPro
               <Link href="/feed" className="text-xs font-medium text-muted transition-colors hover:text-primary">Feed</Link>
               <Link href="/desafio" className="text-xs font-medium text-muted transition-colors hover:text-primary">Desafio</Link>
               <Link href="/resultados" className="text-xs font-medium text-muted transition-colors hover:text-primary">Resultados</Link>
+              <Link href="/mapa" className="text-xs font-medium text-muted transition-colors hover:text-primary">Mapa</Link>
               <Link href="/ranking" className="text-xs font-medium text-muted transition-colors hover:text-primary">Ranking</Link>
               <Link href="/perfil/editar" className="text-xs font-medium text-muted transition-colors hover:text-primary">Perfil</Link>
               {!isPremium && (
