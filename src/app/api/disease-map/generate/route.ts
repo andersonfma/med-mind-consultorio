@@ -1,11 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { consumeAiCall, aiQuotaExceededResponse } from '@/lib/usage/quota'
 import { generateDiseaseMap } from '@/lib/disease-map/generate'
 
 export const dynamic = 'force-dynamic'
 
 const FREE_MAP_LIMIT = 1
+const MAX_DISEASE_LEN = 120
 
 // Gera o "Mapa da Doença" (correlação centrada na fisiopatogênese). 1 grátis
 // (lifetime, contando disease_maps do usuário), depois Premium. Salva o mapa.
@@ -16,7 +18,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => ({})) as { disease?: string }
   const disease = (body.disease ?? '').trim()
-  if (!disease) return NextResponse.json({ error: 'invalid' }, { status: 400 })
+  if (!disease || disease.length > MAX_DISEASE_LEN) return NextResponse.json({ error: 'invalid' }, { status: 400 })
 
   const db = supabase as unknown as SupabaseClient
 
@@ -28,6 +30,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'premium_required', message: 'Você já usou seu mapa grátis. Assine o Premium para mapas ilimitados.' }, { status: 403 })
     }
   }
+
+  // Backstop de custo (atômico): limita o uso de IA do plano grátis e serve de
+  // trava contra rajadas concorrentes. Premium é ilimitado no RPC.
+  const quota = await consumeAiCall(db)
+  if (!quota.ok) return aiQuotaExceededResponse()
 
   const result = await generateDiseaseMap(disease)
   if (!result) return NextResponse.json({ error: 'generation_failed', message: 'Não foi possível gerar o mapa. Tente de novo.' }, { status: 502 })
