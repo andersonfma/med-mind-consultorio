@@ -65,7 +65,7 @@ export default async function AdminPage() {
 
   const admin = createAdminClient()
 
-  const [usersRes, profilesRes, patientsRes, consultationsRes, examsRes, rxRes, interestRes, quizAnsRes, examAttRes, instRes] = await Promise.all([
+  const [usersRes, profilesRes, patientsRes, consultationsRes, examsRes, rxRes, interestRes, quizAnsRes, examAttRes, instRes, reactionsRes, postsRes] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     admin.from('profiles').select('id, full_name, ai_calls_used, ai_calls_limit, is_premium'),
     admin.from('patients').select('user_id, specialty, created_at, diagnosis_status'),
@@ -73,9 +73,11 @@ export default async function AdminPage() {
     admin.from('exam_requests').select('user_id, status, exam_name, attempts'),
     admin.from('prescriptions').select('user_id, adequacy'),
     admin.from('premium_interest').select('user_id', { count: 'exact', head: true }),
-    admin.from('quiz_answers').select('user_id, is_correct'),
+    admin.from('quiz_answers').select('user_id, is_correct, created_at'),
     admin.from('exam_attempts').select('user_id, exam, area, score, total'),
     admin.from('institutions').select('id, name, invite_code, created_at'),
+    admin.from('post_reactions').select('user_id, created_at'),
+    admin.from('posts').select('author_id, created_at'),
   ])
 
   type AuthUser = { id: string; email?: string; created_at?: string; last_sign_in_at?: string | null; banned_until?: string | null }
@@ -115,9 +117,27 @@ export default async function AdminPage() {
   const dxRevealed = patients.filter((p) => p.diagnosis_status === 'revealed').length
   const dxClosed = dxAchieved + dxRevealed
 
-  const quizAns = (quizAnsRes.data ?? []) as Array<{ user_id: string; is_correct: boolean }>
+  const quizAns = (quizAnsRes.data ?? []) as Array<{ user_id: string; is_correct: boolean; created_at?: string | null }>
   const examAtt = (examAttRes.data ?? []) as Array<{ user_id: string; exam: string; area: string; score: number; total: number }>
   const institutions = (instRes.data ?? []) as Array<{ id: string; name: string; invite_code: string; created_at: string }>
+  const reactions = (reactionsRes.data ?? []) as Array<{ user_id: string; created_at: string | null }>
+  const feedPosts = (postsRes.data ?? []) as Array<{ author_id: string; created_at: string | null }>
+
+  // Última ATIVIDADE real por usuário (não só o último login): login + consulta +
+  // paciente + curtida + post + quiz. last_sign_in_at sozinho engana — quem tem
+  // sessão persistente usa o app sem "logar de novo".
+  const lastActivityByUser = new Map<string, number>()
+  const bumpActivity = (uid: string | null | undefined, ts: string | null | undefined) => {
+    if (!uid || !ts) return
+    const t = Date.parse(ts)
+    if (Number.isNaN(t)) return
+    if (t > (lastActivityByUser.get(uid) ?? 0)) lastActivityByUser.set(uid, t)
+  }
+  for (const c of consultations) { bumpActivity(c.user_id, c.created_at); bumpActivity(c.user_id, c.finished_at) }
+  for (const p of patients) bumpActivity(p.user_id, p.created_at)
+  for (const r of reactions) bumpActivity(r.user_id, r.created_at)
+  for (const p of feedPosts) bumpActivity(p.author_id, p.created_at)
+  for (const q of quizAns) bumpActivity(q.user_id, q.created_at)
 
   const profileById = new Map(profiles.map((p) => [p.id, p]))
   const isBlocked = (u: AuthUser) => !!u.banned_until && Date.parse(u.banned_until) > Date.now()
@@ -129,8 +149,12 @@ export default async function AdminPage() {
   const totalUsers = authUsers.length
   const new7 = authUsers.filter((u) => u.created_at && new Date(u.created_at) >= since7).length
   const new30 = authUsers.filter((u) => u.created_at && new Date(u.created_at) >= since30).length
-  const active7 = authUsers.filter((u) => u.last_sign_in_at && new Date(u.last_sign_in_at) >= since7).length
-  const active30 = authUsers.filter((u) => u.last_sign_in_at && new Date(u.last_sign_in_at) >= since30).length
+  const lastActivityMs = (u: AuthUser) => Math.max(
+    u.last_sign_in_at ? Date.parse(u.last_sign_in_at) : 0,
+    lastActivityByUser.get(u.id) ?? 0,
+  )
+  const active7 = authUsers.filter((u) => lastActivityMs(u) >= since7.getTime()).length
+  const active30 = authUsers.filter((u) => lastActivityMs(u) >= since30.getTime()).length
   // Retenção (proxy): voltou ao menos uma vez depois de ~1 dia do cadastro.
   const returned = authUsers.filter((u) => u.created_at && u.last_sign_in_at
     && Date.parse(u.last_sign_in_at) - Date.parse(u.created_at) > 20 * 3_600_000).length
@@ -198,6 +222,7 @@ export default async function AdminPage() {
         name: prof?.full_name ?? '—',
         institution: prof?.institution_id ? (instNameById.get(prof.institution_id) ?? null) : null,
         lastSignIn: u.last_sign_in_at,
+        lastActivity: lastActivityMs(u),
         blocked: isBlocked(u),
         patients: patientCount.get(u.id) ?? 0,
         consults: mine.length,
@@ -207,7 +232,7 @@ export default async function AdminPage() {
         aiLimit: prof?.ai_calls_limit ?? 0,
       }
     })
-    .sort((a, b) => (b.lastSignIn ? Date.parse(b.lastSignIn) : 0) - (a.lastSignIn ? Date.parse(a.lastSignIn) : 0))
+    .sort((a, b) => b.lastActivity - a.lastActivity)
 
   return (
     <div className="space-y-6 p-1 sm:p-2">
@@ -419,7 +444,7 @@ export default async function AdminPage() {
                 <th className="px-3 py-2 font-medium">Aluno</th>
                 <th className="px-3 py-2 font-medium">Instituição</th>
                 <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Último acesso</th>
+                <th className="px-3 py-2 font-medium">Última atividade</th>
                 <th className="px-3 py-2 text-right font-medium">Pac.</th>
                 <th className="px-3 py-2 text-right font-medium">Cons.</th>
                 <th className="px-3 py-2 text-right font-medium">Racioc.</th>
@@ -447,7 +472,7 @@ export default async function AdminPage() {
                       <span className="rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success">Ativo</span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-muted">{fmt(r.lastSignIn)}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-muted">{r.lastActivity ? fmt(new Date(r.lastActivity).toISOString()) : '—'}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-ink">{r.patients}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-ink">{r.consults}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-ink">{r.ab4 != null ? r.ab4.toFixed(1) : '—'}</td>
