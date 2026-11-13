@@ -2,29 +2,34 @@ import { describe, it, expect } from 'vitest'
 import { parseDiseaseMap } from './schema'
 
 const valid = JSON.stringify({
-  disease: 'Insuficiência cardíaca',
-  area: 'Cardiologia',
-  core: [{ mechanism: 'Falência de bomba do VE', detail: 'queda do débito e congestão retrógrada' }],
-  clinica: [{ label: 'Turgência jugular e B3', because: 'congestão venosa sistêmica pela falência do VE' }],
-  diagnostico: [{ label: 'BNP elevado; eco com FE reduzida', because: 'estiramento miocárdico e disfunção sistólica' }],
-  tratamento: [{ label: 'Diurético de alça', because: 'reduz a congestão gerada pelo mecanismo' }],
-  summary: 'A falha do VE gera congestão, que explica os achados e a resposta ao diurético.',
+  disease: 'Cirrose hepática',
+  area: 'Hepatologia',
+  core: [{ mechanism: 'Hipertensão portal', detail: 'fibrose ↑ a resistência intra-hepática' }],
+  clinica: [{ label: 'Ascite', chain: ['hipertensão portal', 'vasodilatação esplâncnica', '↓ volemia efetiva', 'SRAA + ADH', 'retenção de Na⁺ e água'] }],
+  diagnostico: [{ label: 'Plaquetopenia', chain: ['esplenomegalia', 'hiperesplenismo'] }],
+  tratamento: [{ label: 'Espironolactona', chain: ['antagoniza aldosterona', '↓ retenção de Na⁺'] }],
+  summary: 'A hipertensão portal ativa o SRAA e retém líquido, gerando ascite.',
 })
 
 describe('parseDiseaseMap', () => {
-  it('aceita um objeto completo e bem formado', () => {
+  it('aceita um objeto completo com cascatas (chain)', () => {
     const m = parseDiseaseMap(valid)
     expect(m).not.toBeNull()
     expect(m).not.toHaveProperty('outOfScope')
     if (m && !('outOfScope' in m)) {
-      expect(m.disease).toBe('Insuficiência cardíaca')
-      expect(m.core.length).toBeGreaterThanOrEqual(1)
-      expect(m.clinica[0].because).toBeTruthy()
+      expect(m.disease).toBe('Cirrose hepática')
+      expect(m.clinica[0].chain.length).toBeGreaterThanOrEqual(2)
+      expect(m.clinica[0].chain).toContain('SRAA + ADH')
     }
   })
 
-  it('rejeita item sem "because" (correlação não pode faltar)', () => {
-    const o = JSON.parse(valid); o.clinica = [{ label: 'Dispneia', because: '' }]
+  it('rejeita item com chain vazia (a cascata é a correlação)', () => {
+    const o = JSON.parse(valid); o.clinica = [{ label: 'Ascite', chain: [] }]
+    expect(parseDiseaseMap(JSON.stringify(o))).toBeNull()
+  })
+
+  it('rejeita item sem chain', () => {
+    const o = JSON.parse(valid); o.clinica = [{ label: 'Ascite' }]
     expect(parseDiseaseMap(JSON.stringify(o))).toBeNull()
   })
 

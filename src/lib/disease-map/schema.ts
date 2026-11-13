@@ -1,4 +1,4 @@
-export type CorrelationItem = { label: string; because: string }
+export type CorrelationItem = { label: string; chain: string[] }
 export type CoreMechanism = { mechanism: string; detail: string }
 export type DiseaseMap = {
   disease: string
@@ -10,13 +10,17 @@ export type DiseaseMap = {
   summary: string
 }
 
+// Cada item é um achado/conduta (label) + a CASCATA de passos mecanísticos que leva
+// a ele (chain, ordenada). A chain é a correlação — sem ela o item é rejeitado.
 function cleanItems(v: unknown): CorrelationItem[] | null {
   if (!Array.isArray(v) || v.length === 0) return null
   const items = v
-    .filter((i): i is CorrelationItem =>
-      !!i && typeof i.label === 'string' && i.label.trim() !== ''
-      && typeof i.because === 'string' && i.because.trim() !== '')
-    .map((i) => ({ label: i.label.trim(), because: i.because.trim() }))
+    .filter((i): i is CorrelationItem => !!i && typeof i.label === 'string' && i.label.trim() !== '' && Array.isArray(i.chain))
+    .map((i) => ({
+      label: i.label.trim(),
+      chain: i.chain.filter((s): s is string => typeof s === 'string' && s.trim() !== '').map((s) => s.trim()),
+    }))
+    .filter((i) => i.chain.length >= 1)
   return items.length ? items : null
 }
 
