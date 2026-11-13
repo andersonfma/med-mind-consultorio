@@ -12,6 +12,13 @@ const BRANCHES = [
     icon: 'M10.5 20.5a5 5 0 0 1-7-7l6-6a5 5 0 0 1 7 7l-6 6ZM8.5 8.5l7 7' },
 ]
 
+// Tolerante a mapas antigos (formato {label, because}) além do novo {label, chain[]}.
+function itemChain(it: CorrelationItem): string[] {
+  if (Array.isArray(it.chain) && it.chain.length) return it.chain
+  const legacy = (it as unknown as { because?: string }).because
+  return typeof legacy === 'string' && legacy.trim() ? [legacy] : []
+}
+
 function Cascade({ chain, color }: { chain: string[]; color: string }) {
   return (
     <div className="mt-1.5 ml-3.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
@@ -51,7 +58,7 @@ function Branch({ title, color, icon, items }: { title: string; color: string; i
               <span className="h-[7px] w-[7px] shrink-0 rounded-full" style={{ background: color }} />
               {it.label}
             </div>
-            <Cascade chain={it.chain} color={color} />
+            <Cascade chain={itemChain(it)} color={color} />
           </div>
         ))}
       </div>
