@@ -84,6 +84,16 @@ export default async function HomePage() {
           ))}
         </div>
 
+        {/* Bloco: Mapa da Doença */}
+        <Link href="/mapa" className="group relative block overflow-hidden rounded-2xl border p-5 transition-all hover:-translate-y-0.5"
+          style={{ borderColor: 'rgba(34,224,230,.4)', background: 'linear-gradient(90deg, rgba(34,224,230,.09), rgba(34,224,230,.02))' }}>
+          <span className="absolute left-0 top-0 h-full w-[3px]" aria-hidden style={{ background: 'linear-gradient(to bottom,#22E0E6,transparent 85%)' }} />
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.18em]" style={{ color: '#22E0E6' }}>Estudo · Novo</p>
+          <h2 className="mt-1.5 font-display text-xl font-bold tracking-tight text-ink">Mapa da Doença</h2>
+          <p className="mt-1.5 max-w-[46ch] text-sm text-muted">Entenda a doença pela fisiopatogênese — clínica, diagnóstico e tratamento saindo do mecanismo.</p>
+          <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold transition-all group-hover:gap-2" style={{ color: '#22E0E6' }}>Gerar um mapa <span aria-hidden>→</span></span>
+        </Link>
+
         {/* Bloco premium: Simulados ENARE/ENAMED */}
         <Link href={EXAMS_ROUTE} className="group relative block overflow-hidden rounded-2xl border p-5 transition-all hover:-translate-y-0.5"
           style={{ borderColor: 'rgba(231,178,58,.4)', background: 'linear-gradient(90deg, rgba(231,178,58,.1), rgba(231,178,58,.02))' }}>
