@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 
@@ -22,6 +22,13 @@ export const metadata: Metadata = {
     type: 'website',
   },
   twitter: { card: 'summary_large_image' },
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Med Mind' },
+  icons: { apple: '/apple-touch-icon.png' },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#070B14',
 }
 
 export default function RootLayout({

@@ -6,6 +6,7 @@ import { MedMindStripes } from './MedMindStripes'
 import { ThemeToggle } from './ThemeToggle'
 import { MobileNav } from './MobileNav'
 import { NotificationBell } from './NotificationBell'
+import { InstallPrompt } from './InstallPrompt'
 
 interface ShellProps {
   children: ReactNode
@@ -52,7 +53,10 @@ export function Shell({ children, isAdmin = false, isPremium = false }: ShellPro
           </div>
         </div>
       </header>
-      <main className="relative mx-auto max-w-5xl px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-8">{children}</main>
+      <main className="relative mx-auto max-w-5xl px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-8">
+        <InstallPrompt />
+        {children}
+      </main>
       <MobileNav />
     </div>
   )
