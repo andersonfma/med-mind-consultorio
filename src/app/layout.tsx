@@ -24,7 +24,6 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image' },
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Med Mind' },
-  icons: { apple: '/apple-touch-icon.png' },
 }
 
 export const viewport: Viewport = {
@@ -39,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" data-theme="dark" suppressHydrationWarning className={`${display.variable} ${sans.variable} ${mono.variable}`}>
       <head>
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         {/* Aplica o tema salvo antes da pintura, evitando flash. Padrão: Noturno. */}
         <script
           dangerouslySetInnerHTML={{
