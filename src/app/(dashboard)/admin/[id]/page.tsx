@@ -6,6 +6,7 @@ import { isAdminEmail } from '@/lib/admin/access'
 import { LOGIN_ROUTE } from '@/lib/routes'
 import { AB4_AXES, COMM_AXES } from '@/lib/consultations/ab4-labels'
 import { ab4Averages, commAverages, ab4Of, commOf, type ConsultRow } from '@/lib/admin/stats'
+import { isMature, isRetainedD7, type Feature, type UserActivity } from '@/lib/admin/retention'
 import { AxisBars } from '@/components/admin/AxisBars'
 import { DistBars } from '@/components/admin/DistBars'
 import { BlockButton } from '@/components/admin/BlockButton'
@@ -30,7 +31,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
   const { id } = await params
   const admin = createAdminClient()
 
-  const [target, profileRes, patientsRes, consultationsRes, examsRes, rxRes] = await Promise.all([
+  const [target, profileRes, patientsRes, consultationsRes, examsRes, rxRes, quizRes, simRes, mapsRes, postsRes, reactsRes] = await Promise.all([
     admin.auth.admin.getUserById(id),
     admin.from('profiles').select('full_name, ai_calls_used, ai_calls_limit, ai_period_start, is_premium').eq('id', id).single(),
     admin.from('patients').select('id, name, specialty, diagnosis_status').eq('user_id', id),
@@ -41,6 +42,11 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
       .order('finished_at', { ascending: false }),
     admin.from('exam_requests').select('status, exam_name, attempts').eq('user_id', id),
     admin.from('prescriptions').select('adequacy').eq('user_id', id),
+    admin.from('quiz_answers').select('is_correct, created_at').eq('user_id', id),
+    admin.from('exam_attempts').select('score, total, created_at').eq('user_id', id),
+    admin.from('disease_maps').select('id, disease, created_at').eq('user_id', id),
+    admin.from('posts').select('created_at').eq('author_id', id),
+    admin.from('post_reactions').select('created_at').eq('user_id', id),
   ])
 
   const au = target.data?.user as
@@ -99,6 +105,30 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
     comm: commOf(c.communication_score)?.overall ?? null,
   }))
 
+  // Desempenho por recurso + status de retenção (mesma régua da lib)
+  const quiz = (quizRes.data ?? []) as Array<{ is_correct: boolean; created_at: string | null }>
+  const sims = (simRes.data ?? []) as Array<{ score: number; total: number; created_at: string | null }>
+  const maps = (mapsRes.data ?? []) as Array<{ id: string; disease: string; created_at: string | null }>
+  const myPosts = (postsRes.data ?? []) as Array<{ created_at: string | null }>
+  const myReacts = (reactsRes.data ?? []) as Array<{ created_at: string | null }>
+  const quizAcc = quiz.length ? pct(quiz.filter((q) => q.is_correct).length, quiz.length) : null
+  const simAvg = sims.length ? Math.round(sims.reduce((s, e) => s + (e.total ? e.score / e.total : 0), 0) / sims.length * 100) : null
+
+  const nowMs = Date.now()
+  const ev: { feature: Feature; ts: number }[] = []
+  const pushEv = (f: Feature, ts: string | null | undefined) => { if (!ts) return; const t = Date.parse(ts); if (!Number.isNaN(t)) ev.push({ feature: f, ts: t }) }
+  for (const c of consultations) pushEv('simulador', c.created_at)
+  for (const q of quiz) pushEv('desafio', q.created_at)
+  for (const s of sims) pushEv('simulados', s.created_at)
+  for (const m of maps) pushEv('mapas', m.created_at)
+  for (const p of myPosts) pushEv('social', p.created_at)
+  for (const r of myReacts) pushEv('social', r.created_at)
+  const uact: UserActivity = { id: au.id, signup: au.created_at ? Date.parse(au.created_at) : nowMs, events: ev }
+  const retencaoStatus = !isMature(uact, nowMs) ? { label: 'Novo', cls: 'border-border text-muted' }
+    : isRetainedD7(uact, nowMs) ? { label: 'Retido', cls: 'border-success/40 bg-success/10 text-success' }
+    : { label: 'Em risco', cls: 'border-danger/40 bg-danger/10 text-danger' }
+  const timeline = [...ev].sort((a, b) => a.ts - b.ts)
+
   return (
     <div className="space-y-6 p-1 sm:p-2">
       <div>
@@ -115,6 +145,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
             ) : (
               <span className="rounded-full border border-success/40 bg-success/10 px-2.5 py-0.5 text-xs font-semibold text-success">Ativo</span>
             )}
+            <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${retencaoStatus.cls}`}>{retencaoStatus.label}</span>
           </div>
           <p className="mt-0.5 text-sm text-muted">{au.email}</p>
           <p className="mt-2 text-xs text-muted">
@@ -150,6 +181,50 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
           <p className="mt-1 font-display text-xl font-bold text-warning">{weakest ? weakest.label : '—'}</p>
         </div>
       </div>
+
+      {/* Desempenho por recurso */}
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">Desempenho por recurso</h2>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+          <div className="rounded-xl border border-border bg-surface p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Simulador</p>
+            <p className="mt-1 font-display text-2xl font-bold tabular-nums text-ink">{consultations.length}</p>
+            <p className="text-xs text-muted">{finishedC.length} finalizadas</p>
+          </div>
+          <div className="rounded-xl border border-border bg-surface p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Desafio</p>
+            <p className="mt-1 font-display text-2xl font-bold tabular-nums text-ink">{quiz.length}</p>
+            <p className="text-xs text-muted">respostas{quizAcc != null ? ` · ${quizAcc}% de acerto` : ''}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-surface p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Simulados</p>
+            <p className="mt-1 font-display text-2xl font-bold tabular-nums text-ink">{sims.length}</p>
+            <p className="text-xs text-muted">{simAvg != null ? `${simAvg}% médio` : 'nenhum ainda'}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-surface p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Mapas da Doença</p>
+            <p className="mt-1 font-display text-2xl font-bold tabular-nums text-ink">{maps.length}</p>
+            <p className="truncate text-xs text-muted">{maps.length ? maps.map((m) => m.disease).slice(0, 3).join(', ') : 'nenhum ainda'}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-surface p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Comunidade</p>
+            <p className="mt-1 font-display text-2xl font-bold tabular-nums text-ink">{myPosts.length + myReacts.length}</p>
+            <p className="text-xs text-muted">{myPosts.length} posts · {myReacts.length} curtidas</p>
+          </div>
+        </div>
+        {timeline.length > 0 && (
+          <div className="mt-3">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Linha do tempo</p>
+            <div className="flex flex-wrap gap-1.5">
+              {timeline.slice(-20).map((e, i) => (
+                <span key={i} className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted">
+                  {e.feature} · {new Date(e.ts).toLocaleDateString('pt-BR')}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Critérios objetivos */}
       <div className="grid gap-4 lg:grid-cols-2">
