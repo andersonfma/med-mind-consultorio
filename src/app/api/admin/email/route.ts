@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin/access'
 import { sendEmail } from '@/lib/email/send'
 import { makeUnsubToken } from '@/lib/email/unsubscribe'
-import { explainerEmail, APP_URL } from '@/lib/email/templates'
+import { explainerEmail, customEmail, APP_URL } from '@/lib/email/templates'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,14 +19,20 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!isAdminEmail(user.email)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const body = await request.json().catch(() => ({})) as { mode?: string }
+  const body = await request.json().catch(() => ({})) as { mode?: string; subject?: string; body?: string; ctaLabel?: string; ctaUrl?: string }
   const admin = createAdminClient()
+
+  // Comunicado livre quando vier assunto+corpo; senão, o e-mail de onboarding.
+  const isCustom = typeof body.subject === 'string' && body.subject.trim() !== '' && typeof body.body === 'string' && body.body.trim() !== ''
+  const build = (name: string, unsub: string) => isCustom
+    ? customEmail({ name, subject: body.subject!.trim(), body: body.body!, ctaLabel: body.ctaLabel?.trim() || undefined, ctaUrl: body.ctaUrl?.trim() || undefined, unsubUrl: unsub })
+    : explainerEmail({ name, unsubUrl: unsub })
 
   if (body.mode === 'test') {
     if (!user.email) return NextResponse.json({ error: 'Admin sem email' }, { status: 400 })
     const { data: prof } = await admin.from('profiles').select('full_name').eq('id', user.id).maybeSingle()
     const name = (prof as { full_name?: string } | null)?.full_name ?? ''
-    const { subject, html, text } = explainerEmail({ name, unsubUrl: unsubUrl(user.id) })
+    const { subject, html, text } = build(name, unsubUrl(user.id))
     const r = await sendEmail({ to: user.email, subject, html, text, listUnsubscribe: unsubUrl(user.id) })
     return NextResponse.json(r, { status: r.ok ? 200 : 502 })
   }
@@ -41,7 +47,7 @@ export async function POST(request: NextRequest) {
     let sent = 0, failed = 0
     for (const u of targets) {
       const name = byId.get(u.id)?.full_name ?? ''
-      const { subject, html, text } = explainerEmail({ name, unsubUrl: unsubUrl(u.id) })
+      const { subject, html, text } = build(name, unsubUrl(u.id))
       const r = await sendEmail({ to: u.email as string, subject, html, text, listUnsubscribe: unsubUrl(u.id) })
       if (r.ok) sent++; else failed++
     }

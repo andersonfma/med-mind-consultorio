@@ -66,6 +66,19 @@ Para não receber mais estes emails: ${params.unsubUrl}`
 }
 
 /** Email semanal (segunda): anuncia o novo Caso da Semana + chama pro quiz. */
+/** Comunicado livre escrito pelo admin (assunto + corpo + CTA opcional). */
+export function customEmail(params: { name: string; subject: string; body: string; ctaLabel?: string; ctaUrl?: string; unsubUrl: string }): { subject: string; html: string; text: string } {
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const greeting = params.name ? `Oi, ${params.name.split(' ')[0]}!` : 'Oi!'
+  const paras = params.body.trim().split(/\n{2,}/)
+    .map((p) => `<p style="font-size:15px;line-height:1.6;margin:0 0 14px;">${esc(p).replace(/\n/g, '<br>')}</p>`).join('')
+  const hasCta = !!(params.ctaLabel && params.ctaUrl)
+  const cta = hasCta ? `<div style="text-align:center;margin:20px 0 4px;">${btn(esc(params.ctaLabel as string), params.ctaUrl as string)}</div>` : ''
+  const inner = `<p style="font-size:15px;line-height:1.6;margin:0 0 14px;font-weight:700;">${esc(greeting)}</p>${paras}${cta}`
+  const text = `${greeting}\n\n${params.body}${hasCta ? `\n\n${params.ctaLabel}: ${params.ctaUrl}` : ''}`
+  return { subject: params.subject, html: layout(inner, params.unsubUrl), text }
+}
+
 export function weeklyChallengeEmail(params: { name: string; caseTitle: string; unsubUrl: string }): { subject: string; html: string; text: string } {
   const name = params.name?.trim() || 'futuro doutor(a)'
   const caseTitle = (params.caseTitle || 'Caso da Semana').replace(/^Caso da Semana:\s*/i, '')
