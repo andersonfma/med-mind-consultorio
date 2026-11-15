@@ -14,6 +14,8 @@ import { GenerateCaseButton } from './GenerateCaseButton'
 import { ReportsQueue } from './ReportsQueue'
 import { EmailBroadcast } from './EmailBroadcast'
 import { InstitutionsPanel } from './InstitutionsPanel'
+import { retentionD7, retentionCurve, featureLift, type Feature, type UserActivity } from '@/lib/admin/retention'
+import { RetentionSection } from '@/components/admin/RetentionSection'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,7 +67,7 @@ export default async function AdminPage() {
 
   const admin = createAdminClient()
 
-  const [usersRes, profilesRes, patientsRes, consultationsRes, examsRes, rxRes, interestRes, quizAnsRes, examAttRes, instRes, reactionsRes, postsRes] = await Promise.all([
+  const [usersRes, profilesRes, patientsRes, consultationsRes, examsRes, rxRes, interestRes, quizAnsRes, examAttRes, instRes, reactionsRes, postsRes, mapsRes] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     admin.from('profiles').select('id, full_name, ai_calls_used, ai_calls_limit, is_premium'),
     admin.from('patients').select('user_id, specialty, created_at, diagnosis_status'),
@@ -74,10 +76,11 @@ export default async function AdminPage() {
     admin.from('prescriptions').select('user_id, adequacy'),
     admin.from('premium_interest').select('user_id', { count: 'exact', head: true }),
     admin.from('quiz_answers').select('user_id, is_correct, created_at'),
-    admin.from('exam_attempts').select('user_id, exam, area, score, total'),
+    admin.from('exam_attempts').select('user_id, exam, area, score, total, created_at'),
     admin.from('institutions').select('id, name, invite_code, created_at'),
     admin.from('post_reactions').select('user_id, created_at'),
     admin.from('posts').select('author_id, created_at'),
+    admin.from('disease_maps').select('user_id, created_at'),
   ])
 
   type AuthUser = { id: string; email?: string; created_at?: string; last_sign_in_at?: string | null; banned_until?: string | null }
@@ -138,6 +141,27 @@ export default async function AdminPage() {
   for (const r of reactions) bumpActivity(r.user_id, r.created_at)
   for (const p of feedPosts) bumpActivity(p.author_id, p.created_at)
   for (const q of quizAns) bumpActivity(q.user_id, q.created_at)
+
+  // Retenção por recurso (D7): monta os eventos reais por usuário e calcula.
+  const diseaseMaps = (mapsRes.data ?? []) as Array<{ user_id: string; created_at: string | null }>
+  const nowMs = Date.now()
+  const eventsByUser = new Map<string, { feature: Feature; ts: number }[]>()
+  const pushEv = (uid: string | null | undefined, feature: Feature, ts: string | null | undefined) => {
+    if (!uid || !ts) return
+    const t = Date.parse(ts); if (Number.isNaN(t)) return
+    const arr = eventsByUser.get(uid); if (arr) arr.push({ feature, ts: t }); else eventsByUser.set(uid, [{ feature, ts: t }])
+  }
+  for (const c of consultations) pushEv(c.user_id, 'simulador', c.created_at)
+  for (const p of patients) pushEv(p.user_id, 'simulador', p.created_at)
+  for (const q of quizAns) pushEv(q.user_id, 'desafio', q.created_at)
+  for (const e of examAtt as Array<{ user_id: string; created_at?: string | null }>) pushEv(e.user_id, 'simulados', e.created_at)
+  for (const m of diseaseMaps) pushEv(m.user_id, 'mapas', m.created_at)
+  for (const p of feedPosts) pushEv(p.author_id, 'social', p.created_at)
+  for (const r of reactions) pushEv(r.user_id, 'social', r.created_at)
+  const activity: UserActivity[] = authUsers.map((u) => ({ id: u.id, signup: u.created_at ? Date.parse(u.created_at) : nowMs, events: eventsByUser.get(u.id) ?? [] }))
+  const d7 = retentionD7(activity, nowMs)
+  const curve = retentionCurve(activity, nowMs)
+  const lift = featureLift(activity, nowMs)
 
   const profileById = new Map(profiles.map((p) => [p.id, p]))
   const isBlocked = (u: AuthUser) => !!u.banned_until && Date.parse(u.banned_until) > Date.now()
@@ -257,6 +281,10 @@ export default async function AdminPage() {
         <StatCard label="Interesse no Premium" value={interestCount} sub="clicaram em 'Tenho interesse'" accent />
         <StatCard label="Potencial de conversão" value={`${pct(interestCount, totalUsers)}%`} sub="interessados / alunos" />
       </div>
+
+      {/* ───────── RETENÇÃO ───────── */}
+      <SectionTitle hint="o que traz o aluno de volta">Retenção</SectionTitle>
+      <RetentionSection d7={d7} curve={curve} lift={lift} maturedN={d7.eligible} />
 
       {/* ───────── ENGAJAMENTO ───────── */}
       <SectionTitle>Engajamento no ecossistema</SectionTitle>
