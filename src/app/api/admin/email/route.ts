@@ -5,6 +5,7 @@ import { isAdminEmail } from '@/lib/admin/access'
 import { sendEmail } from '@/lib/email/send'
 import { makeUnsubToken } from '@/lib/email/unsubscribe'
 import { explainerEmail, customEmail, APP_URL } from '@/lib/email/templates'
+import { cohortIdsForSend, type InstitutionRow } from '@/lib/faculty/cohortResolve'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!isAdminEmail(user.email)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const body = await request.json().catch(() => ({})) as { mode?: string; subject?: string; body?: string; ctaLabel?: string; ctaUrl?: string }
+  const body = await request.json().catch(() => ({})) as { mode?: string; subject?: string; body?: string; ctaLabel?: string; ctaUrl?: string; institutionId?: string; periodos?: string[] }
   const admin = createAdminClient()
 
   // Comunicado livre quando vier assunto+corpo; senão, o e-mail de onboarding.
@@ -43,7 +44,17 @@ export async function POST(request: NextRequest) {
     const { data: profs } = await admin.from('profiles').select('id, full_name, email_optout')
     const byId = new Map(((profs ?? []) as Array<{ id: string; full_name: string | null; email_optout: boolean | null }>).map(p => [p.id, p]))
 
-    const targets = users.filter(u => u.email && !byId.get(u.id)?.email_optout)
+    // Segmentação opcional: restringe a uma instituição (e, dentro dela, a períodos).
+    let cohortIds: Set<string> | null = null
+    let segmentName: string | null = null
+    if (body.institutionId) {
+      const { data: inst } = await admin.from('institutions').select('id, name, founder_code, faculty_match').eq('id', body.institutionId).maybeSingle()
+      if (!inst) return NextResponse.json({ error: 'Instituição não encontrada' }, { status: 404 })
+      cohortIds = await cohortIdsForSend(inst as InstitutionRow, body.periodos)
+      segmentName = (inst as { name: string }).name
+    }
+
+    const targets = users.filter(u => u.email && !byId.get(u.id)?.email_optout && (!cohortIds || cohortIds.has(u.id)))
     let sent = 0, failed = 0
     for (const u of targets) {
       const name = byId.get(u.id)?.full_name ?? ''
@@ -51,7 +62,7 @@ export async function POST(request: NextRequest) {
       const r = await sendEmail({ to: u.email as string, subject, html, text, listUnsubscribe: unsubUrl(u.id) })
       if (r.ok) sent++; else failed++
     }
-    return NextResponse.json({ sent, failed, skipped: users.length - targets.length, total: users.length }, { status: 200 })
+    return NextResponse.json({ sent, failed, skipped: users.length - targets.length, total: users.length, audience: targets.length, segment: segmentName }, { status: 200 })
   }
 
   return NextResponse.json({ error: 'mode inválido' }, { status: 400 })

@@ -16,6 +16,7 @@ import { EmailBroadcast } from './EmailBroadcast'
 import { InstitutionsPanel } from './InstitutionsPanel'
 import { retentionD7, retentionCurve, featureLift, type Feature, type UserActivity } from '@/lib/admin/retention'
 import { premiumSource, aggregateByFaculty, PREMIUM_SOURCE_LABEL, type PremiumSource } from '@/lib/admin/segments'
+import { allInstitutionAudiences } from '@/lib/faculty/cohortResolve'
 import { RetentionSection } from '@/components/admin/RetentionSection'
 
 export const dynamic = 'force-dynamic'
@@ -102,6 +103,8 @@ export default async function AdminPage() {
     admin.from('founder_codes').select('code, label'),
   ])
   const codeLabel = new Map(((codeRows ?? []) as Array<{ code: string; label: string | null }>).map((r) => [r.code, r.label]))
+  // Público por instituição (para o disparo de e-mail segmentado).
+  const emailAudiences = await allInstitutionAudiences()
   const founderUsers = new Set(((redemptionRows ?? []) as Array<{ user_id: string }>).map((r) => r.user_id))
   const paidUsers = new Set(((payRows ?? []) as Array<{ user_id: string | null; event: string }>)
     .filter((r) => r.user_id && /APPROVED|COMPLETE|COMPLETED/i.test(r.event)).map((r) => r.user_id as string))
@@ -560,8 +563,8 @@ export default async function AdminPage() {
 
       {/* ───────── OPERAÇÃO ───────── */}
       <SectionTitle>Operação</SectionTitle>
-      <Panel title="Disparo de email" hint="escreva e envie para a base">
-        <EmailBroadcast totalUsers={totalUsers} />
+      <Panel title="Disparo de email" hint="escreva e envie para a base ou um grupo">
+        <EmailBroadcast totalUsers={totalUsers} audiences={emailAudiences} />
       </Panel>
       <Panel title="Denúncias" hint="conteúdo reportado pela rede">
         <ReportsQueue />
