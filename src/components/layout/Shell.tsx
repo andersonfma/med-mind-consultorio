@@ -12,9 +12,10 @@ interface ShellProps {
   children: ReactNode
   isAdmin?: boolean
   isPremium?: boolean
+  canFaculty?: boolean
 }
 
-export function Shell({ children, isAdmin = false, isPremium = false }: ShellProps) {
+export function Shell({ children, isAdmin = false, isPremium = false, canFaculty = false }: ShellProps) {
   return (
     <div className="min-h-screen bg-background">
       <MedMindStripes className="mm-fixed mm-static opacity-60" />
@@ -40,10 +41,16 @@ export function Shell({ children, isAdmin = false, isPremium = false }: ShellPro
               {!isPremium && (
                 <Link href="/premium" className="text-xs font-semibold transition-colors hover:opacity-80" style={{ color: '#E7B23A' }}>Seja Premium</Link>
               )}
+              {canFaculty && (
+                <Link href="/faculdade" className="text-xs font-medium text-muted transition-colors hover:text-primary">Faculdade</Link>
+              )}
               {isAdmin && (
                 <Link href="/admin" className="text-xs font-medium text-muted transition-colors hover:text-primary">Admin</Link>
               )}
             </div>
+            {canFaculty && (
+              <Link href="/faculdade" className="text-xs font-medium text-muted transition-colors hover:text-primary sm:hidden">Faculdade</Link>
+            )}
             {isAdmin && (
               <Link href="/admin" className="text-xs font-medium text-muted transition-colors hover:text-primary sm:hidden">Admin</Link>
             )}

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { Shell } from '@/components/layout/Shell'
 import { LOGIN_ROUTE } from '@/lib/routes'
 import { isAdminEmail } from '@/lib/admin/access'
+import { canAccessFaculty } from '@/lib/faculty/access'
 
 export default async function DashboardLayout({
   children,
@@ -24,6 +25,8 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .maybeSingle()
   const isPremium = !!(prof as { is_premium?: boolean } | null)?.is_premium
+  const isAdmin = isAdminEmail(user.email)
+  const canFaculty = isAdmin || (await canAccessFaculty(user.id, user.email))
 
-  return <Shell isAdmin={isAdminEmail(user.email)} isPremium={isPremium}>{children}</Shell>
+  return <Shell isAdmin={isAdmin} isPremium={isPremium} canFaculty={canFaculty}>{children}</Shell>
 }
