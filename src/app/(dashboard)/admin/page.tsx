@@ -15,6 +15,7 @@ import { ReportsQueue } from './ReportsQueue'
 import { EmailBroadcast } from './EmailBroadcast'
 import { InstitutionsPanel } from './InstitutionsPanel'
 import { retentionD7, retentionCurve, featureLift, type Feature, type UserActivity } from '@/lib/admin/retention'
+import { premiumSource, aggregateByFaculty, PREMIUM_SOURCE_LABEL, type PremiumSource } from '@/lib/admin/segments'
 import { RetentionSection } from '@/components/admin/RetentionSection'
 
 export const dynamic = 'force-dynamic'
@@ -91,9 +92,42 @@ export default async function AdminPage() {
   // institution_id em query separada e guardada (coluna pode não existir antes da migration).
   const { data: instLinks } = await admin.from('profiles').select('id, institution_id')
   const instByUser = new Map(((instLinks ?? []) as Array<{ id: string; institution_id: string | null }>).map((r) => [r.id, r.institution_id]))
-  const profiles = profilesBase.map((p) => ({ ...p, institution_id: instByUser.get(p.id) ?? null }))
+  // Formação (faculdade/tipo) — query guardada: colunas podem não existir antes da migration.
+  const { data: facRows } = await admin.from('profiles').select('id, user_type, faculty')
+  const facByUser = new Map(((facRows ?? []) as Array<{ id: string; user_type: string | null; faculty: string | null }>).map((r) => [r.id, r]))
+  // Origem do Premium: resgate de fundador vs pagamento Hotmart aprovado.
+  const [{ data: redemptionRows }, { data: payRows }, { data: codeRows }] = await Promise.all([
+    admin.from('founder_redemptions').select('user_id, code'),
+    admin.from('payment_events').select('user_id, event'),
+    admin.from('founder_codes').select('code, label'),
+  ])
+  const codeLabel = new Map(((codeRows ?? []) as Array<{ code: string; label: string | null }>).map((r) => [r.code, r.label]))
+  const founderUsers = new Set(((redemptionRows ?? []) as Array<{ user_id: string }>).map((r) => r.user_id))
+  const paidUsers = new Set(((payRows ?? []) as Array<{ user_id: string | null; event: string }>)
+    .filter((r) => r.user_id && /APPROVED|COMPLETE|COMPLETED/i.test(r.event)).map((r) => r.user_id as string))
+  const profiles = profilesBase.map((p) => ({
+    ...p,
+    institution_id: instByUser.get(p.id) ?? null,
+    user_type: facByUser.get(p.id)?.user_type ?? null,
+    faculty: facByUser.get(p.id)?.faculty ?? null,
+  }))
   const premiumCount = profiles.filter((p) => p.is_premium).length
   const interestCount = interestRes.count ?? 0
+
+  // Origem de cada Premium (receita real × cupom × concessão manual).
+  const sourceByUser = new Map<string, PremiumSource>()
+  for (const p of profiles) sourceByUser.set(p.id, premiumSource(!!p.is_premium, founderUsers.has(p.id), paidUsers.has(p.id)))
+  const premiumBySource = { hotmart: 0, fundador: 0, manual: 0 }
+  for (const s of sourceByUser.values()) if (s !== 'none') premiumBySource[s]++
+  // Faculdades (agregado) — quem são e de onde vêm os alunos/médicos.
+  const facultyRows = aggregateByFaculty(profiles.map((p) => ({ faculty: p.faculty, user_type: p.user_type })))
+  const facultyKnown = facultyRows.filter((r) => r.faculty !== 'Não informado')
+  const facultyInformed = profiles.filter((p) => (p.faculty ?? '').trim()).length
+  const doctorsN = profiles.filter((p) => p.user_type === 'doctor').length
+  // Cortes de fundador por código (ex.: "BJ2K29" = Hepatoliga Unirio) — atribuição real
+  // da turma, independente do vínculo institution_id.
+  const founderByCode = new Map<string, number>()
+  for (const r of ((redemptionRows ?? []) as Array<{ code: string }>)) founderByCode.set(r.code, (founderByCode.get(r.code) ?? 0) + 1)
   const patients = (patientsRes.data ?? []) as Array<{ user_id: string; specialty: string; created_at: string; diagnosis_status: string }>
   const consultations = (consultationsRes.data ?? []) as ConsultRow[]
   const exams = (examsRes.data ?? []) as Array<{ user_id: string; status: string; exam_name: string; attempts: number | null }>
@@ -245,6 +279,10 @@ export default async function AdminPage() {
         email: u.email ?? '—',
         name: prof?.full_name ?? '—',
         institution: prof?.institution_id ? (instNameById.get(prof.institution_id) ?? null) : null,
+        faculty: prof?.faculty ?? null,
+        userType: prof?.user_type ?? null,
+        premium: !!prof?.is_premium,
+        source: sourceByUser.get(u.id) ?? 'none',
         lastSignIn: u.last_sign_in_at,
         lastActivity: lastActivityMs(u),
         blocked: isBlocked(u),
@@ -280,6 +318,57 @@ export default async function AdminPage() {
         <StatCard label="Premium (selo)" value={premiumCount} sub={`${pct(premiumCount, totalUsers)}% dos alunos`} />
         <StatCard label="Interesse no Premium" value={interestCount} sub="clicaram em 'Tenho interesse'" accent />
         <StatCard label="Potencial de conversão" value={`${pct(interestCount, totalUsers)}%`} sub="interessados / alunos" />
+      </div>
+
+      {/* ───────── BASE DE ALUNOS ───────── */}
+      <SectionTitle hint="quem são e de onde vêm">Base de alunos</SectionTitle>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Faculdades" hint={`${facultyKnown.length} informadas · ${pct(facultyInformed, totalUsers)}% preencheram`}>
+          {facultyInformed === 0 ? (
+            <p className="text-xs text-muted">Ninguém preencheu a faculdade ainda. O campo passou a existir no cadastro; peça aos atuais para completar em Editar perfil.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {facultyRows.slice(0, 12).map((r) => {
+                const max = Math.max(1, ...facultyRows.map((x) => x.total))
+                return (
+                  <div key={r.faculty} className="flex items-center gap-3">
+                    <span className={`w-36 shrink-0 truncate text-xs ${r.faculty === 'Não informado' ? 'text-muted/60 italic' : 'text-ink'}`}>{r.faculty}</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${Math.round((r.total / max) * 100)}%` }} />
+                    </div>
+                    <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted">
+                      <span className="font-semibold text-ink">{r.total}</span>
+                      {r.doctors > 0 && <span className="ml-1 text-[10px]">({r.doctors}m)</span>}
+                    </span>
+                  </div>
+                )
+              })}
+              <p className="pt-1 text-[11px] text-muted">{doctorsN} médico(s) · {totalUsers - doctorsN} estudante(s) · “m” = médicos formados</p>
+            </div>
+          )}
+        </Panel>
+        <Panel title="Origem do Premium" hint={`${premiumCount} com selo`}>
+          {premiumCount === 0 ? (
+            <p className="text-xs text-muted">Nenhum Premium ativo.</p>
+          ) : (
+            <>
+              <DistBars
+                items={[
+                  { label: PREMIUM_SOURCE_LABEL.hotmart, count: premiumBySource.hotmart, pctv: pct(premiumBySource.hotmart, premiumCount), tone: 'bg-success' },
+                  { label: PREMIUM_SOURCE_LABEL.fundador, count: premiumBySource.fundador, pctv: pct(premiumBySource.fundador, premiumCount), tone: 'bg-chart-2' },
+                  { label: PREMIUM_SOURCE_LABEL.manual, count: premiumBySource.manual, pctv: pct(premiumBySource.manual, premiumCount), tone: premiumBySource.manual > 0 ? 'bg-warning' : 'bg-surface-2' },
+                ]}
+              />
+              <p className="mt-3 text-[11px] text-muted">
+                <span className="font-semibold text-success">{premiumBySource.hotmart}</span> receita real ·{' '}
+                <span className="font-semibold text-ink">{premiumBySource.fundador}</span> cupom de fundador
+                {premiumBySource.manual > 0 && (
+                  <> · <span className="font-semibold text-warning">{premiumBySource.manual}</span> concessão manual (sem venda nem cupom — verificar)</>
+                )}
+              </p>
+            </>
+          )}
+        </Panel>
       </div>
 
       {/* ───────── RETENÇÃO ───────── */}
@@ -452,10 +541,26 @@ export default async function AdminPage() {
           institutions={institutions.map((i) => ({ id: i.id, name: i.name, code: i.invite_code, students: studentsByInst.get(i.id) ?? 0 }))}
         />
       </Panel>
+      {founderByCode.size > 0 && (
+        <Panel title="Turmas por cupom de fundador" hint="atribuição real pelo código resgatado">
+          <div className="space-y-2">
+            {[...founderByCode.entries()].sort((a, b) => b[1] - a[1]).map(([code, n]) => (
+              <div key={code} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-ink">
+                  <span className="font-mono text-xs text-primary">{code}</span>
+                  <span className="ml-2 text-muted">{codeLabel.get(code) ?? '—'}</span>
+                </span>
+                <span className="tabular-nums"><span className="font-semibold text-ink">{n}</span> <span className="text-xs text-muted">alunos</span></span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-[11px] text-muted">Conta quem resgatou o código — independe do vínculo manual de “instituição”, por isso reflete a turma real.</p>
+        </Panel>
+      )}
 
       {/* ───────── OPERAÇÃO ───────── */}
       <SectionTitle>Operação</SectionTitle>
-      <Panel title="Email — como funciona (onboarding)" hint="explicativo + a aposta">
+      <Panel title="Disparo de email" hint="escreva e envie para a base">
         <EmailBroadcast totalUsers={totalUsers} />
       </Panel>
       <Panel title="Denúncias" hint="conteúdo reportado pela rede">
@@ -470,7 +575,7 @@ export default async function AdminPage() {
             <thead>
               <tr className="border-b border-border text-left text-muted">
                 <th className="px-3 py-2 font-medium">Aluno</th>
-                <th className="px-3 py-2 font-medium">Instituição</th>
+                <th className="px-3 py-2 font-medium">Faculdade</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Última atividade</th>
                 <th className="px-3 py-2 text-right font-medium">Pac.</th>
@@ -489,10 +594,19 @@ export default async function AdminPage() {
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-border/60 last:border-0">
                   <td className="px-3 py-2.5">
-                    <Link href={`/admin/${r.id}`} className="font-medium text-ink hover:text-primary">{r.name}</Link>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/admin/${r.id}`} className="font-medium text-ink hover:text-primary">{r.name}</Link>
+                      {r.userType === 'doctor' && <span className="rounded border border-border px-1 py-0.5 text-[10px] font-semibold text-muted">médico</span>}
+                      {r.premium && (
+                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${r.source === 'hotmart' ? 'bg-success/15 text-success' : r.source === 'manual' ? 'bg-warning/15 text-warning' : 'bg-chart-2/15 text-chart-2'}`}
+                          title={PREMIUM_SOURCE_LABEL[r.source]}>
+                          {r.source === 'hotmart' ? 'Pago' : r.source === 'manual' ? 'Manual' : 'Fundador'}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-muted">{r.email}</div>
                   </td>
-                  <td className="px-3 py-2.5 text-xs text-muted">{r.institution ?? '—'}</td>
+                  <td className="px-3 py-2.5 text-xs text-muted">{r.faculty ?? r.institution ?? '—'}</td>
                   <td className="px-3 py-2.5">
                     {r.blocked ? (
                       <span className="rounded-full border border-danger/40 bg-danger/10 px-2 py-0.5 text-[11px] font-semibold text-danger">Bloqueado</span>

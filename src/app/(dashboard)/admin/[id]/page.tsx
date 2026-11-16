@@ -12,6 +12,7 @@ import { DistBars } from '@/components/admin/DistBars'
 import { BlockButton } from '@/components/admin/BlockButton'
 import { PremiumButton } from '@/components/admin/PremiumButton'
 import { PremiumBadge } from '@/components/social/PremiumBadge'
+import { premiumSource, PREMIUM_SOURCE_LABEL } from '@/lib/admin/segments'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,6 +56,18 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
   if (!au) notFound()
 
   const prof = (profileRes.data ?? null) as { full_name: string | null; ai_calls_used: number | null; ai_calls_limit: number | null; is_premium: boolean | null } | null
+
+  // Formação + origem do Premium (queries guardadas: colunas/linhas podem faltar).
+  const [{ data: facData }, { data: redData }, { data: payData }] = await Promise.all([
+    admin.from('profiles').select('user_type, faculty, faculty_period').eq('id', id).maybeSingle(),
+    admin.from('founder_redemptions').select('code, granted_until').eq('user_id', id),
+    admin.from('payment_events').select('event, created_at').eq('user_id', id),
+  ])
+  const formacao = (facData ?? null) as { user_type: string | null; faculty: string | null; faculty_period: string | null } | null
+  const redemptions = (redData ?? []) as Array<{ code: string; granted_until: string }>
+  const payments = (payData ?? []) as Array<{ event: string; created_at: string }>
+  const hasPaid = payments.some((p) => /APPROVED|COMPLETE|COMPLETED/i.test(p.event))
+  const pSource = premiumSource(!!prof?.is_premium, redemptions.length > 0, hasPaid)
   const patients = (patientsRes.data ?? []) as Array<{ id: string; name: string; specialty: string; diagnosis_status: string }>
   const consultations = (consultationsRes.data ?? []) as (ConsultRow & { patient_id: string })[]
   const exams = (examsRes.data ?? []) as Array<{ status: string; exam_name: string; attempts: number | null }>
@@ -148,6 +161,21 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
             <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${retencaoStatus.cls}`}>{retencaoStatus.label}</span>
           </div>
           <p className="mt-0.5 text-sm text-muted">{au.email}</p>
+          <p className="mt-1 text-xs text-muted">
+            {formacao?.user_type === 'doctor' ? 'Médico(a)' : 'Estudante'}
+            {formacao?.faculty ? <> · <span className="text-ink">{formacao.faculty}</span></> : <> · <span className="italic">faculdade não informada</span></>}
+            {formacao?.faculty_period ? ` · ${formacao.faculty_period}` : ''}
+          </p>
+          {prof?.is_premium && (
+            <p className="mt-1 text-xs">
+              <span className="text-muted">Premium: </span>
+              <span className={pSource === 'hotmart' ? 'font-semibold text-success' : pSource === 'manual' ? 'font-semibold text-warning' : 'font-semibold text-chart-2'}>
+                {PREMIUM_SOURCE_LABEL[pSource]}
+              </span>
+              {redemptions.length > 0 && <span className="text-muted"> · cupom {redemptions.map((r) => r.code).join(', ')}</span>}
+              {pSource === 'manual' && <span className="text-warning"> · sem venda nem cupom — concessão manual</span>}
+            </p>
+          )}
           <p className="mt-2 text-xs text-muted">
             Cadastro {fmt(au.created_at)} · último acesso {fmt(au.last_sign_in_at)} · IA {prof?.ai_calls_used ?? 0}/{prof?.ai_calls_limit ?? 0}
           </p>

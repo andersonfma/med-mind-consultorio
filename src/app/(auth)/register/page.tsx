@@ -6,12 +6,16 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { FACULTIES } from '@/lib/faculties'
 
 export default function RegisterPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [crm, setCrm] = useState('')
+  const [userType, setUserType] = useState<'student' | 'doctor'>('student')
+  const [faculty, setFaculty] = useState('')
+  const [period, setPeriod] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
@@ -43,6 +47,9 @@ export default function RegisterPage() {
         data: {
           full_name: fullName.trim(),
           crm: crm.trim() || null,
+          user_type: userType,
+          faculty: faculty.trim() || null,
+          faculty_period: period.trim() || null,
         },
       },
     })
@@ -112,17 +119,32 @@ export default function RegisterPage() {
           autoComplete="new-password"
           minLength={6}
         />
-        <Input
-          id="crm"
-          label="CRM (opcional)"
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          name="crm"
-          value={crm}
-          onChange={(e) => setCrm(e.target.value.replace(/\D/g, ''))}
-          placeholder="Somente números"
-        />
+        <div>
+          <span className="text-sm font-medium text-ink">Você é</span>
+          <div className="mt-1 flex gap-2">
+            {(['student', 'doctor'] as const).map((t) => (
+              <button type="button" key={t} onClick={() => setUserType(t)}
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold ${userType === t ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted'}`}>
+                {t === 'student' ? 'Estudante' : 'Médico(a)'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <label className="block">
+          <span className="text-sm font-medium text-ink">{userType === 'doctor' ? 'Onde se formou' : 'Faculdade'}</span>
+          <input list="faculties" value={faculty} onChange={(e) => setFaculty(e.target.value)} required autoComplete="off" placeholder="Comece a digitar…"
+            className="mt-1 w-full rounded-lg border border-border bg-surface-2/40 px-3 py-2 text-sm text-ink outline-none focus:border-primary" />
+          <datalist id="faculties">{FACULTIES.map((f) => <option key={f} value={f} />)}</datalist>
+        </label>
+        <label className="block">
+          <span className="text-sm font-medium text-ink">{userType === 'doctor' ? 'Ano de formação' : 'Período / ano'}</span>
+          <input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder={userType === 'doctor' ? 'ex.: 2020' : 'ex.: 5º período'}
+            className="mt-1 w-full rounded-lg border border-border bg-surface-2/40 px-3 py-2 text-sm text-ink outline-none focus:border-primary" />
+        </label>
+        {userType === 'doctor' && (
+          <Input id="crm" label="CRM (opcional)" type="text" inputMode="numeric" pattern="[0-9]*" name="crm"
+            value={crm} onChange={(e) => setCrm(e.target.value.replace(/\D/g, ''))} placeholder="Somente números" />
+        )}
 
         {error && (
           <p className="text-sm text-danger text-center">{error}</p>

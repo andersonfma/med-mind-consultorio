@@ -7,6 +7,7 @@ import type { ProfileSocial } from '@/lib/social/types'
 import { EditProfileForm } from './EditProfileForm'
 import { FreeSpecialtiesPicker } from './FreeSpecialtiesPicker'
 import { InstitutionField } from './InstitutionField'
+import { FacultyFields } from './FacultyFields'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,11 @@ export default async function EditProfilePage() {
     institutionName = (inst as { name?: string } | null)?.name ?? null
   }
 
+  // Formação (tolerante: colunas podem não existir antes da migration).
+  let formacao: { user_type: 'student' | 'doctor' | null; faculty: string | null; faculty_period: string | null } = { user_type: null, faculty: null, faculty_period: null }
+  const { data: fac } = await admin.from('profiles').select('user_type, faculty, faculty_period').eq('id', user.id).maybeSingle()
+  if (fac) formacao = fac as typeof formacao
+
   return (
     <div className="mx-auto max-w-md space-y-5">
       <h1 className="font-display text-2xl font-bold text-ink">Editar perfil</h1>
@@ -36,6 +42,7 @@ export default async function EditProfilePage() {
           display_name: p.display_name ?? '', bio: p.bio ?? '', is_private: p.is_private, avatar_url: p.avatar_url,
         }}
       />
+      <FacultyFields initial={formacao} />
       <FreeSpecialtiesPicker isPremium={!!p.is_premium} initial={p.free_specialties ?? []} />
       <InstitutionField current={institutionName} />
     </div>

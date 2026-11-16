@@ -17,6 +17,9 @@ export async function PATCH(request: NextRequest) {
   if (typeof body.display_name === 'string') patch.display_name = body.display_name.trim().slice(0, 80) || null
   if (typeof body.bio === 'string') patch.bio = body.bio.trim().slice(0, 280) || null
   if (typeof body.is_private === 'boolean') patch.is_private = body.is_private
+  if (body.user_type === 'student' || body.user_type === 'doctor') patch.user_type = body.user_type
+  if (typeof body.faculty === 'string') patch.faculty = body.faculty.trim().slice(0, 120) || null
+  if (typeof body.faculty_period === 'string') patch.faculty_period = body.faculty_period.trim().slice(0, 40) || null
   if (typeof body.handle === 'string') {
     const h = body.handle.trim().toLowerCase()
     if (!isValidHandle(h)) return NextResponse.json({ error: 'Invalid handle' }, { status: 422 })
