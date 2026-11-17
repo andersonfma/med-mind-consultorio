@@ -85,6 +85,7 @@ export default async function HomePage() {
           ))}
         </div>
 
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Bloco: Mapa da Doença */}
         <Link href="/mapa" className="group relative block overflow-hidden rounded-2xl border p-5 transition-all hover:-translate-y-0.5"
           style={{ borderColor: 'rgba(34,224,230,.4)', background: 'linear-gradient(90deg, rgba(34,224,230,.09), rgba(34,224,230,.02))' }}>
@@ -104,6 +105,7 @@ export default async function HomePage() {
           <p className="mt-1.5 max-w-[46ch] text-sm text-muted">Questões por IA nos moldes das provas, por área, com gabarito comentado.</p>
           <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold transition-all group-hover:gap-2" style={{ color: '#E7B23A' }}>Abrir <span aria-hidden>→</span></span>
         </Link>
+        </div>
 
         {!p?.is_premium && (
           <Link href={PREMIUM_ROUTE} className="block rounded-xl border px-4 py-3 text-center text-sm font-medium"
