@@ -22,7 +22,7 @@ export default async function FeedPage() {
   const db = supabase as unknown as SupabaseClient
 
   // RLS (posts_select) já filtra visibilidade; buscamos os posts visíveis mais recentes.
-  const { data: rawPosts } = await db.from('posts').select('*').order('created_at', { ascending: false }).limit(30)
+  const { data: rawPosts } = await db.from('posts').select('*').is('space_id', null).order('created_at', { ascending: false }).limit(30)
   const posts = (rawPosts ?? []) as Array<{ id: string; author_id: string; kind: 'card' | 'text' | 'quiz' | 'duvida' | 'resenha' | 'media'; consultation_id: string | null; ranking_snapshot: unknown; body: string | null; quiz_id: string | null; image_url: string | null; meta: { title?: string; authors?: string; source?: string; link?: string; video?: boolean } | null; created_at: string }>
 
   const admin = createAdminClient()
