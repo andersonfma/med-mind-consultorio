@@ -17,6 +17,7 @@ import { InstitutionsPanel } from './InstitutionsPanel'
 import { retentionD7, retentionCurve, featureLift, type Feature, type UserActivity } from '@/lib/admin/retention'
 import { premiumSource, aggregateByFaculty, PREMIUM_SOURCE_LABEL, type PremiumSource } from '@/lib/admin/segments'
 import { allInstitutionAudiences } from '@/lib/faculty/cohortResolve'
+import { FounderCodesPanel, type FounderCode } from './FounderCodesPanel'
 import { RetentionSection } from '@/components/admin/RetentionSection'
 
 export const dynamic = 'force-dynamic'
@@ -100,9 +101,11 @@ export default async function AdminPage() {
   const [{ data: redemptionRows }, { data: payRows }, { data: codeRows }] = await Promise.all([
     admin.from('founder_redemptions').select('user_id, code'),
     admin.from('payment_events').select('user_id, event'),
-    admin.from('founder_codes').select('code, label'),
+    admin.from('founder_codes').select('code, label, active, uses, max_uses, grant_days'),
   ])
-  const codeLabel = new Map(((codeRows ?? []) as Array<{ code: string; label: string | null }>).map((r) => [r.code, r.label]))
+  type CodeRow = { code: string; label: string | null; active: boolean; uses: number; max_uses: number | null; grant_days: number }
+  const codeRowsT = (codeRows ?? []) as CodeRow[]
+  const codeLabel = new Map(codeRowsT.map((r) => [r.code, r.label]))
   // Público por instituição (para o disparo de e-mail segmentado).
   const emailAudiences = await allInstitutionAudiences()
   const founderUsers = new Set(((redemptionRows ?? []) as Array<{ user_id: string }>).map((r) => r.user_id))
@@ -131,6 +134,9 @@ export default async function AdminPage() {
   // da turma, independente do vínculo institution_id.
   const founderByCode = new Map<string, number>()
   for (const r of ((redemptionRows ?? []) as Array<{ code: string }>)) founderByCode.set(r.code, (founderByCode.get(r.code) ?? 0) + 1)
+  const founderCodesData: FounderCode[] = codeRowsT
+    .map((c) => ({ code: c.code, label: c.label, active: c.active, uses: c.uses, max_uses: c.max_uses, grant_days: c.grant_days, redeemed: founderByCode.get(c.code) ?? 0 }))
+    .sort((a, b) => Number(b.active) - Number(a.active) || b.redeemed - a.redeemed)
   const patients = (patientsRes.data ?? []) as Array<{ user_id: string; specialty: string; created_at: string; diagnosis_status: string }>
   const consultations = (consultationsRes.data ?? []) as ConsultRow[]
   const exams = (examsRes.data ?? []) as Array<{ user_id: string; status: string; exam_name: string; attempts: number | null }>
@@ -543,6 +549,9 @@ export default async function AdminPage() {
         <InstitutionsPanel
           institutions={institutions.map((i) => ({ id: i.id, name: i.name, code: i.invite_code, students: studentsByInst.get(i.id) ?? 0 }))}
         />
+      </Panel>
+      <Panel title="Cupons de fundador" hint="ativar / desativar Premium por cupom">
+        <FounderCodesPanel codes={founderCodesData} />
       </Panel>
       {founderByCode.size > 0 && (
         <Panel title="Turmas por cupom de fundador" hint="atribuição real pelo código resgatado">
