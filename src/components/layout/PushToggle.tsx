@@ -17,6 +17,7 @@ type State = 'loading' | 'unsupported' | 'off' | 'on' | 'denied'
 export function PushToggle() {
   const [state, setState] = useState<State>('loading')
   const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window) || !VAPID) { setState('unsupported'); return }
@@ -26,17 +27,21 @@ export function PushToggle() {
 
   async function enable() {
     if (busy) return
-    setBusy(true)
+    setBusy(true); setErr(null)
     try {
       const perm = await Notification.requestPermission()
-      if (perm !== 'granted') { setState(perm === 'denied' ? 'denied' : 'off'); return }
+      if (perm !== 'granted') { setState(perm === 'denied' ? 'denied' : 'off'); setErr(`Permissão: ${perm}`); return }
       const reg = await navigator.serviceWorker.register('/sw.js')
       await navigator.serviceWorker.ready
       const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(VAPID) as unknown as BufferSource })
       const j = sub.toJSON()
       const res = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: j.endpoint, keys: j.keys }) })
-      setState(res.ok ? 'on' : 'off')
-    } catch { setState('off') } finally { setBusy(false) }
+      if (res.ok) { setState('on') }
+      else { const b = await res.json().catch(() => ({})); setState('off'); setErr(`Salvar: ${res.status} ${b.error ?? ''}`) }
+    } catch (e) {
+      setState('off')
+      setErr(`Erro: ${e instanceof Error ? e.name + ' — ' + e.message : String(e)}`)
+    } finally { setBusy(false) }
   }
 
   async function disable() {
@@ -53,16 +58,19 @@ export function PushToggle() {
     } finally { setBusy(false) }
   }
 
-  if (state === 'loading' || state === 'unsupported') return null
+  if (state === 'loading') return null
   return (
     <div className="border-b border-border px-4 py-2 text-xs">
-      {state === 'denied' ? (
-        <span className="text-muted">Notificações bloqueadas no navegador. Ative nas configurações do site.</span>
+      {state === 'unsupported' ? (
+        <span className="text-muted">Para receber avisos, abra pelo app instalado na tela de início (iPhone: iOS 16.4+).</span>
+      ) : state === 'denied' ? (
+        <span className="text-muted">Notificações bloqueadas. Ative em Ajustes → o app → Notificações.</span>
       ) : state === 'on' ? (
-        <button onClick={disable} disabled={busy} className="font-medium text-muted hover:text-ink">🔔 Notificações ativadas · desativar</button>
+        <button onClick={disable} disabled={busy} className="font-medium text-muted hover:text-ink">Notificações ativadas · desativar</button>
       ) : (
-        <button onClick={enable} disabled={busy} className="font-semibold text-primary">{busy ? 'Ativando…' : '🔔 Ativar notificações neste aparelho'}</button>
+        <button onClick={enable} disabled={busy} className="font-semibold text-primary">{busy ? 'Ativando…' : 'Ativar notificações neste aparelho'}</button>
       )}
+      {err && <p className="mt-1 break-words text-[11px] text-danger">{err}</p>}
     </div>
   )
 }
