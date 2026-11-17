@@ -24,7 +24,7 @@ export default async function SpacesPage() {
     <div className="mx-auto max-w-3xl space-y-6 p-1 sm:p-2">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Comunidades</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Spaces</h1>
           <p className="text-sm text-muted">Tribos de estudo: dúvidas, casos e o desafio, com quem é da sua.</p>
         </div>
         <CreateSpaceForm isPremium={isPremium} />

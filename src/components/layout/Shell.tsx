@@ -33,8 +33,7 @@ export function Shell({ children, isAdmin = false, isPremium = false, canFaculty
             <div className="hidden items-center gap-3 sm:flex">
               <Link href="/inicio" className="text-xs font-medium text-muted transition-colors hover:text-primary">Início</Link>
               <Link href="/dashboard" className="text-xs font-medium text-muted transition-colors hover:text-primary">Consultório</Link>
-              <Link href="/feed" className="text-xs font-medium text-muted transition-colors hover:text-primary">Feed</Link>
-              <Link href="/spaces" className="text-xs font-medium text-muted transition-colors hover:text-primary">Comunidade</Link>
+              <Link href="/spaces" className="text-xs font-medium text-muted transition-colors hover:text-primary">Spaces</Link>
               <Link href="/desafio" className="text-xs font-medium text-muted transition-colors hover:text-primary">Desafio</Link>
               <Link href="/resultados" className="text-xs font-medium text-muted transition-colors hover:text-primary">Resultados</Link>
               <Link href="/mapa" className="text-xs font-medium text-muted transition-colors hover:text-primary">Mapa</Link>

@@ -2,11 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FEED_ROUTE, CHALLENGE_ROUTE, RANKING_ROUTE, EDIT_PROFILE_ROUTE, HOME_ROUTE } from '@/lib/routes'
+import { CHALLENGE_ROUTE, RANKING_ROUTE, EDIT_PROFILE_ROUTE, HOME_ROUTE } from '@/lib/routes'
 
 const ITEMS = [
   { href: HOME_ROUTE, label: 'Início', icon: 'M3 10.5 12 3l9 7.5M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5' },
-  { href: FEED_ROUTE, label: 'Feed', icon: 'M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5Z' },
+  { href: '/spaces', label: 'Spaces', icon: 'M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20a6 6 0 0 1 12 0M14 14.5A6 6 0 0 1 22 20' },
   { href: CHALLENGE_ROUTE, label: 'Desafio', icon: 'M12 2v4M12 18v4M2 12h4M18 12h4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z' },
   { href: RANKING_ROUTE, label: 'Ranking', icon: 'M6 20V10M12 20V4M18 20v-7' },
   { href: '/mapa', label: 'Mapa', icon: 'M9 20 3 17V4l6 3 6-3 6 3v13l-6-3-6 3ZM9 7v13M15 4v13' },
@@ -19,7 +19,7 @@ export function MobileNav() {
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur-md sm:hidden">
       <ul className="mx-auto flex max-w-lg items-stretch justify-around">
         {ITEMS.map(it => {
-          const active = pathname === it.href || (it.href !== '/feed' && pathname.startsWith(it.href))
+          const active = pathname === it.href || (it.href !== '/spaces' ? pathname.startsWith(it.href) : pathname.startsWith('/spaces') || pathname.startsWith('/s/'))
           return (
             <li key={it.href} className="flex-1">
               <Link
