@@ -11,7 +11,7 @@ function layout(bodyInner: string, unsubUrl: string): string {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;background:#EEF2F4;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:${INK};">
   <div style="max-width:560px;margin:0 auto;padding:24px 16px;">
-    <div style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:16px;">Med<span style="color:${CYAN}">Mind</span></div>
+    <div style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:16px;">${BRAND.prefix}<span style="color:${CYAN}">${BRAND.suffix}</span></div>
     <div style="background:#ffffff;border:1px solid #E1E8EC;border-radius:14px;padding:24px;">
       ${bodyInner}
     </div>
@@ -78,6 +78,27 @@ export function customEmail(params: { name: string; subject: string; body: strin
   const inner = `<p style="font-size:15px;line-height:1.6;margin:0 0 14px;font-weight:700;">${esc(greeting)}</p>${paras}${cta}`
   const text = `${greeting}\n\n${params.body}${hasCta ? `\n\n${params.ctaLabel}: ${params.ctaUrl}` : ''}`
   return { subject: params.subject, html: layout(inner, params.unsubUrl), text }
+}
+
+/** Convite para um Space (transacional — pode ir para quem ainda não tem conta). */
+export function spaceInviteEmail(params: { spaceName: string; link: string }): { subject: string; html: string; text: string } {
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;background:#EEF2F4;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+  <div style="max-width:560px;margin:0 auto;padding:24px 16px;">
+    <div style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:16px;">${BRAND.prefix}<span style="color:${CYAN}">${BRAND.suffix}</span></div>
+    <div style="background:#ffffff;border:1px solid #E1E8EC;border-radius:14px;padding:24px;">
+      <p style="font-size:13px;color:${MUTED};margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em;">Você foi convidado(a)</p>
+      <h1 style="font-size:20px;margin:0 0 10px;">Entre na comunidade ${params.spaceName} no ${BRAND.name}</h1>
+      <p style="font-size:14px;color:${MUTED};line-height:1.6;margin:0 0 18px;">
+        ${BRAND.name} é a plataforma de treino clínico e comunidade dos estudantes de medicina. Crie sua conta pelo link abaixo e você entra direto na comunidade — leva um minuto e é grátis.
+      </p>
+      <div style="text-align:center;margin:20px 0 6px;">${btn('Aceitar convite →', params.link)}</div>
+      <p style="font-size:12px;color:${MUTED};text-align:center;margin:8px 0 0;">Ou copie e cole no navegador:<br><span style="color:${INK};">${params.link}</span></p>
+    </div>
+  </div>
+</body></html>`
+  const text = `Você foi convidado(a) para a comunidade ${params.spaceName} no ${BRAND.name}.\n\nCrie sua conta e entre direto pelo link:\n${params.link}`
+  return { subject: `Convite para ${params.spaceName} no ${BRAND.name}`, html, text }
 }
 
 export function weeklyChallengeEmail(params: { name: string; caseTitle: string; unsubUrl: string }): { subject: string; html: string; text: string } {

@@ -52,7 +52,7 @@ export default async function SpacePage({ params }: { params: Promise<{ slug: st
       </header>
 
       {isAdmin && (
-        <SpaceAdminPanel spaceId={space.id} pending={pending} members={activeMembers} ownerId={space.owner_id} />
+        <SpaceAdminPanel spaceId={space.id} pending={pending} members={activeMembers} ownerId={space.owner_id} spaceName={space.name} initialInviteToken={space.invite_token} />
       )}
 
       {gated ? (

@@ -5,6 +5,7 @@ export type Space = {
   id: string; slug: string; name: string; description: string | null
   owner_id: string; institution_id: string | null
   join_policy: 'request' | 'invite' | 'open'; visibility: 'public' | 'private'; is_active: boolean
+  invite_token: string | null
 }
 export type Membership = { role: 'admin' | 'moderator' | 'member'; status: 'pending' | 'active' | 'banned' } | null
 export type MemberRow = {

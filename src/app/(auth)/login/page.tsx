@@ -31,7 +31,8 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/inicio')
+    const next = new URLSearchParams(window.location.search).get('next')
+    router.push(next && next.startsWith('/') && !next.startsWith('//') ? next : '/inicio')
     router.refresh()
   }
 

@@ -39,11 +39,14 @@ export default function RegisterPage() {
       return
     }
 
+    const nextParam = new URLSearchParams(window.location.search).get('next')
+    const safeNext = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : null
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback${safeNext ? `?next=${encodeURIComponent(safeNext)}` : ''}`,
         data: {
           full_name: fullName.trim(),
           crm: crm.trim() || null,
@@ -66,7 +69,7 @@ export default function RegisterPage() {
       return
     }
 
-    router.push('/dashboard')
+    router.push(safeNext ?? '/dashboard')
     router.refresh()
   }
 
