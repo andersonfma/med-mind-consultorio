@@ -19,7 +19,7 @@ export function SpaceAdminPanel({ spaceId, pending, members, ownerId, spaceName,
   const [emails, setEmails] = useState('')
   const [inviteMsg, setInviteMsg] = useState<string | null>(null)
   const link = token ? `${typeof window !== 'undefined' ? window.location.origin : ''}/convite/${token}` : null
-  const waText = link ? `Entre na comunidade ${spaceName} no ${BRAND.name}: ${link}` : ''
+  const waText = link ? `Entre no Space ${spaceName} no ${BRAND.name}: ${link}` : ''
   const waUrl = `https://wa.me/?text=${encodeURIComponent(waText)}`
 
   async function invite(action: 'link' | 'emails' | 'regen') {
@@ -83,7 +83,7 @@ export function SpaceAdminPanel({ spaceId, pending, members, ownerId, spaceName,
               <a href={waUrl} target="_blank" rel="noopener noreferrer" className={`${btn} border border-success/40 bg-success/10 text-success`}>Compartilhar no WhatsApp</a>
               <button onClick={() => invite('regen')} disabled={!!busy} className={`${btn} border border-border text-muted`}>{busy === 'invite-regen' ? '…' : 'Gerar novo link'}</button>
             </div>
-            <p className="text-[11px] text-muted">Quem abrir o link entra direto — e, se ainda não tiver conta, é levado ao cadastro e cai já dentro da comunidade.</p>
+            <p className="text-[11px] text-muted">Quem abrir o link entra direto — e, se ainda não tiver conta, é levado ao cadastro e cai já dentro do Space.</p>
             <div className="pt-1">
               <p className="mb-1 text-[11px] text-muted">Convidar por e-mail (um por linha ou separados por vírgula):</p>
               <textarea value={emails} onChange={(e) => setEmails(e.target.value)} placeholder="especialista@exemplo.com"

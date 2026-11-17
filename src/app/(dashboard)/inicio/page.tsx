@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic'
 // (a barra referencia a colunata do logo). Sem pictogramas.
 const TILES = [
   { href: DASHBOARD_ROUTE, n: '01', label: 'Simulador', title: 'Consultório', desc: 'Atenda pacientes virtuais e receba a avaliação do seu raciocínio por IA.', color: '#22E0E6' },
-  { href: '/spaces',       n: '02', label: 'Comunidade', title: 'Spaces', desc: 'Entre na sua liga: dúvidas, casos e o desafio, com quem é da sua tribo.', color: '#FF6E86' },
+  { href: '/spaces',       n: '02', label: 'Sua tribo', title: 'Spaces', desc: 'Entre na sua liga: dúvidas, casos e o desafio, com quem é da sua tribo.', color: '#FF6E86' },
   { href: CHALLENGE_ROUTE, n: '03', label: 'Hábito diário', title: 'Desafio da Semana', desc: 'Um quiz por dia — e aposte seus MedCoins no palpite.', color: '#FFC24D' },
   { href: RANKING_ROUTE,   n: '04', label: 'Disputa', title: 'Ranking & MedCoin', desc: 'Suba no ranking e junte moedas treinando com a turma.', color: '#34E5A0' },
 ]

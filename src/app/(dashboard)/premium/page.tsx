@@ -34,7 +34,7 @@ const BENEFITS = [
   { Icon: IconInfinity, title: 'Casos ilimitados', desc: 'Nada de teto mensal — treine o quanto precisar, todos os dias.' },
   { Icon: IconChat, title: 'Consultas de IA ilimitadas', desc: 'Converse com os pacientes e receba avaliação sem limite de uso.' },
   { Icon: IconExam, title: 'Simulados ENARE e ENAMED por IA', desc: 'Questões originais nos moldes das provas, por área, com gabarito comentado.' },
-  { Icon: IconStar, title: 'Selo Premium no perfil', desc: 'Destaque na comunidade — o selo Premium aparece no feed e no seu perfil.' },
+  { Icon: IconStar, title: 'Selo Premium no perfil', desc: 'Destaque nos Spaces — o selo Premium aparece no feed e no seu perfil.' },
 ]
 
 const SOON = [

@@ -36,7 +36,7 @@ export function SpaceComposer({ spaceId }: { spaceId: string }) {
         ))}
       </div>
       <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={500}
-        placeholder={kind === 'duvida' ? 'Qual é a sua dúvida?' : 'Compartilhe algo com a comunidade…'}
+        placeholder={kind === 'duvida' ? 'Qual é a sua dúvida?' : 'Compartilhe algo com o Space…'}
         className="min-h-[80px] w-full resize-y rounded-md border border-border bg-surface-2/40 px-3 py-2 text-sm text-ink outline-none focus:border-primary" />
       <div className="flex items-center justify-between">
         {err ? <p className="text-xs text-danger">{err}</p> : <span className="text-[11px] text-muted">{body.length}/500</span>}

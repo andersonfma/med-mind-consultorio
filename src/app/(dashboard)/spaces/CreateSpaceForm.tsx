@@ -19,7 +19,7 @@ export function CreateSpaceForm({ isPremium }: { isPremium: boolean }) {
   if (!isPremium) {
     return (
       <div className="rounded-xl border border-border bg-surface p-4 text-sm text-muted">
-        Criar uma comunidade é um recurso <span className="font-semibold text-ink">Premium</span>. Participar é sempre grátis.
+        Criar um Space é um recurso <span className="font-semibold text-ink">Premium</span>. Participar é sempre grátis.
       </div>
     )
   }
@@ -42,14 +42,14 @@ export function CreateSpaceForm({ isPremium }: { isPremium: boolean }) {
   if (!open) {
     return (
       <button onClick={() => setOpen(true)} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-ink hover:opacity-90">
-        Criar comunidade
+        Criar Space
       </button>
     )
   }
 
   return (
     <div className="rounded-xl border border-border bg-surface p-4 space-y-2.5">
-      <p className="text-sm font-semibold text-ink">Nova comunidade</p>
+      <p className="text-sm font-semibold text-ink">Novo Space</p>
       <input className={input} value={name} placeholder="Nome (ex.: Hepatoliga Unirio)" maxLength={80}
         onChange={(e) => { setName(e.target.value); if (!slug) setSlug(autoSlug(e.target.value)) }} />
       <div className="flex items-center gap-2 text-sm text-muted">
@@ -57,7 +57,7 @@ export function CreateSpaceForm({ isPremium }: { isPremium: boolean }) {
         <input className={input} value={slug} placeholder="identificador" maxLength={48}
           onChange={(e) => setSlug(autoSlug(e.target.value))} />
       </div>
-      <textarea className={`${input} min-h-[60px] resize-y`} value={desc} placeholder="Do que é a comunidade?" maxLength={300}
+      <textarea className={`${input} min-h-[60px] resize-y`} value={desc} placeholder="Do que é o Space?" maxLength={300}
         onChange={(e) => setDesc(e.target.value)} />
       <div className="flex flex-wrap gap-3 text-xs">
         <label className="flex items-center gap-1.5 text-muted">Entrada:

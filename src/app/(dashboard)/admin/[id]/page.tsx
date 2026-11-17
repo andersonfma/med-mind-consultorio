@@ -235,7 +235,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
             <p className="truncate text-xs text-muted">{maps.length ? maps.map((m) => m.disease).slice(0, 3).join(', ') : 'nenhum ainda'}</p>
           </div>
           <div className="rounded-xl border border-border bg-surface p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Comunidade</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Spaces</p>
             <p className="mt-1 font-display text-2xl font-bold tabular-nums text-ink">{myPosts.length + myReacts.length}</p>
             <p className="text-xs text-muted">{myPosts.length} posts · {myReacts.length} curtidas</p>
           </div>

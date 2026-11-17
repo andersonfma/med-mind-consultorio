@@ -35,7 +35,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const admin = createAdminClient()
     const { data: sp } = await admin.from('spaces').select('name').eq('id', id).maybeSingle()
-    const spaceName = (sp as { name?: string } | null)?.name ?? 'uma comunidade'
+    const spaceName = (sp as { name?: string } | null)?.name ?? 'um Space'
     let sent = 0, failed = 0
     for (const to of emails) {
       const { subject, html, text } = spaceInviteEmail({ spaceName, link })

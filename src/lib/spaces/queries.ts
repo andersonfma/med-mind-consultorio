@@ -64,10 +64,11 @@ export type SpaceLeaderRow = { rank: number; name: string; coins: number; isMe: 
  * finalizadas + ledger medcoin_events) — mesma moeda do ranking global.
  * Respeita o opt-in de nome (quem não optou aparece como "Anônimo").
  */
-export async function spaceLeaderboard(spaceId: string, currentUserId: string, topN = 20): Promise<{ top: SpaceLeaderRow[]; me: SpaceLeaderRow | null }> {
+export async function spaceLeaderboard(spaceId: string, currentUserId: string, ownerId: string, topN = 20): Promise<{ top: SpaceLeaderRow[]; me: SpaceLeaderRow | null }> {
   const admin = createAdminClient()
   const { data: memRows } = await admin.from('space_members').select('user_id').eq('space_id', spaceId).eq('status', 'active')
-  const ids = ((memRows ?? []) as Array<{ user_id: string }>).map((r) => r.user_id)
+  // Exclui o DONO da plataforma (staff) — não compete no ranking da liga.
+  const ids = ((memRows ?? []) as Array<{ user_id: string }>).map((r) => r.user_id).filter((id) => id !== ownerId)
   if (ids.length === 0) return { top: [], me: null }
 
   const [consRes, ledgerRes, profRes] = await Promise.all([

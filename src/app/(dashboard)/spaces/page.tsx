@@ -32,7 +32,7 @@ export default async function SpacesPage() {
 
       {mine.length > 0 && (
         <section className="space-y-2">
-          <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Minhas comunidades</h2>
+          <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Meus Spaces</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {mine.map((s) => <SpaceCard key={s.id} s={s} />)}
           </div>
@@ -42,7 +42,7 @@ export default async function SpacesPage() {
       <section className="space-y-2">
         <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Descobrir</h2>
         {others.length === 0 ? (
-          <p className="rounded-xl border border-border bg-surface p-5 text-sm text-muted">Nenhuma comunidade para entrar no momento.</p>
+          <p className="rounded-xl border border-border bg-surface p-5 text-sm text-muted">Nenhum Space para entrar no momento.</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {others.map((s) => <SpaceCard key={s.id} s={s} />)}

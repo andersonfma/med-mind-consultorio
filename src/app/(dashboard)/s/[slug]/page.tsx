@@ -27,20 +27,22 @@ export default async function SpacePage({ params }: { params: Promise<{ slug: st
   const members = await listMembers(space.id)
   const activeMembers = members.filter((m) => m.status === 'active')
   const pending = members.filter((m) => m.status === 'pending')
+  // Membros da liga visíveis aos membros = ativos SEM o dono (staff da plataforma).
+  const ligaCount = activeMembers.filter((m) => m.user_id !== space.owner_id).length
 
   // Space privado só abre para membros ativos / admin.
   const gated = space.visibility === 'private' && !isActive && !isAdmin
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 p-1 sm:p-2">
-      <Link href="/spaces" className="text-xs text-muted hover:text-primary">← Comunidades</Link>
+      <Link href="/spaces" className="text-xs text-muted hover:text-primary">← Spaces</Link>
 
       <header className="rounded-xl border border-border bg-surface p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{space.name}</h1>
             <p className="mt-0.5 text-xs text-muted">
-              {activeMembers.length} {activeMembers.length === 1 ? 'membro' : 'membros'}
+              {ligaCount} {ligaCount === 1 ? 'membro' : 'membros'}
               {space.visibility === 'private' ? ' · privada' : ''}
               {space.join_policy === 'request' ? ' · entra por aceite' : space.join_policy === 'invite' ? ' · só convite' : ' · aberta'}
             </p>
@@ -57,27 +59,27 @@ export default async function SpacePage({ params }: { params: Promise<{ slug: st
 
       {gated ? (
         <div className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-muted">
-          Esta comunidade é privada. Peça para entrar para ver as discussões.
+          Este Space é privado. Peça para entrar para ver as discussões.
         </div>
       ) : (
         <>
           {isActive && <SpaceComposer spaceId={space.id} />}
-          <SpaceLeaderboardSection spaceId={space.id} userId={user.id} />
-          <SpaceFeed spaceId={space.id} />
+          <SpaceLeaderboardSection spaceId={space.id} userId={user.id} ownerId={space.owner_id} />
+          <SpaceFeed spaceId={space.id} ownerId={space.owner_id} />
         </>
       )}
     </div>
   )
 }
 
-async function SpaceLeaderboardSection({ spaceId, userId }: { spaceId: string; userId: string }) {
-  const { top, me } = await spaceLeaderboard(spaceId, userId)
+async function SpaceLeaderboardSection({ spaceId, userId, ownerId }: { spaceId: string; userId: string; ownerId: string }) {
+  const { top, me } = await spaceLeaderboard(spaceId, userId, ownerId)
   if (top.length === 0) return null
   const medal = (r: number) => (r === 1 ? 'text-warning' : r === 2 ? 'text-muted' : r === 3 ? 'text-chart-2' : 'text-muted')
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-ink">Ranking da comunidade</h2>
+        <h2 className="text-sm font-semibold text-ink">Ranking do Space</h2>
         <span className="text-[11px] text-muted">MedCoins</span>
       </div>
       <ul className="space-y-1.5">
@@ -102,7 +104,7 @@ async function SpaceLeaderboardSection({ spaceId, userId }: { spaceId: string; u
   )
 }
 
-async function SpaceFeed({ spaceId }: { spaceId: string }) {
+async function SpaceFeed({ spaceId, ownerId }: { spaceId: string; ownerId: string }) {
   const posts = await listSpacePosts(spaceId)
   if (posts.length === 0) {
     return <p className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-muted">Nenhuma publicação ainda. Puxe a primeira discussão.</p>
@@ -112,7 +114,8 @@ async function SpaceFeed({ spaceId }: { spaceId: string }) {
       {posts.map((p) => (
         <article key={p.id} className="rounded-xl border border-border bg-surface p-4">
           <div className="mb-1 flex items-center gap-2 text-xs text-muted">
-            <span className="font-medium text-ink">{p.author ?? 'Alguém'}</span>
+            <span className="font-medium text-ink">{p.author_id === ownerId ? 'Admin' : (p.author ?? 'Alguém')}</span>
+            {p.author_id === ownerId && <span className="rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">admin</span>}
             {p.kind === 'duvida' && <span className="rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">dúvida</span>}
             <span>· {fmt(p.created_at)}</span>
           </div>

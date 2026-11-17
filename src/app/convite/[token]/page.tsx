@@ -38,7 +38,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
       {invalid ? (
         <div className="rounded-2xl border border-border bg-surface p-6">
           <h1 className="font-display text-xl font-bold text-ink">Convite inválido</h1>
-          <p className="mt-2 text-sm text-muted">Este link de convite expirou ou não existe mais. Peça um novo ao administrador da comunidade.</p>
+          <p className="mt-2 text-sm text-muted">Este link de convite expirou ou não existe mais. Peça um novo ao administrador do Space.</p>
         </div>
       ) : (
         <div className="rounded-2xl border border-border bg-surface p-6">

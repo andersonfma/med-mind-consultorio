@@ -4,7 +4,7 @@ export const FEATURES: { key: Feature; label: string }[] = [
   { key: 'desafio', label: 'Desafio' },
   { key: 'simulados', label: 'Simulados' },
   { key: 'mapas', label: 'Mapas' },
-  { key: 'social', label: 'Comunidade' },
+  { key: 'social', label: 'Spaces' },
 ]
 export type ActivityEvent = { feature: Feature; ts: number }
 export type UserActivity = { id: string; signup: number; events: ActivityEvent[] }
