@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -14,6 +14,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const [nextQuery, setNextQuery] = useState('')
+  useEffect(() => {
+    const n = new URLSearchParams(window.location.search).get('next')
+    if (n && n.startsWith('/') && !n.startsWith('//')) setNextQuery(`?next=${encodeURIComponent(n)}`)
+  }, [])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -80,7 +85,7 @@ export default function LoginPage() {
         </Link>
         <p className="text-muted">
           Não tem conta?{' '}
-          <Link href="/register" className="text-primary hover:underline">
+          <Link href={`/register${nextQuery}`} className="text-primary hover:underline">
             Cadastrar
           </Link>
         </p>
