@@ -105,7 +105,6 @@ export default async function AdminPage() {
   ])
   type CodeRow = { code: string; label: string | null; active: boolean; uses: number; max_uses: number | null; grant_days: number }
   const codeRowsT = (codeRows ?? []) as CodeRow[]
-  const codeLabel = new Map(codeRowsT.map((r) => [r.code, r.label]))
   // Público por instituição (para o disparo de e-mail segmentado).
   const emailAudiences = await allInstitutionAudiences()
   const founderUsers = new Set(((redemptionRows ?? []) as Array<{ user_id: string }>).map((r) => r.user_id))
@@ -550,25 +549,9 @@ export default async function AdminPage() {
           institutions={institutions.map((i) => ({ id: i.id, name: i.name, code: i.invite_code, students: studentsByInst.get(i.id) ?? 0 }))}
         />
       </Panel>
-      <Panel title="Cupons de fundador" hint="ativar / desativar Premium por cupom">
+      <Panel title="Turmas por cupom de fundador" hint="resgates por turma · ativar/desativar">
         <FounderCodesPanel codes={founderCodesData} />
       </Panel>
-      {founderByCode.size > 0 && (
-        <Panel title="Turmas por cupom de fundador" hint="atribuição real pelo código resgatado">
-          <div className="space-y-2">
-            {[...founderByCode.entries()].sort((a, b) => b[1] - a[1]).map(([code, n]) => (
-              <div key={code} className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-ink">
-                  <span className="font-mono text-xs text-primary">{code}</span>
-                  <span className="ml-2 text-muted">{codeLabel.get(code) ?? '—'}</span>
-                </span>
-                <span className="tabular-nums"><span className="font-semibold text-ink">{n}</span> <span className="text-xs text-muted">alunos</span></span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-[11px] text-muted">Conta quem resgatou o código — independe do vínculo manual de “instituição”, por isso reflete a turma real.</p>
-        </Panel>
-      )}
 
       {/* ───────── OPERAÇÃO ───────── */}
       <SectionTitle>Operação</SectionTitle>
