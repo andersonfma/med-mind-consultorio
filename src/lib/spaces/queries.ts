@@ -57,6 +57,42 @@ export async function listSpaces(userId: string): Promise<DiscoverSpace[]> {
     .map((s) => ({ ...s, members: activeBySpace.get(s.id) ?? 0, myStatus: myStatusBySpace.get(s.id) ?? null }))
 }
 
+export type SpaceLeaderRow = { rank: number; name: string; coins: number; isMe: boolean }
+
+/**
+ * Ranking da comunidade: membros ativos ordenados por MedCoins (consultas
+ * finalizadas + ledger medcoin_events) — mesma moeda do ranking global.
+ * Respeita o opt-in de nome (quem não optou aparece como "Anônimo").
+ */
+export async function spaceLeaderboard(spaceId: string, currentUserId: string, topN = 20): Promise<{ top: SpaceLeaderRow[]; me: SpaceLeaderRow | null }> {
+  const admin = createAdminClient()
+  const { data: memRows } = await admin.from('space_members').select('user_id').eq('space_id', spaceId).eq('status', 'active')
+  const ids = ((memRows ?? []) as Array<{ user_id: string }>).map((r) => r.user_id)
+  if (ids.length === 0) return { top: [], me: null }
+
+  const [consRes, ledgerRes, profRes] = await Promise.all([
+    admin.from('consultations').select('user_id, points').eq('status', 'finished').gt('points', 0).in('user_id', ids),
+    admin.from('medcoin_events').select('user_id, points').in('user_id', ids),
+    admin.from('profiles').select('id, full_name, leaderboard_optin, leaderboard_alias').in('id', ids),
+  ])
+  const coins = new Map<string, number>()
+  for (const r of ([...(consRes.data ?? []), ...(ledgerRes.data ?? [])] as Array<{ user_id: string; points: number | null }>)) {
+    const p = r.points ?? 0
+    if (p > 0) coins.set(r.user_id, (coins.get(r.user_id) ?? 0) + p)
+  }
+  const prof = new Map(((profRes.data ?? []) as Array<{ id: string; full_name: string | null; leaderboard_optin: boolean | null; leaderboard_alias: string | null }>).map((p) => [p.id, p]))
+  const nameOf = (uid: string) => {
+    const p = prof.get(uid)
+    if (p?.leaderboard_optin) return p.leaderboard_alias?.trim() || p.full_name?.trim() || 'Aluno'
+    return 'Anônimo'
+  }
+  const ranked = [...coins.entries()].map(([uid, c]) => ({ uid, c })).sort((a, b) => b.c - a.c)
+  const top = ranked.slice(0, topN).map((r, i) => ({ rank: i + 1, name: r.uid === currentUserId ? 'Você' : nameOf(r.uid), coins: r.c, isMe: r.uid === currentUserId }))
+  const myIdx = ranked.findIndex((r) => r.uid === currentUserId)
+  const me = myIdx >= 0 ? { rank: myIdx + 1, name: 'Você', coins: ranked[myIdx].c, isMe: true } : null
+  return { top, me }
+}
+
 export type SpacePost = { id: string; author_id: string; kind: string; body: string | null; created_at: string; author: string | null }
 
 /** Feed interno do space (posts escopados). */

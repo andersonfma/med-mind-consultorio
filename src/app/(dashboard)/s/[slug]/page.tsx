@@ -2,7 +2,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { LOGIN_ROUTE } from '@/lib/routes'
-import { getSpaceBySlug, getMembership, listMembers, listSpacePosts } from '@/lib/spaces/queries'
+import { getSpaceBySlug, getMembership, listMembers, listSpacePosts, spaceLeaderboard } from '@/lib/spaces/queries'
 import { JoinButton } from './JoinButton'
 import { SpaceComposer } from './SpaceComposer'
 import { SpaceAdminPanel } from './SpaceAdminPanel'
@@ -62,10 +62,43 @@ export default async function SpacePage({ params }: { params: Promise<{ slug: st
       ) : (
         <>
           {isActive && <SpaceComposer spaceId={space.id} />}
+          <SpaceLeaderboardSection spaceId={space.id} userId={user.id} />
           <SpaceFeed spaceId={space.id} />
         </>
       )}
     </div>
+  )
+}
+
+async function SpaceLeaderboardSection({ spaceId, userId }: { spaceId: string; userId: string }) {
+  const { top, me } = await spaceLeaderboard(spaceId, userId)
+  if (top.length === 0) return null
+  const medal = (r: number) => (r === 1 ? 'text-warning' : r === 2 ? 'text-muted' : r === 3 ? 'text-chart-2' : 'text-muted')
+  return (
+    <section className="rounded-xl border border-border bg-surface p-4">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-sm font-semibold text-ink">Ranking da comunidade</h2>
+        <span className="text-[11px] text-muted">MedCoins</span>
+      </div>
+      <ul className="space-y-1.5">
+        {top.map((r) => (
+          <li key={r.rank} className={`flex items-center justify-between gap-3 rounded-md px-2 py-1 text-sm ${r.isMe ? 'bg-primary/5' : ''}`}>
+            <span className="flex items-center gap-2.5 min-w-0">
+              <span className={`w-5 shrink-0 text-right font-mono text-xs font-bold tabular-nums ${medal(r.rank)}`}>{r.rank}</span>
+              <span className={`truncate ${r.isMe ? 'font-semibold text-primary' : 'text-ink'}`}>{r.name}</span>
+            </span>
+            <span className="shrink-0 font-semibold tabular-nums text-ink">{r.coins}</span>
+          </li>
+        ))}
+      </ul>
+      {me && me.rank > top.length && (
+        <div className="mt-2 flex items-center justify-between gap-3 border-t border-border px-2 pt-2 text-sm">
+          <span className="flex items-center gap-2.5"><span className="w-5 text-right font-mono text-xs font-bold tabular-nums text-primary">{me.rank}</span><span className="font-semibold text-primary">Você</span></span>
+          <span className="font-semibold tabular-nums text-ink">{me.coins}</span>
+        </div>
+      )}
+      <p className="mt-2 text-[11px] text-muted">Quem não ativou o apelido no ranking aparece como “Anônimo”. Ative em Ranking.</p>
+    </section>
   )
 }
 
