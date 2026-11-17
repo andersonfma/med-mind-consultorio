@@ -1,11 +1,12 @@
 import type { MetadataRoute } from 'next'
+import { BRAND } from '@/lib/brand'
 
-// Web App Manifest — torna o Med Mind instalável (Adicionar à Tela de Início).
+// Web App Manifest — torna o app instalável (Adicionar à Tela de Início).
 // No iOS (16.4+) é pré-requisito para receber Web Push.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Med Mind',
-    short_name: 'Med Mind',
+    name: BRAND.name,
+    short_name: BRAND.name,
     description: 'Treine o raciocínio clínico com pacientes virtuais e avaliação por IA.',
     start_url: '/inicio',
     id: '/',

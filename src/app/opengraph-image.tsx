@@ -1,8 +1,9 @@
 import { ImageResponse } from 'next/og'
+import { BRAND } from '@/lib/brand'
 
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
-export const alt = 'Med Mind — Simulador clínico'
+export const alt = `${BRAND.name} — ${BRAND.tagline}`
 
 // Símbolo da marca (só formas — rasteriza sem depender de fonte).
 const MARK =
@@ -31,7 +32,7 @@ async function loadFont(text: string): Promise<ArrayBuffer | null> {
 
 export default async function Image() {
   const tagline = 'Treine o raciocínio clínico — antes do paciente real'
-  const font = await loadFont('MedMind' + tagline)
+  const font = await loadFont(BRAND.nameCompact + tagline)
   const markSrc = `data:image/svg+xml;base64,${Buffer.from(MARK).toString('base64')}`
 
   return new ImageResponse(
@@ -58,8 +59,8 @@ export default async function Image() {
         />
         {font && (
           <div style={{ display: 'flex', fontFamily: 'Grotesk', fontSize: 92, fontWeight: 700, letterSpacing: -2 }}>
-            <span style={{ color: '#E9EFF3' }}>Med</span>
-            <span style={{ color: '#22E0E6' }}>Mind</span>
+            <span style={{ color: '#E9EFF3' }}>{BRAND.prefix}</span>
+            <span style={{ color: '#22E0E6' }}>{BRAND.suffix}</span>
           </div>
         )}
         {font && (

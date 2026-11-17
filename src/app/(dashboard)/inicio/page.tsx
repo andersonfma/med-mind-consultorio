@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { BRAND } from '@/lib/brand'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -107,7 +108,7 @@ export default async function HomePage() {
         {!p?.is_premium && (
           <Link href={PREMIUM_ROUTE} className="block rounded-xl border px-4 py-3 text-center text-sm font-medium"
             style={{ borderColor: 'rgba(231,178,58,.4)', background: 'rgba(231,178,58,.06)', color: '#E7B23A' }}>
-            ✦ Conheça o Med Mind Premium — consultas e especialidades ilimitadas
+            ✦ Conheça o {BRAND.name} Premium — consultas e especialidades ilimitadas
           </Link>
         )}
       </div>

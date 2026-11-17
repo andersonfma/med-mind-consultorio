@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { BRAND } from '@/lib/brand'
 
 const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
 const DISMISS_KEY = 'mm-install-dismissed'
@@ -93,11 +94,11 @@ export function InstallPrompt() {
       <div className="min-w-0 flex-1">
         {mode === 'ios-install' && (
           <p className="text-sm text-ink">
-            <b>Instale o Med Mind no seu iPhone</b> para receber os avisos do Desafio: toque em <b>Compartilhar</b> e depois em <b>&ldquo;Adicionar à Tela de Início&rdquo;</b>.
+            <b>Instale o {BRAND.name} no seu iPhone</b> para receber os avisos do Desafio: toque em <b>Compartilhar</b> e depois em <b>&ldquo;Adicionar à Tela de Início&rdquo;</b>.
           </p>
         )}
         {mode === 'android-install' && (
-          <p className="text-sm text-ink"><b>Instale o Med Mind</b> no seu aparelho — acesso rápido e os avisos do Desafio no celular.</p>
+          <p className="text-sm text-ink"><b>Instale o {BRAND.name}</b> no seu aparelho — acesso rápido e os avisos do Desafio no celular.</p>
         )}
         {mode === 'enable-push' && (
           <p className="text-sm text-ink"><b>Ative os avisos</b> do Desafio da Semana e da sua sequência neste aparelho.</p>

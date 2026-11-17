@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { BRAND } from '@/lib/brand'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { LOGIN_ROUTE, PREMIUM_ROUTE } from '@/lib/routes'
@@ -32,7 +33,7 @@ export default async function ExamsPage() {
       ) : (
         <div className="rounded-2xl border p-6 text-center" style={{ borderColor: 'rgba(231,178,58,.4)', background: 'rgba(231,178,58,.06)' }}>
           <p className="font-display text-xl font-bold" style={{ color: '#E7B23A' }}>Recurso Premium ✦</p>
-          <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">Os simulados ENARE/ENAMED fazem parte do Med Mind Premium. Gere quantos quiser, por área, com gabarito comentado.</p>
+          <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">Os simulados ENARE/ENAMED fazem parte do {BRAND.name} Premium. Gere quantos quiser, por área, com gabarito comentado.</p>
           <Link href={PREMIUM_ROUTE} className="mt-4 inline-block rounded-xl px-5 py-2.5 text-sm font-bold text-[#1a1203]"
             style={{ background: 'linear-gradient(140deg,#F5C84B,#E7B23A)' }}>
             Conhecer o Premium →

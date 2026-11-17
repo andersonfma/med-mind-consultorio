@@ -4,10 +4,11 @@ import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { shareCardRoute } from '@/lib/routes'
 import { MedMindMark } from '@/components/layout/MedMindMark'
+import { BRAND } from '@/lib/brand'
 
 export const dynamic = 'force-dynamic'
 
-const HEADLINE = 'Med Mind: treine e conecte-se.'
+const HEADLINE = `${BRAND.name}: treine e conecte-se.`
 const SUBTEXT = 'O simulador clínico e a rede social dos estudantes de medicina do Brasil.'
 
 async function findFinished(consultationId: string): Promise<boolean> {
@@ -41,7 +42,7 @@ export default async function PublicCardPage({ params }: { params: Promise<{ con
         </Link>
 
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={shareCardRoute(consultationId)} alt="Resultado no Med Mind" className="block h-auto w-full max-w-full rounded-xl border border-border shadow-[var(--shadow-card)]" />
+        <img src={shareCardRoute(consultationId)} alt={`Resultado no ${BRAND.name}`} className="block h-auto w-full max-w-full rounded-xl border border-border shadow-[var(--shadow-card)]" />
 
         <div>
           <h1 className="font-display text-2xl font-bold text-ink text-balance">{HEADLINE}</h1>

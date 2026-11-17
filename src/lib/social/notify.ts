@@ -3,15 +3,16 @@ import { type SupabaseClient } from '@supabase/supabase-js'
 import { displayIdentity } from './identity'
 import type { ProfileSocial } from './types'
 import { sendPush } from './push'
+import { BRAND } from '@/lib/brand'
 
 type NotifType = 'like' | 'comment' | 'follow' | 'doubt_answer'
 
 function pushText(type: NotifType, actor: string): { title: string; body: string } {
   switch (type) {
-    case 'like': return { title: 'Med Mind', body: `${actor} curtiu seu post` }
-    case 'comment': return { title: 'Med Mind', body: `${actor} comentou no seu post` }
-    case 'follow': return { title: 'Med Mind', body: `${actor} começou a te seguir` }
-    case 'doubt_answer': return { title: 'Med Mind', body: `Você ganhou MedCoin por responder a dúvida de ${actor}` }
+    case 'like': return { title: BRAND.name, body: `${actor} curtiu seu post` }
+    case 'comment': return { title: BRAND.name, body: `${actor} comentou no seu post` }
+    case 'follow': return { title: BRAND.name, body: `${actor} começou a te seguir` }
+    case 'doubt_answer': return { title: BRAND.name, body: `Você ganhou MedCoin por responder a dúvida de ${actor}` }
   }
 }
 

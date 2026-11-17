@@ -5,6 +5,7 @@ import { managedInstitutions } from '@/lib/faculty/access'
 import { loadFacultyDashboard } from '@/lib/faculty/data'
 import { FORMATION_BANDS } from '@/lib/faculty/formation'
 import { PrintOnLoad } from './PrintOnLoad'
+import { BRAND } from '@/lib/brand'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,7 @@ export default async function FacultyReportPage({ params }: { params: Promise<{ 
       <style>{`@media print { @page { margin: 16mm; } .no-print { display: none !important; } }`}</style>
 
       <header className="mb-6 border-b-2 border-neutral-900 pb-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">Med Mind · Relatório de desempenho</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">{BRAND.name} · Relatório de desempenho</p>
         <h1 className="mt-1 text-2xl font-bold">{institution.name}</h1>
         <p className="mt-0.5 text-neutral-600">{hoje} · {d.totalStudents} alunos · {d.turmas.filter((t) => !t.isUnknown).length} turmas com período</p>
       </header>
@@ -116,7 +117,7 @@ export default async function FacultyReportPage({ params }: { params: Promise<{ 
       )}
 
       <footer className="mt-8 border-t border-neutral-300 pt-2 text-[10px] text-neutral-400">
-        Gerado automaticamente pela plataforma Med Mind. Dados agregados para fins pedagógicos e de gestão acadêmica.
+        Gerado automaticamente pela plataforma {BRAND.name}. Dados agregados para fins pedagógicos e de gestão acadêmica.
       </footer>
     </main>
   )

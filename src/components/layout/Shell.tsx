@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import Link from 'next/link'
 import { LogoutButton } from './LogoutButton'
+import { BRAND } from '@/lib/brand'
 import { MedMindMark } from './MedMindMark'
 import { MedMindStripes } from './MedMindStripes'
 import { ThemeToggle } from './ThemeToggle'
@@ -24,7 +25,7 @@ export function Shell({ children, isAdmin = false, isPremium = false, canFaculty
           <Link href="/inicio" className="group flex items-center gap-3.5">
             <MedMindMark className="h-14 w-14 rounded-xl shadow-[var(--shadow-glow-primary)] transition-transform group-hover:scale-105" />
             <span className="font-display text-3xl font-bold tracking-tight text-ink leading-none">
-              Med<span className="text-primary">Mind</span>
+              {BRAND.prefix}<span className="text-primary">{BRAND.suffix}</span>
             </span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">

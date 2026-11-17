@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { MedMindMark } from '@/components/layout/MedMindMark'
+import { BRAND } from '@/lib/brand'
 
 // Destino do card de link da campanha de fundadores (WhatsApp e redes).
 // Precisa responder 200 com as tags do card: um redirect no servidor faria o
@@ -9,12 +10,12 @@ import { MedMindMark } from '@/components/layout/MedMindMark'
 // A imagem do card é o arquivo opengraph-image.jpg desta pasta.
 
 const TITLE = 'Seja um dos fundadores da comunidade médica do Brasil'
-const DESCRIPTION = 'Complete 5 consultas e participe do desafio da semana em 5 dias. Grátis para começar.'
+const DESCRIPTION = 'Complete 5 consultas e participe do desafio da semana em 7 dias. Grátis para começar.'
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
-  openGraph: { title: TITLE, description: DESCRIPTION, siteName: 'Med Mind', locale: 'pt_BR', type: 'website' },
+  openGraph: { title: TITLE, description: DESCRIPTION, siteName: BRAND.name, locale: 'pt_BR', type: 'website' },
   twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
 }
 

@@ -1,5 +1,6 @@
 'use client'
 import type { DiseaseMap, CorrelationItem } from '@/lib/disease-map/schema'
+import { BRAND } from '@/lib/brand'
 
 const GOLD = '#E7B23A'
 
@@ -68,7 +69,7 @@ function Branch({ title, color, icon, items }: { title: string; color: string; i
 
 export function DiseaseMapView({ map }: { map: DiseaseMap }) {
   async function share() {
-    const text = `Mapa da Doença — ${map.disease}\n\n${map.summary}\n\nvia Med Mind`
+    const text = `Mapa da Doença — ${map.disease}\n\n${map.summary}\n\nvia ${BRAND.name}`
     try {
       if (navigator.share) await navigator.share({ title: `Mapa — ${map.disease}`, text })
       else await navigator.clipboard.writeText(text)

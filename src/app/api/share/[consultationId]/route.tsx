@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og'
 import { type NextRequest } from 'next/server'
+import { BRAND } from '@/lib/brand'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
@@ -71,7 +72,7 @@ export async function GET(
   const points = c.points ?? 0
 
   const fontText =
-    'MedMind' + headline + eyebrow + 'Raciocínio Dificuldade MedCoin ' +
+    BRAND.nameCompact + headline + eyebrow + 'Raciocínio Dificuldade MedCoin ' +
     difficulty + points + (reasoning ?? '') + '/10'
   const font = await loadFont(fontText)
   const ff = font ? 'Grotesk' : undefined

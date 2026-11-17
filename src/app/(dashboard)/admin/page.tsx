@@ -78,7 +78,7 @@ export default async function AdminPage() {
     admin.from('exam_requests').select('user_id, status, exam_name, attempts'),
     admin.from('prescriptions').select('user_id, adequacy'),
     admin.from('premium_interest').select('user_id', { count: 'exact', head: true }),
-    admin.from('quiz_answers').select('user_id, is_correct, created_at'),
+    admin.from('quiz_answers').select('user_id, is_correct, created_at, quiz_id'),
     admin.from('exam_attempts').select('user_id, exam, area, score, total, created_at'),
     admin.from('institutions').select('id, name, invite_code, created_at'),
     admin.from('post_reactions').select('user_id, created_at'),
@@ -162,7 +162,7 @@ export default async function AdminPage() {
   const dxRevealed = patients.filter((p) => p.diagnosis_status === 'revealed').length
   const dxClosed = dxAchieved + dxRevealed
 
-  const quizAns = (quizAnsRes.data ?? []) as Array<{ user_id: string; is_correct: boolean; created_at?: string | null }>
+  const quizAns = (quizAnsRes.data ?? []) as Array<{ user_id: string; is_correct: boolean; created_at?: string | null; quiz_id?: string }>
   const examAtt = (examAttRes.data ?? []) as Array<{ user_id: string; exam: string; area: string; score: number; total: number }>
   const institutions = (instRes.data ?? []) as Array<{ id: string; name: string; invite_code: string; created_at: string }>
   const reactions = (reactionsRes.data ?? []) as Array<{ user_id: string; created_at: string | null }>
@@ -228,6 +228,28 @@ export default async function AdminPage() {
   // Desafio diário
   const challengePlayers = new Set(quizAns.map((q) => q.user_id)).size
   const quizCorrectPct = quizAns.length ? pct(quizAns.filter((q) => q.is_correct).length, quizAns.length) : 0
+
+  // Conclusão do Desafio da SEMANA ATUAL: quantas das 7 perguntas cada aluno respondeu.
+  const { data: wcRow } = await admin.from('weekly_cases').select('id').order('created_at', { ascending: false }).limit(1).maybeSingle()
+  const weekCaseId = (wcRow as { id?: string } | null)?.id ?? null
+  let weekDaysReleased = 0
+  const weekQuizIds = new Set<string>()
+  if (weekCaseId) {
+    const today = new Date().toISOString().slice(0, 10)
+    const { data: dayRows } = await admin.from('challenge_days').select('quiz_id, reveal_date').eq('weekly_case_id', weekCaseId)
+    for (const d of ((dayRows ?? []) as Array<{ quiz_id: string; reveal_date: string }>)) {
+      weekQuizIds.add(d.quiz_id)
+      if (d.reveal_date <= today) weekDaysReleased++
+    }
+  }
+  const WEEK_TOTAL = 7
+  const answeredByUserWeek = new Map<string, number>()
+  for (const q of quizAns) if (q.quiz_id && weekQuizIds.has(q.quiz_id)) answeredByUserWeek.set(q.user_id, (answeredByUserWeek.get(q.user_id) ?? 0) + 1)
+  const weekParticipants = answeredByUserWeek.size
+  const weekAnswersTotal = [...answeredByUserWeek.values()].reduce((s, n) => s + n, 0)
+  const weekAvgOf7 = weekParticipants ? Math.round((weekAnswersTotal / weekParticipants) * 10) / 10 : 0
+  const weekPctOf7 = weekParticipants ? pct(weekAnswersTotal, weekParticipants * WEEK_TOTAL) : 0
+  const weekCompletedAll = [...answeredByUserWeek.values()].filter((n) => n >= WEEK_TOTAL).length
 
   // Simulados ENARE/ENAMED
   const simUsers = new Set(examAtt.map((e) => e.user_id)).size
@@ -392,6 +414,23 @@ export default async function AdminPage() {
             <span className="text-sm text-muted">alunos participaram · {pct(challengePlayers, totalUsers)}%</span>
           </div>
           <p className="text-xs text-muted">{quizAns.length} respostas · {quizCorrectPct}% de acerto</p>
+          <div className="mt-3 border-t border-border pt-3">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Semana atual · perguntas respondidas</p>
+            {weekParticipants === 0 ? (
+              <p className="text-xs text-muted">Ninguém respondeu o desafio desta semana ainda.</p>
+            ) : (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-2xl font-bold tabular-nums text-ink">{weekAvgOf7}</span>
+                  <span className="text-sm text-muted">de {WEEK_TOTAL} em média · {weekPctOf7}%</span>
+                </div>
+                <p className="mt-0.5 text-xs text-muted">
+                  {weekParticipants} participantes · {weekCompletedAll} responderam as {WEEK_TOTAL}
+                  {weekDaysReleased < WEEK_TOTAL ? ` · ${weekDaysReleased}/${WEEK_TOTAL} dias liberados até hoje` : ''}
+                </p>
+              </>
+            )}
+          </div>
         </Panel>
         <Panel title="Simulados ENARE/ENAMED" hint="recurso premium">
           <div className="mb-3 flex items-baseline gap-2">

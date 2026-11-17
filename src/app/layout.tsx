@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
+import { BRAND } from '@/lib/brand'
 
 // Direção visual "Ink × Elétrico": Space Grotesk (display) + Inter (corpo) + JetBrains Mono (números/scores).
 // As variáveis usam prefixo --ff-* para NÃO colidir com os tokens --font-* do @theme (globals.css).
@@ -10,20 +11,20 @@ const mono = JetBrains_Mono({ subsets: ['latin'], weight: ['500'], variable: '--
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://app.medmindedu.com.br'),
-  title: { default: 'Med Mind — Simulador clínico', template: '%s · Med Mind' },
+  title: { default: `${BRAND.name} — ${BRAND.tagline}`, template: `%s · ${BRAND.name}` },
   description:
     'Treine o raciocínio clínico com pacientes virtuais e avaliação por IA — antes do paciente real.',
   openGraph: {
-    title: 'Med Mind — Simulador clínico',
+    title: `${BRAND.name} — ${BRAND.tagline}`,
     description:
       'Treine o raciocínio clínico com pacientes virtuais e avaliação por IA — antes do paciente real.',
-    siteName: 'Med Mind',
+    siteName: BRAND.name,
     locale: 'pt_BR',
     type: 'website',
   },
   twitter: { card: 'summary_large_image' },
   manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Med Mind' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: BRAND.name },
 }
 
 export const viewport: Viewport = {

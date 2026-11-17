@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { BRAND } from '@/lib/brand'
 
 type Point = { stage: string; text: string }
 
@@ -19,11 +20,11 @@ export function StudyCard({ title, diagnosis, review, points }: {
       'Pontos-chave:',
       ...points.map((p) => `• ${p.stage}: ${p.text}`),
       '',
-      `Estude o caso da semana no Med Mind: ${APP_URL}`,
+      `Estude o caso da semana no ${BRAND.name}: ${APP_URL}`,
     ]
     const text = lines.join('\n')
     try {
-      if (navigator.share) { await navigator.share({ title: 'Resumo de estudo — Med Mind', text }); return }
+      if (navigator.share) { await navigator.share({ title: `Resumo de estudo — ${BRAND.name}`, text }); return }
       await navigator.clipboard.writeText(text)
       setCopied(true); setTimeout(() => setCopied(false), 2500)
     } catch { /* usuário cancelou */ }

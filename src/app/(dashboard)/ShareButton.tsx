@@ -1,8 +1,9 @@
 'use client'
 import { useState } from 'react'
 import { publicCardRoute } from '@/lib/routes'
+import { BRAND } from '@/lib/brand'
 
-const SHARE_TEXT = 'Treinei meu raciocínio clínico no Med Mind — o simulador e a rede social dos estudantes de medicina 🧠'
+const SHARE_TEXT = `Treinei meu raciocínio clínico no ${BRAND.name} — o simulador e a rede social dos estudantes de medicina 🧠`
 
 /** Compartilha o LINK PÚBLICO do card (leva quem recebe ao cadastro). Web Share + fallback copiar. */
 export function ShareButton({ consultationId, variant = 'solid', label = 'Compartilhar' }: { consultationId: string; variant?: 'solid' | 'ghost'; label?: string }) {
@@ -12,7 +13,7 @@ export function ShareButton({ consultationId, variant = 'solid', label = 'Compar
     const url = `${window.location.origin}${publicCardRoute(consultationId)}`
     const nav = navigator as Navigator & { share?: (d: unknown) => Promise<void> }
     if (nav.share) {
-      try { await nav.share({ title: 'Med Mind', text: SHARE_TEXT, url }); return } catch { /* cancelou ou falhou → fallback */ }
+      try { await nav.share({ title: BRAND.name, text: SHARE_TEXT, url }); return } catch { /* cancelou ou falhou → fallback */ }
     }
     try {
       await navigator.clipboard.writeText(url)

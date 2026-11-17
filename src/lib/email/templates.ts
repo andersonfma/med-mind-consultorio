@@ -1,4 +1,5 @@
 import 'server-only'
+import { BRAND } from '@/lib/brand'
 
 export const APP_URL = 'https://app.medmindedu.com.br'
 
@@ -15,7 +16,7 @@ function layout(bodyInner: string, unsubUrl: string): string {
       ${bodyInner}
     </div>
     <p style="font-size:11px;color:${MUTED};text-align:center;margin:18px 8px 0;line-height:1.6;">
-      Você recebe este email porque tem conta no Med Mind.<br>
+      Você recebe este email porque tem conta no ${BRAND.name}.<br>
       <a href="${unsubUrl}" style="color:${MUTED};text-decoration:underline;">Descadastrar destes emails</a>
     </p>
   </div>
@@ -30,9 +31,9 @@ function btn(label: string, href: string): string {
 export function explainerEmail(params: { name: string; unsubUrl: string }): { subject: string; html: string; text: string } {
   const name = params.name?.trim() || 'futuro doutor(a)'
   const inner = `
-    <h1 style="font-size:20px;margin:0 0 10px;">Oi, ${name}! Bem-vindo(a) ao Med Mind 🩺</h1>
+    <h1 style="font-size:20px;margin:0 0 10px;">Oi, ${name}! Bem-vindo(a) ao ${BRAND.name} 🩺</h1>
     <p style="font-size:14px;color:${MUTED};line-height:1.6;margin:0 0 16px;">
-      O Med Mind é onde você <b style="color:${INK}">treina a consulta clínica</b> com pacientes virtuais e recebe uma
+      O ${BRAND.name} é onde você <b style="color:${INK}">treina a consulta clínica</b> com pacientes virtuais e recebe uma
       <b style="color:${INK}">avaliação do seu raciocínio por IA</b> — e ainda compete com colegas. Em 2 minutos você entende tudo:
     </p>
 
@@ -48,9 +49,9 @@ export function explainerEmail(params: { name: string; unsubUrl: string }): { su
     <div style="text-align:center;margin:22px 0 6px;">${btn('Treinar agora →', APP_URL)}</div>
     <p style="font-size:12px;color:${MUTED};text-align:center;margin:8px 0 0;">Seu primeiro paciente leva menos de um minuto pra começar.</p>
   `
-  const text = `Oi, ${name}! Bem-vindo(a) ao Med Mind.
+  const text = `Oi, ${name}! Bem-vindo(a) ao ${BRAND.name}.
 
-O Med Mind é onde você treina a consulta clínica com pacientes virtuais e recebe uma avaliação do seu raciocínio por IA — e ainda compete com colegas. Em 2 minutos você entende tudo:
+O ${BRAND.name} é onde você treina a consulta clínica com pacientes virtuais e recebe uma avaliação do seu raciocínio por IA — e ainda compete com colegas. Em 2 minutos você entende tudo:
 
 1. Atenda um paciente: converse, peça exames, defina a conduta e feche o diagnóstico. Ao Finalizar, você recebe sua nota de raciocínio, um radar de desempenho e um card pra compartilhar.
 
@@ -62,7 +63,7 @@ Treinar agora: ${APP_URL}
 
 Para não receber mais estes emails: ${params.unsubUrl}`
 
-  return { subject: 'Como o Med Mind funciona — e a aposta do desafio da semana', html: layout(inner, params.unsubUrl), text }
+  return { subject: `Como o ${BRAND.name} funciona — e a aposta do desafio da semana`, html: layout(inner, params.unsubUrl), text }
 }
 
 /** Email semanal (segunda): anuncia o novo Caso da Semana + chama pro quiz. */
@@ -87,16 +88,16 @@ export function weeklyChallengeEmail(params: { name: string; caseTitle: string; 
     <p style="font-size:13px;color:${MUTED};margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em;">Novo caso da semana</p>
     <h1 style="font-size:20px;margin:0 0 10px;">${caseTitle}</h1>
     <p style="font-size:14px;color:${MUTED};line-height:1.6;margin:0 0 16px;">
-      Oi, ${name}! Começou um novo <b style="color:${INK}">Caso da Semana</b>. São <b style="color:${INK}">5 dias</b> (seg a sex),
-      <b style="color:${INK}">um quiz por dia</b> — da anamnese à conduta. E você pode <b style="color:${INK}">apostar seus MedCoins</b> no palpite:
-      acertou, ganha; errou, perde; na sexta o acerto paga em dobro. Resolva o de hoje em 1 minuto:
+      Oi, ${name}! Começou um novo <b style="color:${INK}">Caso da Semana</b>. São <b style="color:${INK}">7 dias</b> (seg a dom),
+      <b style="color:${INK}">um quiz por dia</b> — da anamnese à conclusão. E você pode <b style="color:${INK}">apostar seus MedCoins</b> no palpite:
+      acertou, ganha; errou, perde; no domingo (dia da conclusão) o acerto paga em dobro. Resolva o de hoje em 1 minuto:
     </p>
     <div style="text-align:center;margin:20px 0 6px;">${btn('Resolver o desafio de hoje →', url)}</div>
     <p style="font-size:12px;color:${MUTED};text-align:center;margin:8px 0 0;">Resolvendo todo dia você mantém o streak 🔥 e sobe no ranking.</p>
   `
   const text = `Novo Caso da Semana: ${caseTitle}
 
-Oi, ${name}! Começou um novo Caso da Semana — 5 dias (seg a sex), um quiz por dia, da anamnese à conduta. Você pode apostar seus MedCoins no palpite: acertou, ganha; errou, perde; na sexta o acerto paga em dobro.
+Oi, ${name}! Começou um novo Caso da Semana — 7 dias (seg a dom), um quiz por dia, da anamnese à conclusão. Você pode apostar seus MedCoins no palpite: acertou, ganha; errou, perde; no domingo (dia da conclusão) o acerto paga em dobro.
 
 Resolver o desafio de hoje: ${url}
 

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { BRAND } from '@/lib/brand'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { LOGIN_ROUTE, DASHBOARD_ROUTE } from '@/lib/routes'
@@ -81,13 +82,13 @@ export default async function PremiumPage() {
           style={{ color: GOLD, border: `1px solid ${GOLD}55`, background: 'rgba(231,178,58,.08)' }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2.4l2.63 5.56 6.07.86-4.4 4.2 1.06 6.04L12 16.9l-5.43 2.16 1.06-6.04-4.4-4.2 6.07-.86L12 2.4z" /></svg>
-          Med Mind Premium
+          {BRAND.name} Premium
         </span>
         <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
           Treine sem limites.
         </h1>
         <p className="mx-auto mt-3 max-w-md text-muted">
-          O essencial do Med Mind é grátis. O Premium tira os limites e aprofunda — para quem leva o treino a sério.
+          O essencial do {BRAND.name} é grátis. O Premium tira os limites e aprofunda — para quem leva o treino a sério.
         </p>
       </header>
 

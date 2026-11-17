@@ -1,7 +1,8 @@
 import 'server-only'
+import { BRAND } from '@/lib/brand'
 
 const RESEND_URL = 'https://api.resend.com/emails'
-const FROM = 'MedMind <contato@medmindedu.com.br>'
+const FROM = BRAND.emailSender
 
 export type SendResult = { ok: boolean; id?: string; error?: string }
 

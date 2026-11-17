@@ -11,21 +11,21 @@ describe('buildWeeklyCasePrompt', () => {
 })
 
 describe('parseWeeklyCase', () => {
-  it('valida 5 dias, options 2-5 e correct_key presente', () => {
+  it('valida 7 dias, options 2-5 e correct_key presente', () => {
     const good = JSON.stringify({
       title: 'x', true_diagnosis: 'y', overview: 'o', review: 'r',
-      days: ['anamnese', 'exame', 'complementares', 'conduta', 'conclusao'].map((stage, i) => ({
+      days: ['anamnese', 'exame', 'complementares', 'sintese', 'conduta', 'complicacoes', 'conclusao'].map((stage, i) => ({
         day_index: i + 1, stage, narrative: 'n',
         quiz: { prompt: 'p', options: [{ key: 'A', text: 'a' }, { key: 'B', text: 'b' }], correct_key: 'A', explanation: 'e' },
       })),
     })
-    expect(parseWeeklyCase(good)?.days.length).toBe(5)
+    expect(parseWeeklyCase(good)?.days.length).toBe(7)
   })
   it('rejeita correct_key ausente das options', () => {
     const bad = JSON.stringify({ title: 'x', true_diagnosis: 'y', overview: 'o', review: 'r', days: [{ day_index: 1, stage: 'anamnese', narrative: 'n', quiz: { prompt: 'p', options: [{ key: 'A', text: 'a' }], correct_key: 'Z' } }] })
     expect(parseWeeklyCase(bad)).toBeNull()
   })
-  it('rejeita quando não há 5 dias', () => {
+  it('rejeita quando não há 7 dias', () => {
     const bad = JSON.stringify({ title: 'x', true_diagnosis: 'y', overview: 'o', review: 'r', days: [] })
     expect(parseWeeklyCase(bad)).toBeNull()
   })
