@@ -1,5 +1,5 @@
 'use client'
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
 const GOLD = '#E7B23A'
@@ -18,6 +18,12 @@ export function RedeemFounderCode() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+
+  // Pré-preenche pelo link (?code=HAS2026), para convites compartilhados.
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get('code')
+    if (c) setCode(c.trim().toUpperCase().slice(0, 24))
+  }, [])
 
   async function redeem(e: FormEvent) {
     e.preventDefault()
