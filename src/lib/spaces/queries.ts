@@ -153,18 +153,44 @@ export async function spaceChallenge(spaceId: string, ownerId: string, currentUs
   return { active: true, daysReleased, weekTotal: WEEK_TOTAL, members, spaceCorrect, possible: ids.length * daysReleased, participants: participants.size }
 }
 
-export type SpacePost = { id: string; author_id: string; kind: string; body: string | null; created_at: string; author: string | null }
+export type SpacePost = {
+  id: string; author_id: string; kind: string; body: string | null; created_at: string; author: string | null
+  reactions: Record<string, number>; myEmoji: string | null; commentCount: number
+}
 
-/** Feed interno do space (posts escopados). */
-export async function listSpacePosts(spaceId: string, limit = 30): Promise<SpacePost[]> {
+/** Feed interno do space (posts escopados) com reações e contagem de comentários. */
+export async function listSpacePosts(spaceId: string, currentUserId: string, limit = 30): Promise<SpacePost[]> {
   const admin = createAdminClient()
   const { data: rows } = await admin.from('posts')
     .select('id, author_id, kind, body, created_at')
     .eq('space_id', spaceId).is('hidden_at', null)
     .order('created_at', { ascending: false }).limit(limit)
-  const posts = (rows ?? []) as Array<Omit<SpacePost, 'author'>>
-  if (posts.length === 0) return []
-  const { data: profs } = await admin.from('profiles').select('id, full_name').in('id', posts.map((p) => p.author_id))
+  const base = (rows ?? []) as Array<{ id: string; author_id: string; kind: string; body: string | null; created_at: string }>
+  if (base.length === 0) return []
+  const ids = base.map((p) => p.id)
+
+  const [{ data: profs }, { data: reacts }, { data: cmts }] = await Promise.all([
+    admin.from('profiles').select('id, full_name').in('id', base.map((p) => p.author_id)),
+    admin.from('post_reactions').select('post_id, user_id, emoji').in('post_id', ids),
+    admin.from('comments').select('post_id').in('post_id', ids).is('hidden_at', null),
+  ])
   const nameById = new Map(((profs ?? []) as Array<{ id: string; full_name: string | null }>).map((p) => [p.id, p.full_name]))
-  return posts.map((p) => ({ ...p, author: nameById.get(p.author_id) ?? null }))
+  const reByPost = new Map<string, { counts: Record<string, number>; mine: string | null }>()
+  for (const r of ((reacts ?? []) as Array<{ post_id: string; user_id: string; emoji: string | null }>)) {
+    const e = r.emoji ?? '👍'
+    const cur = reByPost.get(r.post_id) ?? { counts: {}, mine: null }
+    cur.counts[e] = (cur.counts[e] ?? 0) + 1
+    if (r.user_id === currentUserId) cur.mine = e
+    reByPost.set(r.post_id, cur)
+  }
+  const cmtCount = new Map<string, number>()
+  for (const c of ((cmts ?? []) as Array<{ post_id: string }>)) cmtCount.set(c.post_id, (cmtCount.get(c.post_id) ?? 0) + 1)
+
+  return base.map((p) => ({
+    ...p,
+    author: nameById.get(p.author_id) ?? null,
+    reactions: reByPost.get(p.id)?.counts ?? {},
+    myEmoji: reByPost.get(p.id)?.mine ?? null,
+    commentCount: cmtCount.get(p.id) ?? 0,
+  }))
 }

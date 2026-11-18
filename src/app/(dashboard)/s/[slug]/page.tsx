@@ -6,6 +6,7 @@ import { getSpaceBySlug, getMembership, listMembers, listSpacePosts, spaceLeader
 import { JoinButton } from './JoinButton'
 import { SpaceComposer } from './SpaceComposer'
 import { SpaceAdminPanel } from './SpaceAdminPanel'
+import { SpacePostInteractions } from './SpacePostInteractions'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,7 +67,7 @@ export default async function SpacePage({ params }: { params: Promise<{ slug: st
           {isActive && <SpaceComposer spaceId={space.id} />}
           <SpaceChallengeSection spaceId={space.id} userId={user.id} ownerId={space.owner_id} />
           <SpaceLeaderboardSection spaceId={space.id} userId={user.id} ownerId={space.owner_id} />
-          <SpaceFeed spaceId={space.id} ownerId={space.owner_id} />
+          <SpaceFeed spaceId={space.id} ownerId={space.owner_id} userId={user.id} canInteract={isActive} />
         </>
       )}
     </div>
@@ -141,8 +142,8 @@ async function SpaceChallengeSection({ spaceId, userId, ownerId }: { spaceId: st
   )
 }
 
-async function SpaceFeed({ spaceId, ownerId }: { spaceId: string; ownerId: string }) {
-  const posts = await listSpacePosts(spaceId)
+async function SpaceFeed({ spaceId, ownerId, userId, canInteract }: { spaceId: string; ownerId: string; userId: string; canInteract: boolean }) {
+  const posts = await listSpacePosts(spaceId, userId)
   if (posts.length === 0) {
     return <p className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-muted">Nenhuma publicação ainda. Puxe a primeira discussão.</p>
   }
@@ -157,6 +158,7 @@ async function SpaceFeed({ spaceId, ownerId }: { spaceId: string; ownerId: strin
             <span>· {fmt(p.created_at)}</span>
           </div>
           <p className="whitespace-pre-wrap text-sm text-ink">{p.body}</p>
+          {canInteract && <SpacePostInteractions postId={p.id} initialReactions={p.reactions} initialMyEmoji={p.myEmoji} initialCommentCount={p.commentCount} />}
         </article>
       ))}
     </section>

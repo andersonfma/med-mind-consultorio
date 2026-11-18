@@ -3,15 +3,18 @@ import { type SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notify } from '@/lib/social/notify'
+import { REACTION_EMOJIS } from '@/lib/social/reactions'
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const body = await req.json().catch(() => ({})) as { emoji?: unknown }
+  const emoji = typeof body.emoji === 'string' && (REACTION_EMOJIS as readonly string[]).includes(body.emoji) ? body.emoji : null
   const db = supabase as unknown as SupabaseClient
-  const { error } = await db.from('post_reactions').upsert({ post_id: id, user_id: user.id }, { onConflict: 'post_id,user_id' })
-  if (error) return NextResponse.json({ error: 'Não foi possível curtir' }, { status: 403 })
+  const { error } = await db.from('post_reactions').upsert({ post_id: id, user_id: user.id, emoji }, { onConflict: 'post_id,user_id' })
+  if (error) return NextResponse.json({ error: 'Não foi possível reagir' }, { status: 403 })
 
   // notifica o autor do post (best-effort)
   try {
