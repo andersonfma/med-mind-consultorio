@@ -17,6 +17,8 @@ const PUBLIC_FILE_ROUTES = [
   '/landing',
   '/c/',              // página pública do card compartilhável (sem login)
   '/fundador',        // campanha de fundadores: página e imagem do card de link
+  '/ativar/',         // link de ativação de código (card + redirect; público p/ scraper e deslogado)
+  '/convite/',        // convite de Space (landing pública: card + entrar/cadastrar)
   '/sw.js',           // service worker do Web Push
 ]
 
