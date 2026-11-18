@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { sendPush } from '@/lib/social/push'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -33,12 +35,23 @@ export async function POST(request: NextRequest) {
 
   // Post dentro de um space: exige ser membro ativo.
   const spaceId = typeof body.spaceId === 'string' ? body.spaceId : null
+  let adminPostSpace: { id: string; name: string } | null = null
   if (spaceId) {
-    const sb = supabase as unknown as SupabaseClient
-    const { data: m } = await sb.from('space_members').select('status').eq('space_id', spaceId).eq('user_id', user.id).maybeSingle()
-    if ((m as { status?: string } | null)?.status !== 'active') {
+    // space_members tem RLS sem policy (só service role lê). Checa com o admin client.
+    const sadmin = createAdminClient()
+    const [{ data: m }, { data: sp }] = await Promise.all([
+      sadmin.from('space_members').select('status, role').eq('space_id', spaceId).eq('user_id', user.id).maybeSingle(),
+      sadmin.from('spaces').select('owner_id, name').eq('id', spaceId).maybeSingle(),
+    ])
+    const mem = m as { status?: string; role?: string } | null
+    const spaceRow = sp as { owner_id?: string; name?: string } | null
+    const isMember = mem?.status === 'active'
+    const isOwner = spaceRow?.owner_id === user.id
+    if (!isMember && !isOwner) {
       return NextResponse.json({ error: 'Você não é membro deste space' }, { status: 403 })
     }
+    // Aviso do Admin: post do dono/admin dispara push aos membros ativos.
+    if ((isOwner || mem?.role === 'admin') && spaceRow?.name) adminPostSpace = { id: spaceId, name: spaceRow.name }
   }
 
   const insertRow = {
@@ -54,5 +67,17 @@ export async function POST(request: NextRequest) {
   const db = supabase as unknown as SupabaseClient
   const { data, error } = await db.from('posts').insert(insertRow).select('id').single()
   if (error || !data) return NextResponse.json({ error: 'Falha ao publicar' }, { status: 500 })
+
+  // Push de aviso do Admin para os membros ativos do space (menos o próprio autor).
+  if (adminPostSpace) {
+    const sadmin = createAdminClient()
+    const { data: subs } = await sadmin.from('space_members').select('user_id').eq('space_id', adminPostSpace.id).eq('status', 'active')
+    const targets = [...new Set(((subs ?? []) as Array<{ user_id: string }>).map((s) => s.user_id))].filter((u) => u !== user.id)
+    const preview = caption ? caption.slice(0, 80) : 'Novo aviso'
+    await Promise.all(targets.map((u) => sendPush(sadmin as unknown as SupabaseClient, u, {
+      title: `Admin · ${adminPostSpace!.name}`, body: preview, url: `/spaces`, tag: `space-${adminPostSpace!.id}`,
+    }))).catch(() => {})
+  }
+
   return NextResponse.json({ id: (data as { id: string }).id }, { status: 201 })
 }
