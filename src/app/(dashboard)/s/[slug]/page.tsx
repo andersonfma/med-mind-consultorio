@@ -2,7 +2,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { LOGIN_ROUTE } from '@/lib/routes'
-import { getSpaceBySlug, getMembership, listMembers, listSpacePosts, spaceLeaderboard } from '@/lib/spaces/queries'
+import { getSpaceBySlug, getMembership, listMembers, listSpacePosts, spaceLeaderboard, spaceChallenge } from '@/lib/spaces/queries'
 import { JoinButton } from './JoinButton'
 import { SpaceComposer } from './SpaceComposer'
 import { SpaceAdminPanel } from './SpaceAdminPanel'
@@ -64,6 +64,7 @@ export default async function SpacePage({ params }: { params: Promise<{ slug: st
       ) : (
         <>
           {isActive && <SpaceComposer spaceId={space.id} />}
+          <SpaceChallengeSection spaceId={space.id} userId={user.id} ownerId={space.owner_id} />
           <SpaceLeaderboardSection spaceId={space.id} userId={user.id} ownerId={space.owner_id} />
           <SpaceFeed spaceId={space.id} ownerId={space.owner_id} />
         </>
@@ -100,6 +101,42 @@ async function SpaceLeaderboardSection({ spaceId, userId, ownerId }: { spaceId: 
         </div>
       )}
       <p className="mt-2 text-[11px] text-muted">Quem não ativou o apelido no ranking aparece como “Anônimo”. Ative em Ranking.</p>
+    </section>
+  )
+}
+
+async function SpaceChallengeSection({ spaceId, userId, ownerId }: { spaceId: string; userId: string; ownerId: string }) {
+  const d = await spaceChallenge(spaceId, ownerId, userId, Date.now())
+  const pct = d.possible > 0 ? Math.round((d.spaceCorrect / d.possible) * 100) : 0
+  return (
+    <section className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 className="text-sm font-semibold text-ink">Desafio da Semana · a liga competindo</h2>
+        <Link href="/desafio" className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-ink hover:opacity-90">Responder</Link>
+      </div>
+      {!d.active ? (
+        <p className="text-xs text-muted">Sem desafio ativo agora. Toque em Responder para ver o Caso da Semana.</p>
+      ) : d.participants === 0 ? (
+        <p className="text-xs text-muted">Ninguém da liga respondeu esta semana ainda. Seja o primeiro — e puxe o grupo.</p>
+      ) : (
+        <>
+          <div className="mb-3 flex items-baseline gap-2">
+            <span className="font-display text-2xl font-bold tabular-nums text-ink">{d.spaceCorrect}</span>
+            <span className="text-sm text-muted">acertos da liga · {d.participants} participando · {pct}% do possível ({d.daysReleased}/{d.weekTotal} dias)</span>
+          </div>
+          <ul className="space-y-1.5">
+            {d.members.map((r) => (
+              <li key={r.rank} className={`flex items-center justify-between gap-3 rounded-md px-2 py-1 text-sm ${r.isMe ? 'bg-primary/10' : ''}`}>
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span className="w-5 shrink-0 text-right font-mono text-xs font-bold tabular-nums text-muted">{r.rank}</span>
+                  <span className={`truncate ${r.isMe ? 'font-semibold text-primary' : 'text-ink'}`}>{r.name}</span>
+                </span>
+                <span className="shrink-0 text-xs tabular-nums text-muted"><span className="font-semibold text-ink">{r.correct}</span> acertos{r.coins ? ` · ${r.coins > 0 ? '+' : ''}${r.coins} MC` : ''}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   )
 }

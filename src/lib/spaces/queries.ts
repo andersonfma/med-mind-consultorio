@@ -94,6 +94,65 @@ export async function spaceLeaderboard(spaceId: string, currentUserId: string, o
   return { top, me }
 }
 
+export type SpaceChallengeRow = { rank: number; name: string; correct: number; coins: number; isMe: boolean }
+export type SpaceChallenge = {
+  active: boolean
+  daysReleased: number
+  weekTotal: number
+  members: SpaceChallengeRow[]
+  spaceCorrect: number     // soma de acertos da liga na semana (score p/ Arena)
+  possible: number         // membros × dias liberados
+  participants: number
+}
+
+/**
+ * Desafio da Semana visto pela ótica do Space: placar dos membros (acertos +
+ * MedCoins do desafio) na semana atual + agregado da liga. Reaproveita o desafio
+ * global (challenge_days do weekly_case mais recente). Exclui o dono (staff).
+ */
+export async function spaceChallenge(spaceId: string, ownerId: string, currentUserId: string, nowMs: number): Promise<SpaceChallenge> {
+  const admin = createAdminClient()
+  const WEEK_TOTAL = 7
+  const empty: SpaceChallenge = { active: false, daysReleased: 0, weekTotal: WEEK_TOTAL, members: [], spaceCorrect: 0, possible: 0, participants: 0 }
+
+  const { data: memRows } = await admin.from('space_members').select('user_id').eq('space_id', spaceId).eq('status', 'active')
+  const ids = ((memRows ?? []) as Array<{ user_id: string }>).map((r) => r.user_id).filter((id) => id !== ownerId)
+  if (ids.length === 0) return empty
+
+  const { data: wc } = await admin.from('weekly_cases').select('id').order('created_at', { ascending: false }).limit(1).maybeSingle()
+  const weekCaseId = (wc as { id?: string } | null)?.id
+  if (!weekCaseId) return empty
+  const today = new Date(nowMs).toISOString().slice(0, 10)
+  const { data: dayRows } = await admin.from('challenge_days').select('quiz_id, reveal_date').eq('weekly_case_id', weekCaseId)
+  const days = (dayRows ?? []) as Array<{ quiz_id: string; reveal_date: string }>
+  const quizIds = new Set(days.map((d) => d.quiz_id))
+  const daysReleased = days.filter((d) => d.reveal_date <= today).length
+  if (quizIds.size === 0) return empty
+
+  const [{ data: ans }, { data: profs }] = await Promise.all([
+    admin.from('quiz_answers').select('user_id, is_correct, delta, quiz_id').in('user_id', ids),
+    admin.from('profiles').select('id, full_name, leaderboard_optin, leaderboard_alias').in('id', ids),
+  ])
+  const correct = new Map<string, number>(), coins = new Map<string, number>()
+  for (const a of ((ans ?? []) as Array<{ user_id: string; is_correct: boolean; delta: number | null; quiz_id: string }>)) {
+    if (!quizIds.has(a.quiz_id)) continue
+    if (a.is_correct) correct.set(a.user_id, (correct.get(a.user_id) ?? 0) + 1)
+    coins.set(a.user_id, (coins.get(a.user_id) ?? 0) + (a.delta ?? 0))
+  }
+  const prof = new Map(((profs ?? []) as Array<{ id: string; full_name: string | null; leaderboard_optin: boolean | null; leaderboard_alias: string | null }>).map((p) => [p.id, p]))
+  const nameOf = (uid: string) => { const p = prof.get(uid); return p?.leaderboard_optin ? (p.leaderboard_alias?.trim() || p.full_name?.trim() || 'Aluno') : 'Anônimo' }
+
+  const participants = new Set([...correct.keys(), ...[...coins.entries()].filter(([, c]) => c !== 0).map(([u]) => u)])
+  const ranked = ids
+    .map((uid) => ({ uid, c: correct.get(uid) ?? 0, k: coins.get(uid) ?? 0 }))
+    .filter((r) => participants.has(r.uid))
+    .sort((a, b) => b.c - a.c || b.k - a.k)
+  const members = ranked.slice(0, 20).map((r, i) => ({ rank: i + 1, name: r.uid === currentUserId ? 'Você' : nameOf(r.uid), correct: r.c, coins: r.k, isMe: r.uid === currentUserId }))
+  const spaceCorrect = [...correct.values()].reduce((s, n) => s + n, 0)
+
+  return { active: true, daysReleased, weekTotal: WEEK_TOTAL, members, spaceCorrect, possible: ids.length * daysReleased, participants: participants.size }
+}
+
 export type SpacePost = { id: string; author_id: string; kind: string; body: string | null; created_at: string; author: string | null }
 
 /** Feed interno do space (posts escopados). */
