@@ -42,6 +42,13 @@ export const EXAM_AREAS = [
 export type ExamAreaKey = (typeof EXAM_AREAS)[number]['key']
 export const EXAM_QUESTIONS_PER_SIM = 10
 
+// Áreas QUANTITATIVAS/não-beira-leito: Saúde Coletiva (epidemiologia, SUS, estatística
+// de testes) e Competências Gerais (ética, gestão, MBE). Nelas a questão NÃO é uma
+// vinheta clínica de paciente — é um cenário/estudo com dados para leitura crítica.
+// O gerador e o validador tratam essas áreas por um caminho próprio.
+const QUANTITATIVE_AREAS = new Set<string>(['preventiva', 'gerais'])
+export const isQuantitativeArea = (areaKey: string): boolean => QUANTITATIVE_AREAS.has(areaKey)
+
 // ───────── Blueprint estrutural (derivado das provas reais 2021–2026) ─────────
 // Engenharia de dados sobre 600 questões (6 provas): as edições recentes
 // (ENARE 2025 / ENAMED 2026) têm enunciado longo (mediana ~80–87 palavras, p90

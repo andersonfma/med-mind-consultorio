@@ -27,4 +27,20 @@ describe('passesSpec', () => {
   it('reprova alternativa monossilábica', () => {
     expect(passesSpec({ prompt: goodStem, options: opts(['sim', 'não', 'talvez', 'nunca']), correct_key: 'A', explanation: 'x', topic: 't' }, 'enamed', false)).toBe(false)
   })
+
+  // Saúde Coletiva / Competências Gerais: cenário/estudo com dados, SEM vinheta de paciente.
+  const quantStem =
+    'Em uma coorte conduzida em 12 unidades básicas de saúde, 2.400 indivíduos foram acompanhados por 5 períodos de observação para avaliar a associação entre sedentarismo e incidência de diabetes tipo 2. Entre os expostos, a incidência foi de 18%, enquanto entre os não expostos foi de 9%. A análise ajustada para faixa etária e índice de massa corporal estimou um risco relativo de 1,9, com intervalo de confiança de 95% entre 1,4 e 2,6. Qual a interpretação mais adequada desse achado?'
+  const quantOpts = opts([
+    'o risco relativo indica associação estatisticamente significativa, pois o intervalo não cruza o valor 1',
+    'o achado é inconclusivo, já que o intervalo de confiança inclui valores menores do que a unidade',
+    'a incidência semelhante entre os grupos sugere ausência de associação entre exposição e desfecho',
+    'o desenho transversal impede qualquer inferência sobre incidência ao longo do seguimento descrito',
+  ])
+  it('aprova cenário quantitativo sem vinheta clínica quando a área é quantitativa', () => {
+    expect(passesSpec({ prompt: quantStem, options: quantOpts, correct_key: 'A', explanation: 'x', topic: 't' }, 'enamed', true)).toBe(true)
+  })
+  it('reprova o mesmo cenário quando a área é clínica (exige vinheta de paciente)', () => {
+    expect(passesSpec({ prompt: quantStem, options: quantOpts, correct_key: 'A', explanation: 'x', topic: 't' }, 'enamed', false)).toBe(false)
+  })
 })

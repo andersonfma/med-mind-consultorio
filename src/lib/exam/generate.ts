@@ -1,14 +1,14 @@
 import 'server-only'
 import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
-import { EXAM_AREAS, PRE_REQ_SPECIALTIES, examOptions, examStructuralSpec, type ExamType, type ExamTrack } from './blueprint'
+import { EXAM_AREAS, PRE_REQ_SPECIALTIES, examOptions, examStructuralSpec, isQuantitativeArea, type ExamType, type ExamTrack } from './blueprint'
 import { passesSpec, type ExamQuestion } from './validate'
 
 export type { ExamQuestion }
 
 const KEYS = ['A', 'B', 'C', 'D', 'E']
 
-export function buildExamPrompt(exam: ExamType, areaLabel: string, topics: string, n: number, track: ExamTrack = 'acesso-direto'): string {
+export function buildExamPrompt(exam: ExamType, areaLabel: string, topics: string, n: number, track: ExamTrack = 'acesso-direto', quantitative = false): string {
   const nOpt = examOptions(exam)
   const keys = KEYS.slice(0, nOpt).join('..')
   const preReq = exam === 'enare' && track === 'pre-requisito'
@@ -17,8 +17,11 @@ export function buildExamPrompt(exam: ExamType, areaLabel: string, topics: strin
     : preReq
       ? `ENARE — prova de PRÉ-REQUISITO (acesso a R3+) da subespecialidade "${areaLabel}": nível de especialista, questões longas e aprofundadas`
       : 'ENARE (Exame Nacional de Residência) — acesso direto (R1), nível de prova de residência médica'
-  const gerais = areaLabel === 'Competências Gerais'
   const spec = examStructuralSpec(exam, track)
+  // Exemplar-ouro SINTÉTICO (ilustra nível/estrutura; nunca é prova real nem deve ser copiado).
+  const exemplar = quantitative
+    ? `EXEMPLO ILUSTRATIVO do nível e estrutura alvo (NÃO copie tema nem conteúdo): «Um teste de triagem para determinada condição foi avaliado em 1.000 pessoas, das quais 200 tinham a doença confirmada por padrão-ouro. O teste resultou positivo em 180 doentes e em 80 não doentes. Considerando esse cenário, qual a conclusão correta sobre o desempenho do teste?» → alternativas com valores percentuais PRÓXIMOS e plausíveis (sensibilidade/especificidade/VPP), exigindo o cálculo e a interpretação corretos para distinguir a certa dos distratores.`
+    : `EXEMPLO ILUSTRATIVO do nível e estrutura alvo (NÃO copie tema nem conteúdo): «Homem de 64 anos, tabagista, com dor torácica retroesternal em aperto há 40 minutos, irradiada para o membro superior esquerdo, com sudorese. PA 150x95 mmHg, FC 98 bpm, SatO2 95%. ECG com supradesnível de ST de 2 mm em parede inferior. Qual a conduta imediata?» → cada alternativa é uma conduta plausível (angioplastia primária, trombólise, estabilização clínica isolada…), diferenciadas por um detalhe fino do caso.`
 
   return [
     `Você é um elaborador de questões para o ${examDesc}.`,
@@ -27,17 +30,20 @@ export function buildExamPrompt(exam: ExamType, areaLabel: string, topics: strin
     '',
     'ESTRUTURA OBRIGATÓRIA (calibrada nas provas reais recentes — questão curta é REPROVADA):',
     `- Enunciado com ${spec.stemMinWords} a ${spec.stemMaxWords} palavras (alvo ~${spec.stemTargetWords}). Enunciado curto/"seco" de decoreba é PROIBIDO.`,
-    gerais
-      ? `- Contextualize sempre: um cenário real (caso clínico, dilema ético, situação de gestão/SUS) OU um pequeno estudo/tabela com DADOS NUMÉRICOS para leitura crítica (ao menos ${spec.numDataMin} números: tamanhos de amostra, taxas, sensibilidade/especificidade, RR/OR, p-valor). Termine com a pergunta objetiva.`
+    quantitative
+      ? `- NÃO é vinheta de paciente: contextualize em um CENÁRIO real da área — um estudo epidemiológico/tabela, uma situação de gestão/SUS, um dilema ético — SEMPRE com DADOS NUMÉRICOS para leitura crítica (ao menos ${spec.numDataMin} números: tamanhos de amostra, taxas, incidência/prevalência, sensibilidade/especificidade, VPP/VPN, RR/OR, p-valor, intervalos de confiança). Termine com a pergunta objetiva de interpretação/decisão.`
       : `- Cada questão é uma VINHETA CLÍNICA completa, nesta ordem: idade e sexo; queixa + HDA com evolução temporal; antecedentes relevantes; EXAME FÍSICO com SINAIS VITAIS numéricos (PA, FC, FR, Tax, SatO2); e EXAMES COMPLEMENTARES COM VALORES E UNIDADES (laboratório, ECG, imagem descrita) quando pertinente. Inclua ao menos ${spec.numDataMin} dados numéricos objetivos. Termine com a pergunta objetiva ("qual o diagnóstico mais provável?", "qual a conduta?", "qual o próximo passo?").`,
     '- Questões INDEPENDENTES entre si (nenhuma depende de outra).',
     `- Exatamente ${nOpt} alternativas (keys ${keys}), UMA correta (single best answer). Alternativas PARALELAS: mesmo formato e extensão semelhante (cada uma com ${spec.optMinWords}+ palavras; nenhuma destoa em tamanho) — a correta NÃO pode se destacar por ser a mais longa/completa.`,
     ...(preReq ? [`- Como é prova de ESPECIALISTA: cada alternativa é uma conduta/afirmação COMPLETA com breve justificativa embutida (~12 a 30 palavras), no estilo das provas de pré-requisito.`] : []),
     '',
     'DIFICULDADE: nível de prova de residência — exige raciocínio clínico integrando os dados do caso, não reconhecimento imediato. Proibido pergunta óbvia ou alternativa absurda/de preenchimento.',
+    `CALIBRAÇÃO COGNITIVA (a prova real não é decoreba): a MAIORIA das ${n} questões (~70%) deve exigir APLICAÇÃO/ANÁLISE — integrar os dados do caso/estudo para decidir conduta, diagnóstico ou interpretação; no máximo ~30% podem ser de reconhecimento contextualizado. NENHUMA de definição isolada ("o que é X").`,
     `DISTRATORES (CRÍTICO): pelo menos 2 das ${nOpt} alternativas devem ser ERRADAS MAS MUITO PLAUSÍVEIS — o diferencial clássico mais provável, a conduta "quase certa" que falha num detalhe, ou a armadilha frequente de prova. A diferença entre a correta e os melhores distratores deve estar num DETALHE FINO do caso (um achado discriminante, um valor, uma contraindicação).`,
     'EXPLICAÇÃO: por que a correta é certa E por que os 2 principais distratores enganam (o que os descarta).',
     'Cada questão traz um "topic" (o tema específico em 2-4 palavras).',
+    '',
+    exemplar,
     '',
     `Responda SOMENTE um JSON válido: {"questions":[{"prompt":"...","options":[{"key":"A","text":"..."}],"correct_key":"A","explanation":"...","topic":"..."}]} — com exatamente ${nOpt} options por questão.`,
   ].join('\n')
@@ -121,7 +127,8 @@ export async function generateExam(exam: ExamType, areaKey: string, n: number, t
     : EXAM_AREAS.find((a) => a.key === areaKey)
   if (!resolved) return null
   const nOpt = examOptions(exam)
-  const gerais = resolved.label === 'Competências Gerais'
+  // Pré-requisito é sempre clínico/especialista; só acesso-direto/ENAMED têm áreas quantitativas.
+  const quantitative = !preReq && isQuantitativeArea(resolved.key)
   const collected: ExamQuestion[] = []
 
   for (let attempt = 0; attempt < 3 && collected.length < n; attempt++) {
@@ -130,11 +137,11 @@ export async function generateExam(exam: ExamType, areaKey: string, n: number, t
     const completion = await openai.chat.completions.create({
       model: MODELS.generation,
       response_format: { type: 'json_object' },
-      messages: [{ role: 'user', content: buildExamPrompt(exam, resolved.label, resolved.topics, req, track) }],
+      messages: [{ role: 'user', content: buildExamPrompt(exam, resolved.label, resolved.topics, req, track, quantitative) }],
     }, { timeout: 90_000 })
     const raw = completion.choices[0]?.message?.content
     const parsed = (raw ? parseExam(raw, req, nOpt) : null) ?? []
-    const structural = parsed.filter((q) => passesSpec(q, exam, gerais, track))
+    const structural = parsed.filter((q) => passesSpec(q, exam, quantitative, track))
     if (structural.length === 0) continue
     // Verificação independente do gabarito antes de aceitar.
     const ok = await verifyAnswers(structural)
