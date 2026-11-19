@@ -96,8 +96,14 @@ export function ExamRunner({ areas, exams, specialties }: { areas: Area[]; exams
   }
 
   const showResult = step === 'done'
+  const trackLabel = exam === 'enare' ? (track === 'pre-requisito' ? 'Pré-requisito' : 'Acesso direto') : null
+  const simTitle = [exams.find(e => e.key === exam)?.label, trackLabel, activeAreas.find(a => a.key === area)?.label].filter(Boolean).join(' · ')
   return (
     <div className="space-y-5">
+      <div className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
+        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">{simTitle}</p>
+        <span className="text-[11px] text-muted">{qs.length} questões</span>
+      </div>
       {showResult && (
         <div className="rounded-2xl border p-5 text-center" style={{ borderColor: 'rgba(34,224,230,.3)', background: 'rgba(34,224,230,.06)' }}>
           <p className="font-display text-3xl font-bold text-ink">{score}<span className="text-lg text-muted">/{qs.length}</span></p>
