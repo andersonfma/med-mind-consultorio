@@ -41,3 +41,23 @@ export const EXAM_AREAS = [
 
 export type ExamAreaKey = (typeof EXAM_AREAS)[number]['key']
 export const EXAM_QUESTIONS_PER_SIM = 10
+
+// ───────── Blueprint estrutural (derivado das provas reais 2021–2026) ─────────
+// Engenharia de dados sobre 600 questões (6 provas): as edições recentes
+// (ENARE 2025 / ENAMED 2026) têm enunciado longo (mediana ~80–87 palavras, p90
+// ~130–134), vinheta clínica em >90% e 3–4 dados numéricos. Calibramos pelo
+// alvo RECENTE, não pela média histórica (que incluía provas curtas e antigas).
+export type StructuralSpec = {
+  stemMinWords: number   // piso de palavras do enunciado (p10 recente ≈ 32–53)
+  stemTargetWords: number // alvo central (mediana recente ≈ 80–87)
+  stemMaxWords: number   // teto (p90 recente ≈ 130–134)
+  numDataMin: number     // dados numéricos objetivos mínimos (vitais/labs/imagem)
+  optMinWords: number    // alternativa não pode ser monossilábica
+  optMaxWords: number    // teto por alternativa
+}
+
+export function examStructuralSpec(exam: ExamType): StructuralSpec {
+  return exam === 'enamed'
+    ? { stemMinWords: 55, stemTargetWords: 90, stemMaxWords: 150, numDataMin: 3, optMinWords: 3, optMaxWords: 34 }
+    : { stemMinWords: 50, stemTargetWords: 85, stemMaxWords: 140, numDataMin: 3, optMinWords: 3, optMaxWords: 38 }
+}
