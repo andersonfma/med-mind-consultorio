@@ -56,8 +56,33 @@ export type StructuralSpec = {
   optMaxWords: number    // teto por alternativa
 }
 
-export function examStructuralSpec(exam: ExamType): StructuralSpec {
-  return exam === 'enamed'
-    ? { stemMinWords: 55, stemTargetWords: 90, stemMaxWords: 150, numDataMin: 3, optMinWords: 3, optMaxWords: 34 }
-    : { stemMinWords: 50, stemTargetWords: 85, stemMaxWords: 140, numDataMin: 3, optMinWords: 3, optMaxWords: 38 }
+// Trilha do ENARE — como na vida real: acesso direto (R1, áreas amplas) e
+// pré-requisito (R3+, subespecialidade). ENAMED é trilha única.
+export type ExamTrack = 'acesso-direto' | 'pre-requisito'
+
+export function examStructuralSpec(exam: ExamType, track: ExamTrack = 'acesso-direto'): StructuralSpec {
+  if (exam === 'enamed')
+    return { stemMinWords: 55, stemTargetWords: 90, stemMaxWords: 150, numDataMin: 3, optMinWords: 3, optMaxWords: 34 }
+  // ENARE pré-requisito (medido em 594 questões): enunciado mediana ~119 (p90 ~204),
+  // alternativas longas (mediana ~22 palavras), ~7 dados numéricos, vinheta ~90%.
+  if (track === 'pre-requisito')
+    return { stemMinWords: 70, stemTargetWords: 120, stemMaxWords: 215, numDataMin: 4, optMinWords: 8, optMaxWords: 55 }
+  // ENARE acesso direto (R1) — edições recentes.
+  return { stemMinWords: 50, stemTargetWords: 85, stemMaxWords: 140, numDataMin: 3, optMinWords: 3, optMaxWords: 38 }
 }
+
+// Subespecialidades de PRÉ-REQUISITO (R3+) com temas de alto rendimento.
+export const PRE_REQ_SPECIALTIES = [
+  { key: 'cardiologia', label: 'Cardiologia', topics: 'insuficiência cardíaca e miocardiopatias, síndromes coronarianas e SCA, arritmias e dispositivos, valvopatias, hipertensão pulmonar, emergências hipertensivas, dislipidemia, imagem cardíaca' },
+  { key: 'nefrologia', label: 'Nefrologia', topics: 'injúria renal aguda e DRC, distúrbios hidroeletrolíticos e ácido-base, glomerulopatias, diálise e transplante, hipertensão secundária, doença renal no diabetes, nefrolitíase' },
+  { key: 'pneumologia', label: 'Pneumologia', topics: 'DPOC e asma, TEP, doenças intersticiais, pneumonias e derrame pleural, câncer de pulmão, apneia do sono, ventilação e insuficiência respiratória' },
+  { key: 'gastroenterologia', label: 'Gastroenterologia', topics: 'hepatopatias e cirrose, hemorragia digestiva, DII, pancreatite, doença péptica e H. pylori, doenças biliares, oncologia do TGI, disfagia' },
+  { key: 'endocrinologia', label: 'Endocrinologia', topics: 'diabetes e complicações, tireoide, adrenal, osteometabolismo e cálcio, obesidade, hipófise, distúrbios do crescimento' },
+  { key: 'reumatologia', label: 'Reumatologia', topics: 'artrite reumatoide, LES e SAF, vasculites, espondiloartrites, gota e artrites microcristalinas, miopatias inflamatórias, esclerose sistêmica' },
+  { key: 'infectologia', label: 'Infectologia', topics: 'HIV e infecções oportunistas, tuberculose, sepse e antimicrobianos, endocardite, hepatites virais, infecções hospitalares e multirresistência, arboviroses' },
+  { key: 'geriatria', label: 'Geriatria', topics: 'síndromes geriátricas (quedas, delirium, fragilidade), polifarmácia, demências, incontinência, avaliação geriátrica ampla, cuidados paliativos' },
+  { key: 'cirurgia-vascular', label: 'Cirurgia Vascular', topics: 'doença arterial periférica e isquemia aguda, aneurisma de aorta, TVP e doença venosa, pé diabético, carótida, acessos vasculares' },
+  { key: 'cirurgia-digestiva', label: 'Cirurgia do Aparelho Digestivo', topics: 'câncer gástrico e esofágico, doenças biliopancreáticas, cirurgia bariátrica, hérnias complexas, cirurgia colorretal, transplante hepático' },
+] satisfies ReadonlyArray<{ key: string; label: string; topics: string }>
+
+export type PreReqKey = (typeof PRE_REQ_SPECIALTIES)[number]['key']

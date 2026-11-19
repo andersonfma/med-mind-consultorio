@@ -5,9 +5,21 @@ type Q = { prompt: string; options: { key: string; text: string }[]; correct_key
 type Area = { key: string; label: string }
 type ExamT = { key: string; label: string; note: string }
 
-export function ExamRunner({ areas, exams }: { areas: Area[]; exams: ExamT[] }) {
+export function ExamRunner({ areas, exams, specialties }: { areas: Area[]; exams: ExamT[]; specialties: Area[] }) {
   const [exam, setExam] = useState<string>(exams[0]?.key ?? 'enare')
+  const [track, setTrack] = useState<'acesso-direto' | 'pre-requisito'>('acesso-direto')
   const [area, setArea] = useState<string>(areas[0]?.key ?? 'clinica')
+  const preReq = exam === 'enare' && track === 'pre-requisito'
+  const activeAreas = preReq ? specialties : areas
+
+  function pickExam(k: string) {
+    setExam(k)
+    if (k !== 'enare') { setTrack('acesso-direto'); setArea(areas[0]?.key ?? 'clinica') }
+  }
+  function pickTrack(t: 'acesso-direto' | 'pre-requisito') {
+    setTrack(t)
+    setArea((t === 'pre-requisito' ? specialties : areas)[0]?.key ?? 'clinica')
+  }
   const [step, setStep] = useState<'pick' | 'run' | 'done'>('pick')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -20,7 +32,7 @@ export function ExamRunner({ areas, exams }: { areas: Area[]; exams: ExamT[] }) 
     try {
       const res = await fetch('/api/exam/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exam, area }),
+        body: JSON.stringify({ exam, area, track }),
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) { setError(j.message ?? j.error ?? 'Erro ao gerar'); return }
@@ -39,7 +51,7 @@ export function ExamRunner({ areas, exams }: { areas: Area[]; exams: ExamT[] }) 
           <p className="text-sm font-medium text-ink">Escolha o exame</p>
           <div className="mt-2 flex gap-2">
             {exams.map((e) => (
-              <button key={e.key} onClick={() => setExam(e.key)}
+              <button key={e.key} onClick={() => pickExam(e.key)}
                 className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${exam === e.key ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-surface text-ink hover:border-border-strong'}`}>
                 {e.label}
               </button>
@@ -47,12 +59,26 @@ export function ExamRunner({ areas, exams }: { areas: Area[]; exams: ExamT[] }) 
           </div>
           <p className="mt-1.5 text-[11px] text-muted">{exams.find((e) => e.key === exam)?.note}</p>
         </div>
+        {exam === 'enare' && (
+          <div>
+            <p className="text-sm font-medium text-ink">Trilha</p>
+            <div className="mt-2 flex gap-2">
+              {([['acesso-direto', 'Acesso direto (R1)'], ['pre-requisito', 'Pré-requisito (R3+)']] as const).map(([k, label]) => (
+                <button key={k} onClick={() => pickTrack(k)}
+                  className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${track === k ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-surface text-ink hover:border-border-strong'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[11px] text-muted">{preReq ? 'Provas de subespecialidade — questões mais longas e aprofundadas.' : 'Prova geral de residência por área.'}</p>
+          </div>
+        )}
         <div>
-          <p className="text-sm font-medium text-ink">Escolha a área</p>
+          <p className="text-sm font-medium text-ink">{preReq ? 'Escolha a subespecialidade' : 'Escolha a área'}</p>
           <p className="text-xs text-muted">10 questões originais nos moldes da prova, com gabarito comentado.</p>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {areas.map((a) => (
+          {activeAreas.map((a) => (
             <button key={a.key} onClick={() => setArea(a.key)}
               className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-colors ${area === a.key ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-surface text-ink hover:border-border-strong'}`}>
               {a.label}
@@ -75,7 +101,7 @@ export function ExamRunner({ areas, exams }: { areas: Area[]; exams: ExamT[] }) 
       {showResult && (
         <div className="rounded-2xl border p-5 text-center" style={{ borderColor: 'rgba(34,224,230,.3)', background: 'rgba(34,224,230,.06)' }}>
           <p className="font-display text-3xl font-bold text-ink">{score}<span className="text-lg text-muted">/{qs.length}</span></p>
-          <p className="mt-1 text-sm text-muted">{Math.round((score / qs.length) * 100)}% de acerto · {exams.find(e => e.key === exam)?.label} · {areas.find(a => a.key === area)?.label}</p>
+          <p className="mt-1 text-sm text-muted">{Math.round((score / qs.length) * 100)}% de acerto · {exams.find(e => e.key === exam)?.label} · {activeAreas.find(a => a.key === area)?.label}</p>
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { examStructuralSpec, type ExamType } from './blueprint'
+import { examStructuralSpec, type ExamType, type ExamTrack } from './blueprint'
 
 // Tipo da questão gerada (sem dependências de servidor — testável isoladamente).
 export type ExamQuestion = {
@@ -14,8 +14,8 @@ const numData = (s: string): number => (s.match(/\d[\d.,]*/g) ?? []).length
 const VIGNETTE = /\b(anos|meses|paciente|mulher|homem|lactente|rec[eé]m[- ]nascido|crian[çc]a|gestante|menina|menino|idade)\b/i
 
 /** Valida uma questão contra o blueprint estrutural (reprova questão curta / sem vinheta / sem dados). */
-export function passesSpec(q: ExamQuestion, exam: ExamType, gerais: boolean): boolean {
-  const spec = examStructuralSpec(exam)
+export function passesSpec(q: ExamQuestion, exam: ExamType, gerais: boolean, track: ExamTrack = 'acesso-direto'): boolean {
+  const spec = examStructuralSpec(exam, track)
   if (wc(q.prompt) < spec.stemMinWords) return false
   if (numData(q.prompt) < spec.numDataMin) return false
   if (!gerais && !VIGNETTE.test(q.prompt)) return false

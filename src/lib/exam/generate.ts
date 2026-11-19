@@ -1,21 +1,24 @@
 import 'server-only'
 import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
-import { EXAM_AREAS, examOptions, examStructuralSpec, type ExamAreaKey, type ExamType } from './blueprint'
+import { EXAM_AREAS, PRE_REQ_SPECIALTIES, examOptions, examStructuralSpec, type ExamType, type ExamTrack } from './blueprint'
 import { passesSpec, type ExamQuestion } from './validate'
 
 export type { ExamQuestion }
 
 const KEYS = ['A', 'B', 'C', 'D', 'E']
 
-export function buildExamPrompt(exam: ExamType, areaLabel: string, topics: string, n: number): string {
+export function buildExamPrompt(exam: ExamType, areaLabel: string, topics: string, n: number, track: ExamTrack = 'acesso-direto'): string {
   const nOpt = examOptions(exam)
   const keys = KEYS.slice(0, nOpt).join('..')
+  const preReq = exam === 'enare' && track === 'pre-requisito'
   const examDesc = exam === 'enamed'
     ? 'ENAMED (Exame Nacional de Avaliação da Formação Médica, INEP) — alinhado às Diretrizes Curriculares e às competências para o exercício profissional'
-    : 'ENARE (Exame Nacional de Residência) — nível de prova de residência médica'
+    : preReq
+      ? `ENARE — prova de PRÉ-REQUISITO (acesso a R3+) da subespecialidade "${areaLabel}": nível de especialista, questões longas e aprofundadas`
+      : 'ENARE (Exame Nacional de Residência) — acesso direto (R1), nível de prova de residência médica'
   const gerais = areaLabel === 'Competências Gerais'
-  const spec = examStructuralSpec(exam)
+  const spec = examStructuralSpec(exam, track)
 
   return [
     `Você é um elaborador de questões para o ${examDesc}.`,
@@ -29,6 +32,7 @@ export function buildExamPrompt(exam: ExamType, areaLabel: string, topics: strin
       : `- Cada questão é uma VINHETA CLÍNICA completa, nesta ordem: idade e sexo; queixa + HDA com evolução temporal; antecedentes relevantes; EXAME FÍSICO com SINAIS VITAIS numéricos (PA, FC, FR, Tax, SatO2); e EXAMES COMPLEMENTARES COM VALORES E UNIDADES (laboratório, ECG, imagem descrita) quando pertinente. Inclua ao menos ${spec.numDataMin} dados numéricos objetivos. Termine com a pergunta objetiva ("qual o diagnóstico mais provável?", "qual a conduta?", "qual o próximo passo?").`,
     '- Questões INDEPENDENTES entre si (nenhuma depende de outra).',
     `- Exatamente ${nOpt} alternativas (keys ${keys}), UMA correta (single best answer). Alternativas PARALELAS: mesmo formato e extensão semelhante (cada uma com ${spec.optMinWords}+ palavras; nenhuma destoa em tamanho) — a correta NÃO pode se destacar por ser a mais longa/completa.`,
+    ...(preReq ? [`- Como é prova de ESPECIALISTA: cada alternativa é uma conduta/afirmação COMPLETA com breve justificativa embutida (~12 a 30 palavras), no estilo das provas de pré-requisito.`] : []),
     '',
     'DIFICULDADE: nível de prova de residência — exige raciocínio clínico integrando os dados do caso, não reconhecimento imediato. Proibido pergunta óbvia ou alternativa absurda/de preenchimento.',
     `DISTRATORES (CRÍTICO): pelo menos 2 das ${nOpt} alternativas devem ser ERRADAS MAS MUITO PLAUSÍVEIS — o diferencial clássico mais provável, a conduta "quase certa" que falha num detalhe, ou a armadilha frequente de prova. A diferença entre a correta e os melhores distratores deve estar num DETALHE FINO do caso (um achado discriminante, um valor, uma contraindicação).`,
@@ -70,13 +74,16 @@ export function parseExam(raw: string, n: number, nOpt: number): ExamQuestion[] 
   }
 }
 
-/** Gera um simulado curto por área, no formato do exame escolhido (ENARE 5 alt / ENAMED 4 alt).
- *  Sobre-solicita, valida contra o blueprint estrutural e regenera para completar. */
-export async function generateExam(exam: ExamType, areaKey: ExamAreaKey, n: number): Promise<ExamQuestion[] | null> {
-  const area = EXAM_AREAS.find((a) => a.key === areaKey)
-  if (!area) return null
+/** Gera um simulado curto, no formato e TRILHA do exame (ENARE acesso direto/pré-requisito, ENAMED).
+ *  Sobre-solicita, valida contra o blueprint estrutural da trilha e regenera para completar. */
+export async function generateExam(exam: ExamType, areaKey: string, n: number, track: ExamTrack = 'acesso-direto'): Promise<ExamQuestion[] | null> {
+  const preReq = exam === 'enare' && track === 'pre-requisito'
+  const resolved = preReq
+    ? PRE_REQ_SPECIALTIES.find((s) => s.key === areaKey)
+    : EXAM_AREAS.find((a) => a.key === areaKey)
+  if (!resolved) return null
   const nOpt = examOptions(exam)
-  const gerais = area.label === 'Competências Gerais'
+  const gerais = resolved.label === 'Competências Gerais'
   const collected: ExamQuestion[] = []
 
   for (let attempt = 0; attempt < 3 && collected.length < n; attempt++) {
@@ -85,13 +92,13 @@ export async function generateExam(exam: ExamType, areaKey: ExamAreaKey, n: numb
     const completion = await openai.chat.completions.create({
       model: MODELS.generation,
       response_format: { type: 'json_object' },
-      messages: [{ role: 'user', content: buildExamPrompt(exam, area.label, area.topics, req) }],
+      messages: [{ role: 'user', content: buildExamPrompt(exam, resolved.label, resolved.topics, req, track) }],
     }, { timeout: 90_000 })
     const raw = completion.choices[0]?.message?.content
     const parsed = (raw ? parseExam(raw, req, nOpt) : null) ?? []
     for (const q of parsed) {
       if (collected.length >= n) break
-      if (passesSpec(q, exam, gerais)) collected.push(q)
+      if (passesSpec(q, exam, gerais, track)) collected.push(q)
     }
   }
   return collected.length ? collected.slice(0, n) : null

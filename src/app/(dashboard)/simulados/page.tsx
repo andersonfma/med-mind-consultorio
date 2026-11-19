@@ -4,7 +4,7 @@ import { BRAND } from '@/lib/brand'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { LOGIN_ROUTE, PREMIUM_ROUTE } from '@/lib/routes'
-import { EXAM_AREAS, EXAM_TYPES } from '@/lib/exam/blueprint'
+import { EXAM_AREAS, EXAM_TYPES, PRE_REQ_SPECIALTIES } from '@/lib/exam/blueprint'
 import { ExamRunner } from './ExamRunner'
 
 export const dynamic = 'force-dynamic'
@@ -19,6 +19,7 @@ export default async function ExamsPage() {
 
   const areas = EXAM_AREAS.map((a) => ({ key: a.key, label: a.label }))
   const exams = EXAM_TYPES.map((e) => ({ key: e.key, label: e.label, note: e.note }))
+  const specialties = PRE_REQ_SPECIALTIES.map((s) => ({ key: s.key, label: s.label }))
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 py-2">
@@ -29,7 +30,7 @@ export default async function ExamsPage() {
       </header>
 
       {isPremium ? (
-        <ExamRunner areas={areas} exams={exams} />
+        <ExamRunner areas={areas} exams={exams} specialties={specialties} />
       ) : (
         <div className="rounded-2xl border p-6 text-center" style={{ borderColor: 'rgba(231,178,58,.4)', background: 'rgba(231,178,58,.06)' }}>
           <p className="font-display text-xl font-bold" style={{ color: '#E7B23A' }}>Recurso Premium ✦</p>
