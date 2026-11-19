@@ -3,10 +3,33 @@ import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
 import { EXAM_AREAS, PRE_REQ_SPECIALTIES, examOptions, isQuantitativeArea, type ExamType, type ExamTrack } from './blueprint'
 import { passesSpec, type ExamQuestion } from './validate'
-import { buildExamPrompt, parseExam } from './prompt'
+import { applyExpansion, buildExamPrompt, buildExpandPrompt, parseExam } from './prompt'
 
 export type { ExamQuestion }
 export { buildExamPrompt, parseExam }
+
+/**
+ * PASSE DE EXPANSÃO: o gerador tende a escrever enunciados na ponta BAIXA do envelope
+ * real (ex.: pré-requisito ~70 vs ~120 das provas). Este passe reescreve APENAS os
+ * enunciados curtos, enriquecendo a vinheta (antecedentes, exame físico, exames prévios,
+ * evolução) até o alvo — SEM ver nem tocar nas alternativas/gabarito e preservando os
+ * achados discriminantes e a pergunta final. Qualquer deriva de resposta é pega depois
+ * pelo verifyAnswers (que re-resolve a versão expandida). Degrada sem bloquear em falha.
+ */
+export async function expandStems(qs: ExamQuestion[], exam: ExamType, track: ExamTrack, quantitative: boolean): Promise<ExamQuestion[]> {
+  const built = buildExpandPrompt(qs, exam, track, quantitative)
+  if (!built) return qs // nenhum enunciado abaixo do alvo
+  try {
+    const completion = await openai.chat.completions.create({
+      model: MODELS.generation,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'user', content: built.prompt }],
+    }, { timeout: 90_000 })
+    return applyExpansion(qs, completion.choices[0]?.message?.content ?? '{}')
+  } catch {
+    return qs // expansor indisponível → segue com os enunciados originais
+  }
+}
 
 /**
  * Verificação INDEPENDENTE do gabarito: um 2º modelo resolve cada questão SEM ver a
@@ -69,7 +92,10 @@ export async function generateExam(exam: ExamType, areaKey: string, n: number, t
     }, { timeout: 90_000 })
     const raw = completion.choices[0]?.message?.content
     const parsed = (raw ? parseExam(raw, req, nOpt) : null) ?? []
-    const structural = parsed.filter((q) => passesSpec(q, exam, quantitative, track))
+    if (parsed.length === 0) continue
+    // Passe de expansão: alonga enunciados curtos até o alvo antes de validar.
+    const expanded = await expandStems(parsed, exam, track, quantitative)
+    const structural = expanded.filter((q) => passesSpec(q, exam, quantitative, track))
     if (structural.length === 0) continue
     // Verificação independente do gabarito antes de aceitar.
     const ok = await verifyAnswers(structural)

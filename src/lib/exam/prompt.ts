@@ -4,6 +4,7 @@ import { examOptions, examStructuralSpec, type ExamType, type ExamTrack } from '
 import type { ExamQuestion } from './validate'
 
 export const KEYS = ['A', 'B', 'C', 'D', 'E']
+const wc = (s: string): number => (s.match(/\p{L}+/gu) ?? []).length
 
 export function buildExamPrompt(exam: ExamType, areaLabel: string, topics: string, n: number, track: ExamTrack = 'acesso-direto', quantitative = false): string {
   const nOpt = examOptions(exam)
@@ -59,6 +60,47 @@ function shuffleOptions(q: ExamQuestion, nOpt: number): ExamQuestion {
   const options = sliced.map((t, i) => ({ key: KEYS[i], text: t.text }))
   const idx = sliced.findIndex((t) => t.correct)
   return { ...q, options, correct_key: KEYS[idx >= 0 ? idx : 0] }
+}
+
+/** Monta o prompt do PASSE DE EXPANSÃO para os enunciados abaixo do alvo. Retorna null
+ *  se nenhum precisa expandir. Puro — a chamada ao modelo fica em generate.ts/expandStems. */
+export function buildExpandPrompt(qs: ExamQuestion[], exam: ExamType, track: ExamTrack, quantitative: boolean): { prompt: string; indices: number[] } | null {
+  const spec = examStructuralSpec(exam, track)
+  // Só expande quem está MEANINGFULMENTE abaixo do alvo (evita mexer no que já está bom).
+  const floor = Math.round(spec.stemTargetWords * 0.9)
+  const indices = qs.map((q, i) => ({ i, short: wc(q.prompt) < floor })).filter((x) => x.short).map((x) => x.i)
+  if (indices.length === 0) return null
+  // Mira a FAIXA CENTRADA NO ALVO (não o teto) p/ não estourar o comprimento das provas reais.
+  const hi = Math.min(spec.stemMaxWords, spec.stemTargetWords + 25)
+  const detalhe = quantitative
+    ? 'acrescente contexto do cenário (população, período, números adicionais coerentes, limitações metodológicas)'
+    : 'acrescente antecedentes e medicações, hábitos, exame físico com sinais vitais numéricos e exames complementares com valores e unidades'
+  const list = indices.map((i) => `#${i + 1}: ${qs[i].prompt}`).join('\n\n')
+  const prompt = [
+    'Você reescreve ENUNCIADOS de questões de residência médica deixando-os MAIS LONGOS e detalhados, no padrão das provas reais.',
+    `Para cada enunciado abaixo, REESCREVA-O com CERCA DE ${spec.stemTargetWords} palavras (faixa ${spec.stemTargetWords}–${hi}; NÃO ultrapasse ${hi}): ${detalhe}.`,
+    'REGRAS ABSOLUTAS: preserve EXATAMENTE o cenário, os achados DISCRIMINANTES e a PERGUNTA final (não mude o que está sendo perguntado); só ADICIONE contexto de base plausível que NÃO altere o diagnóstico/conduta corretos. Não invente achados que contradigam o caso. Não cite alternativas. Não seja prolixo — pare ao atingir o alvo.',
+    '',
+    list,
+    '',
+    'Responda SOMENTE JSON: {"e":[{"i":1,"prompt":"<enunciado reescrito, mais longo>"}]} — uma entrada por enunciado, usando o mesmo número #i.',
+  ].join('\n')
+  return { prompt, indices }
+}
+
+/** Aplica a resposta do expansor: troca o enunciado apenas quando a reescrita é mais longa. */
+export function applyExpansion(qs: ExamQuestion[], raw: string): ExamQuestion[] {
+  const out = qs.map((q) => ({ ...q }))
+  try {
+    const o = JSON.parse(raw) as { e?: Array<{ i: number; prompt?: string }> }
+    for (const e of o.e ?? []) {
+      const at = e.i - 1
+      if (at >= 0 && at < out.length && typeof e.prompt === 'string' && wc(e.prompt) > wc(out[at].prompt)) {
+        out[at].prompt = e.prompt.trim()
+      }
+    }
+  } catch { /* resposta inválida → mantém originais */ }
+  return out
 }
 
 export function parseExam(raw: string, n: number, nOpt: number): ExamQuestion[] | null {

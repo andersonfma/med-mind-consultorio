@@ -13,7 +13,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import OpenAI from 'openai'
 import { MODELS } from '@/lib/openai/models'
 import { EXAM_AREAS, PRE_REQ_SPECIALTIES, examOptions, examStructuralSpec, isQuantitativeArea, type ExamType, type ExamTrack } from './blueprint'
-import { buildExamPrompt, parseExam } from './prompt'
+import { applyExpansion, buildExamPrompt, buildExpandPrompt, parseExam } from './prompt'
 import { passesSpec, type ExamQuestion } from './validate'
 
 const LIVE = process.env.RUN_LIVE_EVAL === '1'
@@ -70,13 +70,25 @@ describe.skipIf(!LIVE)('generator judge — saída do gerador × blueprint real'
       const raw = completion.choices[0]?.message?.content ?? ''
       const parsed: ExamQuestion[] = parseExam(raw, N, nOpt) ?? []
 
-      const stems = parsed.map((q) => wc(q.prompt))
-      const datas = parsed.map((q) => numData(q.prompt))
-      const optWords = parsed.flatMap((q) => q.options.map((o) => wc(o.text)))
-      const vignette = parsed.length ? parsed.filter((q) => VIGNETTE.test(q.prompt)).length / parsed.length : 0
-      const optCountOk = parsed.every((q) => q.options.length === nOpt)
-      const accepted = parsed.filter((q) => passesSpec(q, c.exam, quantitative, c.track)).length
-      const acceptance = parsed.length ? accepted / parsed.length : 0
+      // Passe de expansão (mesmo caminho da produção): alonga enunciados curtos.
+      let expanded = parsed
+      const built = buildExpandPrompt(parsed, c.exam, c.track, quantitative)
+      if (built) {
+        const ec = await client.chat.completions.create({
+          model: MODELS.generation,
+          response_format: { type: 'json_object' },
+          messages: [{ role: 'user', content: built.prompt }],
+        }, { timeout: 90_000 })
+        expanded = applyExpansion(parsed, ec.choices[0]?.message?.content ?? '{}')
+      }
+
+      const stems = expanded.map((q) => wc(q.prompt))
+      const datas = expanded.map((q) => numData(q.prompt))
+      const optWords = expanded.flatMap((q) => q.options.map((o) => wc(o.text)))
+      const vignette = expanded.length ? expanded.filter((q) => VIGNETTE.test(q.prompt)).length / expanded.length : 0
+      const optCountOk = expanded.every((q) => q.options.length === nOpt)
+      const accepted = expanded.filter((q) => passesSpec(q, c.exam, quantitative, c.track)).length
+      const acceptance = expanded.length ? accepted / expanded.length : 0
 
       const row = {
         case: c.id, quantitative, nGerado: parsed.length,
