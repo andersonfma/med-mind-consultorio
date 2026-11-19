@@ -3,7 +3,7 @@ import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
 import { EXAM_AREAS, PRE_REQ_SPECIALTIES, examOptions, isQuantitativeArea, type ExamType, type ExamTrack } from './blueprint'
 import { passesSpec, type ExamQuestion } from './validate'
-import { applyExpansion, buildExamPrompt, buildExpandPrompt, parseExam } from './prompt'
+import { applyExpansion, buildExamPrompt, buildExpandPrompt, buildVerifyPrompt, parseExam } from './prompt'
 
 export type { ExamQuestion }
 export { buildExamPrompt, parseExam }
@@ -40,22 +40,11 @@ export async function expandStems(qs: ExamQuestion[], exam: ExamType, track: Exa
  */
 export async function verifyAnswers(qs: ExamQuestion[]): Promise<boolean[]> {
   if (qs.length === 0) return []
-  const list = qs.map((q, i) => `Q${i + 1}. ${q.prompt}\n${q.options.map((o) => `${o.key}) ${o.text}`).join('\n')}`).join('\n\n')
-  const prompt = [
-    'Você é um professor revisor RIGOROSO de provas de residência médica (ENARE/ENAMED).',
-    'Resolva CADA questão de forma independente, escolhendo a ÚNICA melhor alternativa segundo as diretrizes atuais.',
-    'Marque "ambigua": true se mais de uma alternativa for defensável OU se o enunciado NÃO traz um dado que DISCRIMINE a resposta (ex.: diferenciar dois diagnósticos sem o achado que os separa).',
-    'Dê também sua confiança de 0 a 1.',
-    '',
-    list,
-    '',
-    'Responda SOMENTE JSON: {"v":[{"i":1,"resposta":"A","ambigua":false,"conf":0.9}]} — uma entrada por questão.',
-  ].join('\n')
   try {
     const completion = await openai.chat.completions.create({
       model: MODELS.generation,
       response_format: { type: 'json_object' },
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: buildVerifyPrompt(qs) }],
     }, { timeout: 90_000 })
     const o = JSON.parse(completion.choices[0]?.message?.content ?? '{}') as { v?: Array<{ i: number; resposta: string; ambigua?: boolean; conf?: number }> }
     const v = o.v ?? []

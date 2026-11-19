@@ -62,6 +62,21 @@ function shuffleOptions(q: ExamQuestion, nOpt: number): ExamQuestion {
   return { ...q, options, correct_key: KEYS[idx >= 0 ? idx : 0] }
 }
 
+/** Monta o prompt da VERIFICAÇÃO INDEPENDENTE do gabarito (puro; chamada em generate.ts). */
+export function buildVerifyPrompt(qs: ExamQuestion[]): string {
+  const list = qs.map((q, i) => `Q${i + 1}. ${q.prompt}\n${q.options.map((o) => `${o.key}) ${o.text}`).join('\n')}`).join('\n\n')
+  return [
+    'Você é um professor revisor RIGOROSO de provas de residência médica (ENARE/ENAMED).',
+    'Resolva CADA questão de forma independente, escolhendo a ÚNICA melhor alternativa segundo as diretrizes atuais.',
+    'Marque "ambigua": true se mais de uma alternativa for defensável OU se o enunciado NÃO traz um dado que DISCRIMINE a resposta (ex.: diferenciar dois diagnósticos sem o achado que os separa).',
+    'Dê também sua confiança de 0 a 1.',
+    '',
+    list,
+    '',
+    'Responda SOMENTE JSON: {"v":[{"i":1,"resposta":"A","ambigua":false,"conf":0.9}]} — uma entrada por questão.',
+  ].join('\n')
+}
+
 /** Monta o prompt do PASSE DE EXPANSÃO para os enunciados abaixo do alvo. Retorna null
  *  se nenhum precisa expandir. Puro — a chamada ao modelo fica em generate.ts/expandStems. */
 export function buildExpandPrompt(qs: ExamQuestion[], exam: ExamType, track: ExamTrack, quantitative: boolean): { prompt: string; indices: number[] } | null {
