@@ -12,10 +12,12 @@ const DESCRIPTION = 'Consultas e especialidades ilimitadas, simulados ENARE/ENAM
 
 // Responde 200 com as tags do card (a logo aparece no WhatsApp). O humano é
 // redirecionado por JS; o scraper fica e lê o Open Graph. Botão cobre no-JS.
+// A imagem vem do arquivo estático opengraph-image.jpg desta rota (JPG sem alpha,
+// com width/height/type) — bem mais confiável no WhatsApp que o PNG dinâmico.
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
-  openGraph: { title: TITLE, description: DESCRIPTION, siteName: BRAND.name, locale: 'pt_BR', type: 'website', images: ['/opengraph-image'] },
+  openGraph: { title: TITLE, description: DESCRIPTION, siteName: BRAND.name, locale: 'pt_BR', type: 'website' },
   twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
 }
 
