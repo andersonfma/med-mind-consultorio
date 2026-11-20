@@ -18,6 +18,7 @@ export function RedeemFounderCode() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [grantedDays, setGrantedDays] = useState<number | null>(null)
 
   // Pré-preenche pelo link (?code=HAS2026), para convites compartilhados.
   useEffect(() => {
@@ -36,8 +37,9 @@ export function RedeemFounderCode() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: value }),
       })
-      const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: string }
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: string; days?: number }
       if (data.ok) {
+        setGrantedDays(typeof data.days === 'number' ? data.days : null)
         setDone(true)
         // re-lê is_premium na página (server component)
         setTimeout(() => router.refresh(), 1200)
@@ -58,7 +60,7 @@ export function RedeemFounderCode() {
           Premium de fundador ativado!
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2.4l2.63 5.56 6.07.86-4.4 4.2 1.06 6.04L12 16.9l-5.43 2.16 1.06-6.04-4.4-4.2 6.07-.86L12 2.4z" /></svg>
         </p>
-        <p className="mt-1 text-sm text-muted">Seu acesso Premium está liberado por 1 ano. Bom treino!</p>
+        <p className="mt-1 text-sm text-muted">{grantedDays == null ? 'Seu acesso Premium está liberado. Bom treino!' : `Seu acesso Premium está liberado por ${grantedDays % 365 === 0 ? `${grantedDays / 365} ano${grantedDays / 365 > 1 ? 's' : ''}` : `${grantedDays} dias`}. Bom treino!`}</p>
       </div>
     )
   }
