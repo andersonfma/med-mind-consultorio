@@ -12,13 +12,14 @@ const DESCRIPTION = 'Consultas e especialidades ilimitadas, simulados ENARE/ENAM
 
 // Responde 200 com as tags do card (a logo aparece no WhatsApp). O humano é
 // redirecionado por JS; o scraper fica e lê o Open Graph. Botão cobre no-JS.
-// A imagem vem do arquivo estático opengraph-image.jpg desta rota (JPG sem alpha,
-// com width/height/type) — bem mais confiável no WhatsApp que o PNG dinâmico.
+// og:image EXPLÍCITO = JPG estático em /public (sem alpha, com width/height/type):
+// sobrescreve o PNG dinâmico do layout raiz, que o WhatsApp recusava renderizar.
+const OG_IMAGE = { url: '/og-ativar.jpg', width: 1200, height: 630, type: 'image/jpeg', alt: 'Med Mind — treine o raciocínio clínico' }
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
-  openGraph: { title: TITLE, description: DESCRIPTION, siteName: BRAND.name, locale: 'pt_BR', type: 'website' },
-  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
+  openGraph: { title: TITLE, description: DESCRIPTION, siteName: BRAND.name, locale: 'pt_BR', type: 'website', images: [OG_IMAGE] },
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION, images: ['/og-ativar.jpg'] },
 }
 
 export default async function AtivarPage({ params }: { params: Promise<{ code: string }> }) {
