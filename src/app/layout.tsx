@@ -21,8 +21,11 @@ export const metadata: Metadata = {
     siteName: BRAND.name,
     locale: 'pt_BR',
     type: 'website',
+    // JPG estático (sem alpha, com width/height/type): o WhatsApp recusava a PNG
+    // dinâmica. Usado em toda a app, inclusive nas páginas de destino do redirect.
+    images: [{ url: '/og-ativar.jpg', width: 1200, height: 630, type: 'image/jpeg', alt: `${BRAND.name} — treine o raciocínio clínico` }],
   },
-  twitter: { card: 'summary_large_image' },
+  twitter: { card: 'summary_large_image', images: ['/og-ativar.jpg'] },
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: BRAND.name },
 }
