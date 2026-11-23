@@ -1,0 +1,12 @@
+name: Lembrete de sequência (noite)
+on:
+  schedule:
+    - cron: "0 22 * * *"  # ~19h BRT; o agendador do GitHub pode atrasar, mas ainda antes da virada em Brasília
+  workflow_dispatch:
+jobs:
+  streak:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lembrar quem tem sequência em risco
+        run: |
+          curl -fsS -X POST "${{ secrets.APP_URL }}/api/cron/streak-reminder" -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
