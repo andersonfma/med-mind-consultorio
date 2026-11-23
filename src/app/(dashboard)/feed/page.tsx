@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { LOGIN_ROUTE } from '@/lib/routes'
 import { buildFeedPosts } from '@/lib/social/feed'
 import { getChallengeToday } from '@/lib/challenge/today'
+import { todayBR } from '@/lib/datetime'
 import { getActiveStories } from '@/lib/social/stories'
 import { displayIdentity } from '@/lib/social/identity'
 import type { ProfileSocial } from '@/lib/social/types'
@@ -64,7 +65,7 @@ export default async function FeedPage() {
   const feed = buildFeedPosts(rows, profilesById, user.id, quizzesById)
 
   // Resumo do desafio de hoje para o banner
-  const challenge = await getChallengeToday(admin, user.id, new Date().toISOString().slice(0, 10))
+  const challenge = await getChallengeToday(admin, user.id, todayBR())
   const todayDay = challenge.days.find(d => d.dayIndex === challenge.todayDayIndex) ?? challenge.days[challenge.days.length - 1] ?? null
   const banner = challenge.case && todayDay
     ? { title: challenge.case.title, stage: todayDay.stage, answered: !!todayDay.answered, streak: challenge.streak, isToday: challenge.todayDayIndex != null }

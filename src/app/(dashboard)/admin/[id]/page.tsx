@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic'
 
 function fmt(s: string | null | undefined) {
   if (!s) return '—'
-  return new Date(s).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+  return new Date(s).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })
 }
 
 export default async function AdminUserPage({ params }: { params: Promise<{ id: string }> }) {
@@ -246,7 +246,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
             <div className="flex flex-wrap gap-1.5">
               {timeline.slice(-20).map((e, i) => (
                 <span key={i} className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted">
-                  {e.feature} · {new Date(e.ts).toLocaleDateString('pt-BR')}
+                  {e.feature} · {new Date(e.ts).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                 </span>
               ))}
             </div>

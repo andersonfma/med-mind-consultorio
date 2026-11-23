@@ -10,7 +10,7 @@ import { SpacePostInteractions } from './SpacePostInteractions'
 
 export const dynamic = 'force-dynamic'
 
-function fmt(s: string) { return new Date(s).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) }
+function fmt(s: string) { return new Date(s).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' }) }
 
 export default async function SpacePage({ params }: { params: Promise<{ slug: string }> }) {
   const supabase = await createClient()

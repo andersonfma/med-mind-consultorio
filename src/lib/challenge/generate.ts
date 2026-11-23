@@ -3,6 +3,7 @@ import { type SupabaseClient } from '@supabase/supabase-js'
 import { openai } from '@/lib/openai/client'
 import { MODELS } from '@/lib/openai/models'
 import { buildWeeklyCasePrompt, parseWeeklyCase, type GeneratedWeek } from './prompts'
+import { todayBR, ymdToUTCDate } from '@/lib/datetime'
 
 /** Gera o caso da semana + 7 quizzes coerentes (Clínica Médica). null em falha. */
 export async function generateWeeklyCase(): Promise<GeneratedWeek | null> {
@@ -15,18 +16,18 @@ export async function generateWeeklyCase(): Promise<GeneratedWeek | null> {
   return raw ? parseWeeklyCase(raw) : null
 }
 
-/** Segunda-feira da PRÓXIMA semana (UTC), YYYY-MM-DD. */
+/** Segunda-feira da PRÓXIMA semana (calendário de Brasília), YYYY-MM-DD. */
 export function nextMonday(now: Date): string {
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const d = ymdToUTCDate(todayBR(now)) // calendário de Brasília tratado como UTC-midnight
   const dow = d.getUTCDay()
   const add = ((8 - dow) % 7) || 7
   d.setUTCDate(d.getUTCDate() + add)
   return d.toISOString().slice(0, 10)
 }
 
-/** Segunda-feira da semana CORRENTE (UTC), YYYY-MM-DD. */
+/** Segunda-feira da semana CORRENTE (calendário de Brasília), YYYY-MM-DD. */
 export function thisMonday(now: Date): string {
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const d = ymdToUTCDate(todayBR(now))
   const dow = d.getUTCDay() // 0=dom..6=sáb
   d.setUTCDate(d.getUTCDate() - (dow === 0 ? 6 : dow - 1))
   return d.toISOString().slice(0, 10)

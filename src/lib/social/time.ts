@@ -17,5 +17,5 @@ export function relativeTime(iso: string | null | undefined, now: Date = new Dat
   if (d < 7) return `há ${d} d`
   const w = Math.floor(d / 7)
   if (d < 30) return `há ${w} sem`
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  return new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: '2-digit' })
 }

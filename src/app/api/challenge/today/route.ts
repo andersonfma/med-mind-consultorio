@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { todayBR } from '@/lib/datetime'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getChallengeToday } from '@/lib/challenge/today'
@@ -6,7 +7,7 @@ import { getChallengeToday } from '@/lib/challenge/today'
 export const dynamic = 'force-dynamic'
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayBR()
 }
 
 export async function GET() {

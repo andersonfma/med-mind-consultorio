@@ -26,7 +26,7 @@ const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0)
 
 function fmt(s: string | null | undefined) {
   if (!s) return '—'
-  return new Date(s).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+  return new Date(s).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })
 }
 
 function StatCard({ label, value, sub, accent }: { label: string; value: ReactNode; sub?: string; accent?: boolean }) {

@@ -4,7 +4,7 @@ import { BRAND } from '@/lib/brand'
 
 const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
 const DISMISS_KEY = 'mm-install-dismissed'
-const DISMISS_MS = 14 * 86_400_000
+const DISMISS_MS = 4 * 86_400_000
 
 type BIPEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }
 type Mode = 'none' | 'ios-install' | 'android-install' | 'enable-push'

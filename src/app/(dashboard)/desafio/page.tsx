@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { LOGIN_ROUTE } from '@/lib/routes'
 import { getChallengeToday } from '@/lib/challenge/today'
+import { todayBR } from '@/lib/datetime'
 import { ChallengeQuiz } from './ChallengeQuiz'
 import { StudyCard } from './StudyCard'
 
@@ -13,15 +14,13 @@ const STAGE_LABEL: Record<string, string> = {
   sintese: 'Síntese diagnóstica', conduta: 'Conduta', complicacoes: 'Complicações', conclusao: 'Conclusão',
 }
 
-function todayISO() { return new Date().toISOString().slice(0, 10) }
-
 export default async function DesafioPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(LOGIN_ROUTE)
 
   const admin = createAdminClient()
-  const data = await getChallengeToday(admin, user.id, todayISO())
+  const data = await getChallengeToday(admin, user.id, todayBR())
 
   if (!data.case) {
     return (

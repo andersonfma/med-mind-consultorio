@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { todayBR } from '@/lib/datetime'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getMedcoinBalance } from '@/lib/challenge/today'
@@ -6,7 +7,7 @@ import { resolveBet, nextStreak, streakFactor, dayFactor, type Stage } from '@/l
 
 export const dynamic = 'force-dynamic'
 
-function todayISO(): string { return new Date().toISOString().slice(0, 10) }
+function todayISO(): string { return todayBR() }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = await params

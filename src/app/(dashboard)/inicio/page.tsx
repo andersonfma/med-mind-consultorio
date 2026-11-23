@@ -8,6 +8,7 @@ import {
   LOGIN_ROUTE, DASHBOARD_ROUTE, CHALLENGE_ROUTE, RANKING_ROUTE, PREMIUM_ROUTE, EXAMS_ROUTE,
 } from '@/lib/routes'
 import { getChallengeToday } from '@/lib/challenge/today'
+import { todayBR } from '@/lib/datetime'
 import { ChallengeBanner } from '../feed/ChallengeBanner'
 
 export const dynamic = 'force-dynamic'
@@ -31,7 +32,7 @@ export default async function HomePage() {
 
   const [{ data: prof }, challenge] = await Promise.all([
     db.from('profiles').select('full_name, is_premium').eq('id', user.id).maybeSingle(),
-    getChallengeToday(admin, user.id, new Date().toISOString().slice(0, 10)),
+    getChallengeToday(admin, user.id, todayBR()),
   ])
   const p = prof as { full_name: string | null; is_premium: boolean | null } | null
   const firstName = (p?.full_name ?? '').trim().split(' ')[0] || null

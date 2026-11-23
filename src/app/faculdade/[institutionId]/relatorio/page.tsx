@@ -19,7 +19,7 @@ export default async function FacultyReportPage({ params }: { params: Promise<{ 
   if (!institution) notFound()
 
   const d = await loadFacultyDashboard(institution, Date.now())
-  const hoje = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+  const hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: 'long', year: 'numeric' })
 
   return (
     <main className="mx-auto max-w-[800px] bg-white px-10 py-8 text-[13px] text-neutral-900">

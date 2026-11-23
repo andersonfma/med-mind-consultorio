@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { withClockSkewRetry } from '@/lib/supabase/retry'
 import { LOGIN_ROUTE, patientDetailRoute } from '@/lib/routes'
 import { getChallengeToday } from '@/lib/challenge/today'
+import { todayBR } from '@/lib/datetime'
 import { ChallengeBanner } from '../feed/ChallengeBanner'
 import { BondBar } from '@/components/ui/BondBar'
 import { VolumeChart } from '@/components/charts/VolumeChart'
@@ -45,7 +46,7 @@ export default async function DashboardPage() {
   const [radar, charts, challenge] = await Promise.all([
     getRadarData(supabase, user.id),
     getDashboardCharts(supabase, user.id),
-    getChallengeToday(admin, user.id, new Date().toISOString().slice(0, 10)),
+    getChallengeToday(admin, user.id, todayBR()),
   ])
   // Dia de hoje; no fim de semana / entre-casos, cai no último dia revelado (revisar) em vez de sumir.
   const todayDay = challenge.days.find((d) => d.dayIndex === challenge.todayDayIndex) ?? challenge.days[challenge.days.length - 1] ?? null

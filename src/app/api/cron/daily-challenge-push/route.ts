@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { todayBR } from '@/lib/datetime'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPush } from '@/lib/social/push'
@@ -10,14 +11,14 @@ const STAGE_LABEL: Record<string, string> = {
   sintese: 'Síntese diagnóstica', conduta: 'Conduta', complicacoes: 'Complicações', conclusao: 'Conclusão',
 }
 
-// Push diário do desafio: avisa os inscritos quando o quiz do dia abre (seg→sex).
+// Push diário do desafio: avisa os inscritos quando o quiz do dia abre (os 7 dias do caso, seg→dom).
 // Só notifica quem AINDA não respondeu o quiz de hoje. Disparado pela Action desafio-push.yml.
 export async function POST(request: NextRequest) {
   if (request.headers.get('x-cron-secret') !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 401 })
   }
   const admin = createAdminClient() as unknown as SupabaseClient
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayBR()
 
   // Dia revelado hoje (um por data; fim de semana não tem).
   const { data: dayRow } = await admin

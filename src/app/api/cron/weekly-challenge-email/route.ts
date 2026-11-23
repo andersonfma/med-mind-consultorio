@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { todayBR } from '@/lib/datetime'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/send'
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
   }
   const admin = createAdminClient()
   const db = admin as unknown as SupabaseClient
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayBR()
 
   // Caso da semana vigente (o mais recente que já começou).
   const { data: wc } = await db.from('weekly_cases')
