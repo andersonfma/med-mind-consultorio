@@ -47,8 +47,6 @@ export default async function DesafioPage() {
         </div>
       </header>
 
-      <p className="rounded-xl border border-border bg-surface p-4 text-sm text-ink">{data.case.overview}</p>
-
       <ol className="space-y-4">
         {data.days.map(d => {
           const isToday = d.dayIndex === data.todayDayIndex
