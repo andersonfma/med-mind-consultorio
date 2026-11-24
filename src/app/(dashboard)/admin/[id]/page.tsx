@@ -38,7 +38,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
     admin.from('patients').select('id, name, specialty, diagnosis_status').eq('user_id', id),
     admin
       .from('consultations')
-      .select('user_id, status, created_at, finished_at, ab4_score, communication_score, patient_id')
+      .select('id, user_id, status, created_at, finished_at, ab4_score, communication_score, patient_id')
       .eq('user_id', id)
       .order('finished_at', { ascending: false }),
     admin.from('exam_requests').select('status, exam_name, attempts').eq('user_id', id),
@@ -69,7 +69,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
   const hasPaid = payments.some((p) => /APPROVED|COMPLETE|COMPLETED/i.test(p.event))
   const pSource = premiumSource(!!prof?.is_premium, redemptions.length > 0, hasPaid)
   const patients = (patientsRes.data ?? []) as Array<{ id: string; name: string; specialty: string; diagnosis_status: string }>
-  const consultations = (consultationsRes.data ?? []) as (ConsultRow & { patient_id: string })[]
+  const consultations = (consultationsRes.data ?? []) as (ConsultRow & { id: string; patient_id: string })[]
   const exams = (examsRes.data ?? []) as Array<{ status: string; exam_name: string; attempts: number | null }>
   const prescriptions = (rxRes.data ?? []) as Array<{ adequacy: string | null }>
   const specById = new Map(patients.map((p) => [p.id, p.specialty]))
@@ -111,6 +111,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
     .sort((a, b) => (a.value as number) - (b.value as number))[0]
 
   const history = finishedC.map((c) => ({
+    id: c.id,
     date: c.finished_at,
     specialty: specById.get(c.patient_id) ?? '—',
     patient: nameById.get(c.patient_id) ?? '—',
@@ -342,21 +343,25 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
                 <th className="px-3 py-2 font-medium">Especialidade</th>
                 <th className="px-3 py-2 text-right font-medium">Racioc.</th>
                 <th className="px-3 py-2 text-right font-medium">Comun.</th>
+                <th className="px-3 py-2 font-medium"></th>
               </tr>
             </thead>
             <tbody>
               {history.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-8 text-center text-muted">Nenhuma consulta finalizada ainda.</td>
+                  <td colSpan={6} className="px-3 py-8 text-center text-muted">Nenhuma consulta finalizada ainda.</td>
                 </tr>
               )}
-              {history.map((h, i) => (
-                <tr key={i} className="border-b border-border/60 last:border-0">
+              {history.map((h) => (
+                <tr key={h.id} className="border-b border-border/60 last:border-0 hover:bg-surface-2/40">
                   <td className="whitespace-nowrap px-3 py-2.5 text-muted">{fmt(h.date)}</td>
                   <td className="px-3 py-2.5 text-ink">{h.patient}</td>
                   <td className="px-3 py-2.5 text-muted">{h.specialty}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-ink">{h.ab4 != null ? h.ab4.toFixed(1) : '—'}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-ink">{h.comm != null ? h.comm.toFixed(1) : '—'}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                    <Link href={`/admin/${id}/consulta/${h.id}`} className="font-medium text-primary hover:underline">Ver →</Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
