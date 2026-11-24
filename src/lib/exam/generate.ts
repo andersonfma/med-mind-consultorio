@@ -58,17 +58,11 @@ export async function verifyAnswers(qs: ExamQuestion[]): Promise<boolean[]> {
   }
 }
 
-/** Gera um simulado curto, no formato e TRILHA do exame (ENARE acesso direto/pré-requisito, ENAMED).
- *  Sobre-solicita, valida contra o blueprint estrutural da trilha e regenera para completar. */
-export async function generateExam(exam: ExamType, areaKey: string, n: number, track: ExamTrack = 'acesso-direto'): Promise<ExamQuestion[] | null> {
-  const preReq = exam === 'enare' && track === 'pre-requisito'
-  const resolved = preReq
-    ? PRE_REQ_SPECIALTIES.find((s) => s.key === areaKey)
-    : EXAM_AREAS.find((a) => a.key === areaKey)
-  if (!resolved) return null
+/** Núcleo da geração: produz até `n` questões para UMA área/tema (label + topics explícitos).
+ *  Sobre-solicita, expande enunciados curtos, valida contra o blueprint e verifica o gabarito;
+ *  regenera até 3x para completar. Reutilizado pelo simulado do aluno e pelas provas da faculdade. */
+export async function generateQuestions(exam: ExamType, areaLabel: string, topics: string, n: number, track: ExamTrack, quantitative: boolean): Promise<ExamQuestion[]> {
   const nOpt = examOptions(exam)
-  // Pré-requisito é sempre clínico/especialista; só acesso-direto/ENAMED têm áreas quantitativas.
-  const quantitative = !preReq && isQuantitativeArea(resolved.key)
   const collected: ExamQuestion[] = []
 
   for (let attempt = 0; attempt < 3 && collected.length < n; attempt++) {
@@ -77,7 +71,7 @@ export async function generateExam(exam: ExamType, areaKey: string, n: number, t
     const completion = await openai.chat.completions.create({
       model: MODELS.generation,
       response_format: { type: 'json_object' },
-      messages: [{ role: 'user', content: buildExamPrompt(exam, resolved.label, resolved.topics, req, track, quantitative) }],
+      messages: [{ role: 'user', content: buildExamPrompt(exam, areaLabel, topics, req, track, quantitative) }],
     }, { timeout: 90_000 })
     const raw = completion.choices[0]?.message?.content
     const parsed = (raw ? parseExam(raw, req, nOpt) : null) ?? []
@@ -90,5 +84,18 @@ export async function generateExam(exam: ExamType, areaKey: string, n: number, t
     const ok = await verifyAnswers(structural)
     structural.forEach((q, i) => { if (ok[i] && collected.length < n) collected.push(q) })
   }
-  return collected.length ? collected.slice(0, n) : null
+  return collected.slice(0, n)
+}
+
+/** Gera um simulado curto, no formato e TRILHA do exame (ENARE acesso direto/pré-requisito, ENAMED). */
+export async function generateExam(exam: ExamType, areaKey: string, n: number, track: ExamTrack = 'acesso-direto'): Promise<ExamQuestion[] | null> {
+  const preReq = exam === 'enare' && track === 'pre-requisito'
+  const resolved = preReq
+    ? PRE_REQ_SPECIALTIES.find((s) => s.key === areaKey)
+    : EXAM_AREAS.find((a) => a.key === areaKey)
+  if (!resolved) return null
+  // Pré-requisito é sempre clínico/especialista; só acesso-direto/ENAMED têm áreas quantitativas.
+  const quantitative = !preReq && isQuantitativeArea(resolved.key)
+  const out = await generateQuestions(exam, resolved.label, resolved.topics, n, track, quantitative)
+  return out.length ? out : null
 }

@@ -71,6 +71,8 @@ export default async function FacultyDashboardPage({ params }: { params: Promise
         </div>
         <div className="flex items-center gap-2">
           {institutions.length > 1 && <Link href="/faculdade" className="rounded-lg border border-border px-3 py-2 text-sm text-muted hover:border-primary hover:text-primary">Trocar</Link>}
+          <Link href={`/faculdade/${institution.id}/provas`}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-ink hover:border-primary hover:text-primary">Provas da turma</Link>
           <Link href={`/faculdade/${institution.id}/relatorio`} target="_blank"
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-ink hover:opacity-90">Gerar relatório</Link>
         </div>
