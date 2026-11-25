@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { todayBR } from '@/lib/datetime'
+import { todayBR, brHour } from '@/lib/datetime'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPush } from '@/lib/social/push'
@@ -17,6 +17,10 @@ export async function POST(request: NextRequest) {
   if (request.headers.get('x-cron-secret') !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 401 })
   }
+  // Trava anti-madrugada: o agendador do GitHub atrasa; só notificamos entre 8h e 21h BRT.
+  const h = brHour()
+  if (h < 8 || h >= 22) return NextResponse.json({ skipped: 'fora do horário', hour: h }, { status: 200 })
+
   const admin = createAdminClient() as unknown as SupabaseClient
   const today = todayBR()
 
