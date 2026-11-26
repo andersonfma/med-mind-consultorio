@@ -45,7 +45,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
     admin.from('prescriptions').select('adequacy').eq('user_id', id),
     admin.from('quiz_answers').select('is_correct, created_at').eq('user_id', id),
     admin.from('exam_attempts').select('score, total, created_at').eq('user_id', id),
-    admin.from('disease_maps').select('id, disease, created_at').eq('user_id', id),
+    admin.from('disease_maps').select('id, disease, area, created_at').eq('user_id', id).order('created_at', { ascending: false }),
     admin.from('posts').select('created_at').eq('author_id', id),
     admin.from('post_reactions').select('created_at').eq('user_id', id),
   ])
@@ -122,7 +122,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
   // Desempenho por recurso + status de retenção (mesma régua da lib)
   const quiz = (quizRes.data ?? []) as Array<{ is_correct: boolean; created_at: string | null }>
   const sims = (simRes.data ?? []) as Array<{ score: number; total: number; created_at: string | null }>
-  const maps = (mapsRes.data ?? []) as Array<{ id: string; disease: string; created_at: string | null }>
+  const maps = (mapsRes.data ?? []) as Array<{ id: string; disease: string; area: string | null; created_at: string | null }>
   const myPosts = (postsRes.data ?? []) as Array<{ created_at: string | null }>
   const myReacts = (reactsRes.data ?? []) as Array<{ created_at: string | null }>
   const quizAcc = quiz.length ? pct(quiz.filter((q) => q.is_correct).length, quiz.length) : null
@@ -367,6 +367,26 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* Mapas da Doença gerados (lista completa) */}
+      <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-semibold text-ink">Mapas da Doença gerados</h2>
+          <span className="text-xs text-muted">{maps.length} {maps.length === 1 ? 'mapa' : 'mapas'}</span>
+        </div>
+        {maps.length === 0 ? (
+          <p className="text-xs text-muted">Nenhum mapa gerado ainda.</p>
+        ) : (
+          <ul className="divide-y divide-border/60">
+            {maps.map((m) => (
+              <li key={m.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <span className="min-w-0 truncate text-ink">{m.disease}{m.area ? <span className="text-muted"> · {m.area}</span> : null}</span>
+                <span className="shrink-0 whitespace-nowrap text-xs text-muted">{fmt(m.created_at)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   )

@@ -2,8 +2,13 @@
 // Puras e testáveis; recebem timestamps (ms) já extraídos das tabelas.
 
 const DAY = 86_400_000
+// Buckets de dia/semana/mês/hora no horário de BRASÍLIA. O Brasil não tem horário de
+// verão desde 2019 → fuso fixo UTC-3; subtrair o offset e ler com getUTC* dá o valor BRT.
+// (Sem isso, a atividade entre 21h e 00h BRT caía no dia/dia-da-semana UTC seguinte.)
+const BR_OFFSET = 3 * 3_600_000
+const brDate = (ms: number) => new Date(ms - BR_OFFSET)
 
-const dayKey = (ms: number) => Math.floor(ms / DAY)
+const dayKey = (ms: number) => Math.floor((ms - BR_OFFSET) / DAY)
 
 /** Dias distintos com atividade. */
 export function activeDays(eventsMs: number[]): number {
@@ -59,7 +64,7 @@ export function studyWindow(eventsMs: number[]): StudyWindow {
   const byBlock = { madrugada: 0, manha: 0, tarde: 0, noite: 0 }
   const byWeekday = [0, 0, 0, 0, 0, 0, 0]
   for (const ms of eventsMs) {
-    const d = new Date(ms)
+    const d = brDate(ms) // horário de Brasília
     const h = d.getUTCHours()
     if (h < 6) byBlock.madrugada++
     else if (h < 12) byBlock.manha++
@@ -81,7 +86,7 @@ export function monthlyTrend(points: Array<{ ts: number; value: number }>): Tren
   const byMonth = new Map<string, { sum: number; n: number }>()
   for (const p of points) {
     if (p.value == null || Number.isNaN(p.value)) continue
-    const d = new Date(p.ts)
+    const d = brDate(p.ts) // mês no horário de Brasília
     const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
     const cur = byMonth.get(key) ?? { sum: 0, n: 0 }
     cur.sum += p.value; cur.n++

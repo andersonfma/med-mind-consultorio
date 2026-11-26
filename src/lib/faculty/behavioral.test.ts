@@ -64,14 +64,22 @@ describe('studyWindow', () => {
     expect(w.byWeekday[new Date(noite).getUTCDay()]).toBe(1)
     expect(w.byWeekday.reduce((a, b) => a + b, 0)).toBe(2)
   })
+  it('usa o horário de Brasília na fronteira do dia (não UTC)', () => {
+    // 01:00 UTC de terça = 22:00 BRT de SEGUNDA → bloco noite, dia de semana = segunda.
+    const ev = Date.UTC(2026, 10, 17, 1, 0, 0)
+    const w = studyWindow([ev])
+    expect(w.byBlock.noite).toBe(1)
+    expect(w.byBlock.madrugada).toBe(0)
+    expect(w.byWeekday[new Date(Date.UTC(2026, 10, 16)).getUTCDay()]).toBe(1) // segunda BRT
+  })
 })
 
 describe('monthlyTrend', () => {
   it('média mensal ordenada', () => {
     const t = monthlyTrend([
-      { ts: Date.UTC(2026, 8, 5), value: 6 },
-      { ts: Date.UTC(2026, 8, 20), value: 8 },
-      { ts: Date.UTC(2026, 9, 1), value: 7 },
+      { ts: Date.UTC(2026, 8, 5, 12), value: 6 },   // 5/set 09h BRT
+      { ts: Date.UTC(2026, 8, 20, 12), value: 8 },  // 20/set 09h BRT
+      { ts: Date.UTC(2026, 9, 1, 12), value: 7 },   // 1/out 09h BRT (inequívoco)
     ])
     expect(t).toEqual([
       { periodKey: '2026-09', avg: 7, n: 2 },
